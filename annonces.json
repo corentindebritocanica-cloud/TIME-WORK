@@ -1,0 +1,20 @@
+[
+  {
+    "id": "1",
+    "titre": "Maison T5 avec jardin",
+    "prix": 410000,
+    "surface": 115,
+    "lat": 43.5361,
+    "lng": 1.5162,
+    "type": "Maison"
+  },
+  {
+    "id": "2",
+    "titre": "Terrain constructible libre",
+    "prix": 160000,
+    "surface": 700,
+    "lat": 43.5385,
+    "lng": 1.5210,
+    "type": "Terrain"
+  }
+]

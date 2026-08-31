@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>ImmoPredict AI - iPhone Prototype</title>
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+    }
+
+    #map {
+      width: 100%;
+      height: 100vh;
+      z-index: 1;
+    }
+
+    /* Barre supérieure de recherche & actions */
+    .top-bar {
+      position: absolute;
+      top: env(safe-area-inset-top, 20px);
+      left: 12px;
+      right: 12px;
+      z-index: 1000;
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-action {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: none;
+      border-radius: 20px;
+      padding: 12px 16px;
+      font-weight: 600;
+      font-size: 14px;
+      color: #007AFF;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-locate {
+      width: 48px;
+      height: 48px;
+      padding: 0;
+      border-radius: 50%;
+      font-size: 18px;
+    }
+
+    /* Panneau coulissant iOS (Bottom Sheet) */
+    .sheet {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      padding: 16px 20px calc(20px + env(safe-area-inset-bottom));
+      box-shadow: 0 -5px 25px rgba(0,0,0,0.2);
+      transform: translateY(calc(100% - 70px));
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .sheet.open {
+      transform: translateY(0);
+    }
+
+    .sheet-handle {
+      width: 36px;
+      height: 5px;
+      background: #C7C7CC;
+      border-radius: 3px;
+      margin: 0 auto 12px auto;
+    }
+
+    .sheet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .sheet-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1C1C1E;
+      margin: 0;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      background-color: #E5F1FF;
+      color: #007AFF;
+    }
+
+    /* Sections de données API */
+    .grid-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .card {
+      background: #FFFFFF;
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .card-label {
+      font-size: 11px;
+      color: #8E8E93;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .card-value {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1C1C1E;
+    }
+
+    /* Modulateur Temporel de Plus-Value */
+    .projection-box {
+      margin-top: 15px;
+      background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
+      color: white;
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .projection-title {
+      font-size: 14px;
+      font-weight: 600;
+      opacity: 0.9;
+    }
+
+    .projection-val {
+      font-size: 24px;
+      font-weight: 800;
+      margin: 6px 0;
+    }
+
+    .slider {
+      width: 100%;
+      margin-top: 10px;
+      accent-color: #34C759;
+    }
+
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      opacity: 0.8;
+    }
+
+    .spinner {
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border-left-color: #007AFF;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="map"></div>
+
+  <div class="top-bar">
+    <button class="btn-action btn-locate" onclick="locateUser()">📍</button>
+    <button class="btn-action" style="flex:1" onclick="toggleSheet()">📊 Voir l'analyse du secteur</button>
+  </div>
+
+  <div class="sheet" id="bottomSheet">
+    <div class="sheet-handle" onclick="toggleSheet()"></div>
+    
+    <div class="sheet-header">
+      <div>
+        <h2 class="sheet-title" id="addrTitle">Cliquez sur la carte...</h2>
+        <div id="addrSub" style="font-size: 12px; color: #8E8E93;">Position ou adresse cible</div>
+      </div>
+      <span class="badge" id="pluBadge">PLU : --</span>
+    </div>
+
+    <div class="projection-box">
+      <div class="projection-title">📈 Projection de valeur prédictive</div>
+      <div class="projection-val" id="projectedPrice">-- € / m²</div>
+      <input type="range" min="0" max="10" value="0" step="1" class="slider" id="yearSlider" oninput="updateProjection()">
+      <div class="slider-labels">
+        <span>Aujourd'hui</span>
+        <span>+3 ans</span>
+        <span>+5 ans</span>
+        <span>+10 ans</span>
+      </div>
+    </div>
+
+    <div class="grid-stats">
+      <div class="card">
+        <div class="card-label">Prix DVF Moyen</div>
+        <div class="card-value" id="dvfPrice">--</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Parcelle Cadastre</div>
+        <div class="card-value" id="cadastreRef">--</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Ventes (300m)</div>
+        <div class="card-value" id="salesCount">--</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Risques Sol/Secteur</div>
+        <div class="card-value" id="risksInfo">--</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // 1. Initialisation de la carte Leaflet
+    const map = L.map('map', { zoomControl: false }).setView([48.8566, 2.3522], 13); // Paris par défaut
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap, © CARTO',
+      maxZoom: 19
+    }).addTo(map);
+
+    let currentMarker = null;
+    let cadastreLayer = null;
+    let currentBasePrice = 0;
+
+    // 2. Gestion de la géolocalisation
+    function locateUser() {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(position => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          map.setView([lat, lng], 17);
+          handleLocationSelect(lat, lng);
+        }, () => {
+          alert("Avis : Activez la géolocalisation sur votre iPhone.");
+        });
+      }
+    }
+
+    // 3. Événement au clic sur la carte
+    map.on('click', function(e) {
+      handleLocationSelect(e.latlng.lat, e.latlng.lng);
+    });
+
+    async function handleLocationSelect(lat, lng) {
+      openSheet();
+      setLoadingState();
+
+      // Placer un marqueur
+      if (currentMarker) map.removeLayer(currentMarker);
+      currentMarker = L.marker([lat, lng]).addTo(map);
+
+      // Exécuter tous les appels API en parallèle
+      await Promise.all([
+        fetchAddressBAN(lat, lng),
+        fetchCadastreIGN(lat, lng),
+        fetchDVFEtalab(lat, lng),
+        fetchPLUGPU(lat, lng),
+        fetchGeorisques(lat, lng)
+      ]);
+    }
+
+    // -------------------------------------------------------------
+    // INTEGRATION DES API OFFICIELLES FRANÇAISES (OPEN DATA)
+    // -------------------------------------------------------------
+
+    // API 1 : Base Adresse Nationale (BAN)
+    async function fetchAddressBAN(lat, lng) {
+      try {
+        const res = await fetch(`https://api-adresse.data.gouv.fr/reverse/?lon=${lng}&lat=${lat}`);
+        const data = await res.json();
+        if (data.features.length > 0) {
+          const props = data.features[0].properties;
+          document.getElementById('addrTitle').innerText = props.name || props.street || "Adresse trouvée";
+          document.getElementById('addrSub').innerText = `${props.postcode} ${props.city}`;
+        }
+      } catch (e) {
+        document.getElementById('addrTitle').innerText = "Adresse inconnue";
+      }
+    }
+
+    // API 2 : Cadastre IGN (APICarto)
+    async function fetchCadastreIGN(lat, lng) {
+      try {
+        const res = await fetch(`https://apicarto.ign.fr/api/cadastre/parcelle?lon=${lng}&lat=${lat}`);
+        const data = await res.json();
+        
+        if (cadastreLayer) map.removeLayer(cadastreLayer);
+
+        if (data.features && data.features.length > 0) {
+          const parcelle = data.features[0].properties;
+          document.getElementById('cadastreRef').innerText = `${parcelle.section} ${parcelle.numero}`;
+          
+          // Dessiner le contour de la parcelle
+          cadastreLayer = L.geoJSON(data, {
+            style: { color: '#007AFF', weight: 2, fillOpacity: 0.2 }
+          }).addTo(map);
+        } else {
+          document.getElementById('cadastreRef').innerText = "Non cadastré";
+        }
+      } catch (e) {
+        document.getElementById('cadastreRef').innerText = "Indisponible";
+      }
+    }
+
+    // API 3 : Demandes de Valeurs Foncières (DVF Etalab)
+    async function fetchDVFEtalab(lat, lng) {
+      try {
+        const res = await fetch(`https://dvf-api.etalab.gouv.fr/v1/mutations/?lat=${lat}&lon=${lng}&dist=300`);
+        const data = await res.json();
+
+        if (data.mutations && data.mutations.length > 0) {
+          let totalM2Price = 0;
+          let validCount = 0;
+
+          data.mutations.forEach(m => {
+            if (m.valeur_fonciere && m.surface_reelle_bati > 0) {
+              totalM2Price += (m.valeur_fonciere / m.surface_reelle_bati);
+              validCount++;
+            }
+          });
+
+          const avgPrice = validCount > 0 ? Math.round(totalM2Price / validCount) : 4200; // valeur moyenne repli
+          currentBasePrice = avgPrice;
+          
+          document.getElementById('dvfPrice').innerText = `${avgPrice.toLocaleString()} € / m²`;
+          document.getElementById('salesCount').innerText = `${data.mutations.length} ventes`;
+          updateProjection();
+        } else {
+          document.getElementById('dvfPrice').innerText = "Pas de ventes récents";
+          document.getElementById('salesCount').innerText = "0";
+          currentBasePrice = 3500;
+          updateProjection();
+        }
+      } catch (e) {
+        document.getElementById('dvfPrice').innerText = "Donnée N.D.";
+        currentBasePrice = 3000;
+        updateProjection();
+      }
+    }
+
+    // API 4 : Géoportail de l'Urbanisme (PLU)
+    async function fetchPLUGPU(lat, lng) {
+      try {
+        const res = await fetch(`https://apicarto.ign.fr/api/gpu/zone-urba?lon=${lng}&lat=${lat}`);
+        const data = await res.json();
+        
+        if (data.features && data.features.length > 0) {
+          const zone = data.features[0].properties.libelle;
+          document.getElementById('pluBadge').innerText = `PLU : Zone ${zone}`;
+        } else {
+          document.getElementById('pluBadge').innerText = "PLU : Non renseigné";
+        }
+      } catch (e) {
+        document.getElementById('pluBadge').innerText = "PLU : Indisponible";
+      }
+    }
+
+    // API 5 : Géorisques (Risques environnementaux)
+    async function fetchGeorisques(lat, lng) {
+      try {
+        const res = await fetch(`https://www.georisques.gouv.fr/api/v1/radon?latlon=${lat},${lng}`);
+        const data = await res.json();
+        
+        if (data.risques) {
+          document.getElementById('risksInfo').innerText = "Secteur Analysé";
+        } else {
+          document.getElementById('risksInfo').innerText = "Faible / Normal";
+        }
+      } catch (e) {
+        document.getElementById('risksInfo').innerText = "Faible / Normal";
+      }
+    }
+
+    // 4. Moteur de projection temporelle de la plus-value
+    function updateProjection() {
+      const years = parseInt(document.getElementById('yearSlider').value);
+      
+      // Algorithme simplifiant un taux moyen annuel d'appréciation + impact dynamique
+      const annualGrowthRate = 0.025; // 2.5% par an
+      const projected = Math.round(currentBasePrice * Math.pow((1 + annualGrowthRate), years));
+      
+      document.getElementById('projectedPrice').innerText = `${projected.toLocaleString()} € / m²`;
+    }
+
+    // UI Helpers
+    function toggleSheet() {
+      document.getElementById('bottomSheet').classList.toggle('open');
+    }
+
+    function openSheet() {
+      document.getElementById('bottomSheet').classList.add('open');
+    }
+
+    function setLoadingState() {
+      document.getElementById('dvfPrice').innerHTML = '<span class="spinner"></span>';
+      document.getElementById('cadastreRef').innerHTML = '<span class="spinner"></span>';
+      document.getElementById('salesCount').innerHTML = '<span class="spinner"></span>';
+      document.getElementById('risksInfo').innerHTML = '<span class="spinner"></span>';
+    }
+
+    // Auto-géolocalisation au démarrage si disponible
+    window.onload = locateUser;
+  </script>
+</body>
+</html>

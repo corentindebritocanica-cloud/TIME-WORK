@@ -1,0 +1,6 @@
+- name: Exécuter le script de scraping
+        env:
+          SCRAPING_API_KEY: ${{ secrets.SCRAPING_API_KEY }}
+        run: |
+          pip install requests beautifulsoup4
+          python scraper.py

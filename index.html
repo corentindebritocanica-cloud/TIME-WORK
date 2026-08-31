@@ -3,10 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <!-- Configuration iOS Web App -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>ImmoPredict AI - iPhone Prototype</title>
+  <title>EstIA - App</title>
   
+  <!-- Leaflet CSS (Carte) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   
   <style>
@@ -205,13 +207,16 @@
 </head>
 <body>
 
+  <!-- Carte -->
   <div id="map"></div>
 
+  <!-- Commandes d'action haut -->
   <div class="top-bar">
     <button class="btn-action btn-locate" onclick="locateUser()">📍</button>
     <button class="btn-action" style="flex:1" onclick="toggleSheet()">📊 Voir l'analyse du secteur</button>
   </div>
 
+  <!-- Panneau Coulissant de Données -->
   <div class="sheet" id="bottomSheet">
     <div class="sheet-handle" onclick="toggleSheet()"></div>
     
@@ -223,6 +228,7 @@
       <span class="badge" id="pluBadge">PLU : --</span>
     </div>
 
+    <!-- Simulateur de Plus-Value -->
     <div class="projection-box">
       <div class="projection-title">📈 Projection de valeur prédictive</div>
       <div class="projection-val" id="projectedPrice">-- € / m²</div>
@@ -235,6 +241,7 @@
       </div>
     </div>
 
+    <!-- Grille d'Analyse API -->
     <div class="grid-stats">
       <div class="card">
         <div class="card-label">Prix DVF Moyen</div>
@@ -255,13 +262,15 @@
     </div>
   </div>
 
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
     // 1. Initialisation de la carte Leaflet
     const map = L.map('map', { zoomControl: false }).setView([48.8566, 2.3522], 13); // Paris par défaut
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    // Intégration de la clé API CARTO en clair
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_2mlz_1_7ac8b31ef1e91214f32992d4', {
       attribution: '© OpenStreetMap, © CARTO',
       maxZoom: 19
     }).addTo(map);

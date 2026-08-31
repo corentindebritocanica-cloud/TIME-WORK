@@ -1,0 +1,33 @@
+name: Mise à jour des annonces
+
+on:
+  schedule:
+    - cron: '0 6 * * *' # Exécution automatique tous les jours à 06:00 UTC
+  workflow_dispatch: # Ajoute un bouton pour le lancer manuellement
+
+permissions:
+  contents: write
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Récupérer le projet
+        uses: actions/checkout@v4
+        
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          
+      - name: Exécuter le script de scraping
+        run: python scraper.py
+        
+      - name: Sauvegarder le nouveau fichier annonces.json
+        run: |
+          git config --global user.name "GitHub Action Bot"
+          git config --global user.email "action@github.com"
+          git add annonces.json
+          git commit -m "Mise à jour automatique des annonces" || echo "Aucune modification à sauvegarder"
+          git push

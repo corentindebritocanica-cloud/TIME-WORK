@@ -136,6 +136,8 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 #### A12. Mono-fichier global
 - **Constat** : 2 715 lignes / 177 Ko, 84 fonctions globales, 45 `onclick` inline, 284 `style=""` inline, rendu par concaténation `innerHTML` complète (9 818 nœuds DOM pour 200 saisies, contenu replié compris).
 - **Solution** : modules ES (store, rendu par composant, utilitaires purs testés), délégation d'événements.
+- **Statut** : corrigé le 2026-09-29
+- **Correction appliquée** : Réécriture complète du front (2 800 lignes mono-fichier → coquille HTML de 80 lignes + 22 modules). Rendu via le gabarit `html`` qui échappe toute valeur interpolée (`innerHTML` n'existe plus qu'une fois, dans `mount()`, pour ces fragments sûrs). Événements délégués par `data-action`, retirés au démontage de la vue (`AbortController`). Accordéons natifs `<details>` dont le contenu n'est construit qu'à l'ouverture. Types : table unique `js/domain/types.js` (code, libellé, classe de couleur) alignée sur des tokens `--type-<CODE>`. Supprimés : ~10 règles CSS mortes, doublons `SV_COLORS` / `HIST_TYPES_LIST` / tokens divergents, `#view-suivi` en double, `top: 55px` en dur, couleurs en dur. (`auto-push.sh` et `.vscode/tasks.json` avaient déjà été supprimés.) Vérifié : 42 tests unitaires, 43 + 13 vérifications fonctionnelles de bout en bout sur émulateurs Firebase, 0 erreur JS.
 
 #### A13. Synchro par monkey-patch de `Storage.prototype.setItem`
 - **Constat** : fonctionne mais fragile ; `sp_dash_filter` (simple préférence d'affichage) est synchronisé par erreur via le préfixe `sp_`.
@@ -152,6 +154,8 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 #### A15. Doublons et code mort
 - **Constat** : types définis 4 fois (tokens `--t-*`, `SV_COLORS`, `SV_TYPES`, `HIST_TYPES_LIST`) avec noms divergents (`CONCEP3D`/`CONCEPTION3D`, `VERIF`/`VERIFICATION`) ; ~10 règles CSS inutilisées (`.file-status`, `.affaire-table`, `.micro-input`, `.btn-pdf`…) ; `#view-suivi` déclaré 2 fois (marges autour de la barre sticky) ; `top: 55px` en dur pour la nav ; libellé de tâche VS Code corrompu (`� Commit & Push`).
 - **Solution** : une seule table de types, purge du CSS mort, `position: sticky` sur un conteneur commun.
+- **Statut** : corrigé le 2026-09-29
+- **Correction appliquée** : Réécriture complète du front (2 800 lignes mono-fichier → coquille HTML de 80 lignes + 22 modules). Rendu via le gabarit `html`` qui échappe toute valeur interpolée (`innerHTML` n'existe plus qu'une fois, dans `mount()`, pour ces fragments sûrs). Événements délégués par `data-action`, retirés au démontage de la vue (`AbortController`). Accordéons natifs `<details>` dont le contenu n'est construit qu'à l'ouverture. Types : table unique `js/domain/types.js` (code, libellé, classe de couleur) alignée sur des tokens `--type-<CODE>`. Supprimés : ~10 règles CSS mortes, doublons `SV_COLORS` / `HIST_TYPES_LIST` / tokens divergents, `#view-suivi` en double, `top: 55px` en dur, couleurs en dur. (`auto-push.sh` et `.vscode/tasks.json` avaient déjà été supprimés.) Vérifié : 42 tests unitaires, 43 + 13 vérifications fonctionnelles de bout en bout sur émulateurs Firebase, 0 erreur JS.
 
 #### A16. Accessibilité et design system
 - **Constat** : contrastes mesurés sous WCAG AA — texte `--tx-muted` 4,15:1, client des accordéons 3,38:1, légendes 3,09:1, blanc sur bouton bleu `#3d9eff` 2,79:1 ; textes de 9–10 px ; thème sombre uniquement ; police Inter chargée via `@import` Google Fonts au lieu de Segoe UI Variable ; ~20 `alert()`/`confirm()` natifs ; cartes du Dashboard non focusables ; boutons ✕ sans `aria-label` ; labels non reliés aux champs ; pas de `prefers-reduced-motion` ; aucun raccourci clavier ; pas de manifest PWA.
@@ -196,6 +200,41 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 
 ---
 
+## 2026-09-29 — Lot 3 (front-end) : problèmes rencontrés
+
+#### C1. Couleurs des tuiles écrasées par l'ordre des couches CSS
+- **Symptôme** : libellés et valeurs des tuiles en blanc au lieu de la couleur de leur type.
+- **Cause** : `.tile { --tc: … }` (couche `components`) l'emportait sur `.t-DE { --tc: … }` (couche `tokens`, déclarée avant).
+- **Solution** : plus de valeur par défaut posée sur le composant ; utilisation de `var(--tc, var(--text))`.
+- **Statut** : corrigé le 2026-09-29
+
+#### C2. En-tête débordant à 150 % de mise à l'échelle
+- **Symptôme** : 38 px de défilement horizontal sur toutes les vues en fenêtre 1200×800 à 150 %.
+- **Solution** : en-tête compact sous 900 px (libellés masqués visuellement mais conservés pour les lecteurs d'écran, icônes avec infobulle).
+- **Statut** : corrigé le 2026-09-29
+
+#### C3. Bouton de suppression imbriqué dans le `<summary>` d'un accordéon
+- **Constat** : axe-core « nested-interactive » (élément interactif dans un élément interactif), et risque de suppression accidentelle.
+- **Solution** : « Supprimer l'affaire… » déplacé dans les réglages de l'affaire, avec confirmation puis « Annuler ».
+- **Statut** : corrigé le 2026-09-29
+
+#### C4. Vue jamais ouverte indisponible si la connexion tombe
+- **Cause** : vues chargées à la demande (`import()` dynamique).
+- **Solution** : service worker (cache des fichiers de l'app) + préchargement des vues en tâche de fond une fois l'app prête.
+- **Statut** : corrigé le 2026-09-29
+
+#### C5. Attributs booléens vides dans le gabarit `html```
+- **Symptôme** : `aria-pressed=""` au lieu de `"false"` (le gabarit rend `false` comme chaîne vide, pour les affichages conditionnels).
+- **Solution** : conversion explicite `String(bool)` pour les attributs ARIA.
+- **Statut** : corrigé le 2026-09-29
+
+#### C6. Deux navigations portant le même nom sur l'Accueil
+- **Constat** : axe-core « landmark-unique » (`<nav>` de l'en-tête et des cartes toutes deux nommées « Applications »).
+- **Solution** : nav de l'Accueil renommée « Ouvrir une application ».
+- **Statut** : corrigé le 2026-09-29
+
+---
+
 ## Lancement en mode application (Edge)
 
 Raccourci Windows utilisé (champ *Cible*) :
@@ -205,3 +244,5 @@ Raccourci Windows utilisé (champ *Cible*) :
 ```
 
 Si une ancienne version s'affiche après une mise à jour : **Ctrl+F5**.
+
+Depuis le lot 3, l'app peut aussi être **installée comme PWA** (Edge → ⋯ → Applications → Installer TIME-WORK), voir le README.

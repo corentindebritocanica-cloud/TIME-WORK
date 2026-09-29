@@ -11,6 +11,7 @@
  */
 import { db, fsMod } from './firebase.js';
 import { canonAffaire, canonEntry, canonDay, monthOf } from './store.js';
+import { normalizeData } from './domain/validate.js';
 
 const { doc, collection, writeBatch, serverTimestamp, deleteField, updateDoc, getDocFromServer, getDocsFromServer } = fsMod;
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -37,7 +38,6 @@ export function legacyFromKv(kv) {
  * @returns {{affaires: Object<string,object>, entries: Object<string,object>, days: Object<string,object>, dropped: number}}
  */
 export function fromLegacy(src) {
-    /* global normalizeData — défini dans index.html (validation partagée avec les imports) */
     const norm = normalizeData(src.affaires, src.entries);
     const affaires = {}, entries = {}, days = {};
     norm.affaires.forEach(a => {

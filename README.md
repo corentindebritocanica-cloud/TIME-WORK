@@ -1,7 +1,8 @@
 # Time-Work
 
-Portail interne Getinge — mono-fichier HTML pour la saisie et le suivi des
-heures de travail.
+Application Windows (PWA Edge / Chrome) pour le pointage CEGID, la saisie des
+heures par affaire et le suivi du temps de travail. Modules ES natifs, sans
+dépendance ni étape de build : GitHub Pages sert le dépôt tel quel.
 
 ## Contenu
 
@@ -11,6 +12,12 @@ heures de travail.
   (DE, ECA, CD, Réunion, Formation, MEP, Loads CD…), budgets par type,
   répartition graphique (camemberts), chronologie hebdomadaire, vue
   « Heures imputées (semaine) » avec l'écart pointé − imputé.
+- **Saisie rapide** (`Ctrl+K`) depuis n'importe quel écran : affaire
+  (autocomplétion code / client / machine), type, date, durée → `Entrée`.
+- **Annuler** pendant 5 s après la suppression d'une saisie, d'une affaire ou
+  l'effacement d'une semaine.
+- Thèmes **clair / sombre** automatiques (réglage Windows), police Segoe UI
+  Variable, contraste WCAG AA vérifié dans les deux thèmes.
 
 ## Utilisation
 
@@ -19,9 +26,33 @@ App en ligne : **https://corentindebritocanica-cloud.github.io/TIME-WORK/**
 Connexion avec un compte Google. Les données sont stockées dans **Firebase
 Firestore** et synchronisées **en temps réel** entre postes et onglets. Hors
 ligne, les saisies sont enregistrées sur le poste (cache IndexedDB du SDK) puis
-envoyées à la reconnexion. La pastille en bas à gauche indique l'état :
+envoyées à la reconnexion. La pastille de l'en-tête indique l'état :
 *Synchronisé*, *Enregistrement…*, *Hors ligne — enregistré sur ce poste*,
 *Erreur de synchronisation*.
+
+### Installer l'application (PWA)
+
+Dans Edge ou Chrome, ouvrir l'URL ci-dessus puis **menu ⋯ → Applications →
+Installer TIME-WORK** (ou l'icône d'installation dans la barre d'adresse).
+L'app s'ouvre alors dans sa propre fenêtre, épinglable à la barre des tâches,
+avec des raccourcis « Pointage CEGID » et « Suivi projet » sur l'icône.
+Le mode **Window Controls Overlay** (bouton ⌃ dans la barre de titre) place
+l'en-tête de l'app dans la barre de titre Windows. L'application démarre aussi
+hors ligne (service worker `sw.js`).
+
+L'ancien raccourci `msedge.exe --app=…` fonctionne toujours.
+
+### Raccourcis clavier
+
+| Touches | Action |
+|---|---|
+| `Ctrl+K` | Saisie rapide |
+| `Alt+H` / `Alt+P` / `Alt+S` | Accueil / Pointage CEGID / Suivi projet |
+| `1` `2` `3` `4` | Suivi : tableau de bord / par affaire / chronologie / heures imputées |
+| `←` / `→` / `T` | Semaine précédente / suivante / aujourd'hui (pointage, heures imputées, temps productif) |
+| `Ctrl+F` | Suivi par affaire : rechercher |
+| `Ctrl+S` | Forcer la synchronisation |
+| `?` | Aide des raccourcis |
 
 ### Modèle de données Firestore
 
@@ -76,7 +107,12 @@ users/{uid}/months/{AAAA-MM}
 4. Fermer les fenêtres de l'ancienne version encore ouvertes : après la
    conversion, les règles refusent l'ancien format.
 
-### Tests locaux (émulateur Firebase)
+### Tests
+
+- **Fonctions pures** (durées, semaines ISO, solde, CSV, validation,
+  échappement) : ouvrir `tests/domain.test.html` via un serveur local
+  (42 tests, résultat dans la page et la console).
+- **Application complète** : émulateur Firebase ci-dessous.
 
 ```bash
 firebase emulators:start --only firestore,auth --project demo-lisa   # règles ci-dessous dans firestore.rules (fichier local)
@@ -178,6 +214,7 @@ service cloud.firestore {
 | 2026-09-29 | Lot 2 A2 | Nouveau modèle Firestore `users/{uid}` (affaires, réglages) + `users/{uid}/months/{AAAA-MM}` (saisies, pointages) : écritures ciblées par champ, écoute temps réel, IDs UUID. Deux postes qui saisissent en même temps ne s'écrasent plus. **Règles à republier dans la console.** |
 | 2026-09-29 | Lot 2 Migration | Migration : à la première ouverture, conversion de l'ancien format (`kv` ou cache local) après sauvegarde JSON automatique ; relecture serveur et contrôle des totaux ; `kv` supprimé seulement si tout concorde. 5 problèmes rencontrés pendant le lot consignés (B1 à B5). |
 | 2026-09-29 | Nettoyage | Suppression des fichiers inutiles du repo : `firestore.rules` (règles désormais dans la section « Règles Firestore » du README), `firestore.indexes.json`, `auto-push.sh`, `.vscode/tasks.json`. Section « Git — commit & push » retirée. |
+| 2026-09-29 | Lot 3 A12 + A15 | Application réécrite en modules ES : `index.html` réduit à une coquille sémantique, `js/app.js` (routage `#/…`, vues chargées à la demande), `js/domain/` (fonctions pures testées), `js/ui/` (gabarit `html`` échappé par défaut, dialogues, toasts, camemberts, saisie rapide), `js/views/` (une vue par écran). Plus aucun `onclick` ni `style` inline, aucune variable globale, une seule table des types. Tests unitaires `tests/domain.test.html` (42). |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 
@@ -188,11 +225,20 @@ service cloud.firestore {
 ## Structure
 
 ```
-index.html          Application (HTML + CSS + JS des vues)
-js/firebase.js      Initialisation Firebase (SDK modulaire 12.19, cache IndexedDB, mode émulateur)
-js/store.js         Store : état en mémoire, écritures ciblées, écoute temps réel
-js/cloud.js         Connexion, migration, démarrage du store, pastille de synchro
-js/migrate.js       Conversion de l'ancien format (kv / cache local) avec contrôle des totaux
+index.html              Coquille : en-tête, <main>, écran de connexion, <dialog>, zone de toasts
+css/app.css             Styles en couches (@layer reset, tokens, base, components, views, utilities), thèmes clair/sombre
+manifest.webmanifest    Manifeste PWA (Window Controls Overlay, raccourcis)
+sw.js                   Service worker : démarrage hors ligne (⚠ incrémenter VERSION et tenir SHELL à jour à chaque livraison)
+icons/                  Icônes de l'application (SVG, PNG 192/512, maskable)
+js/app.js               Point d'entrée : routage #/…, vues chargées à la demande, raccourcis, rafraîchissement temps réel
+js/firebase.js          Initialisation Firebase (SDK modulaire 12.19, cache IndexedDB, mode émulateur)
+js/store.js             Store : état en mémoire, écritures ciblées, écoute temps réel, restauration (Annuler)
+js/cloud.js             Connexion, migration, démarrage du store, état de synchro
+js/migrate.js           Conversion de l'ancien format (kv / cache local) avec contrôle des totaux
+js/domain/              Fonctions pures : time (durées, semaines), balance (solde), types (table unique), csv, validate, backup
+js/ui/                  dom (gabarit html`` échappé par défaut, délégation), dialog, toast, pie, quick (saisie rapide)
+js/views/               home, pointage, suivi (hôte) + dashboard, affaires, chrono, imputees, shared
+tests/domain.test.html  Tests unitaires des fonctions pures
 AUDIT-2026-09-29.md Cahier de correction issu de l'audit
 DTO/              Données locales (ignoré par git)
 ```

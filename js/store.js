@@ -382,6 +382,42 @@ export function replaceAll(data) {
     return commitOps(ops, true).then(() => {});
 }
 
+/**
+ * Recrée des éléments supprimés (bouton « Annuler ») avec leurs identifiants d'origine.
+ * @param {{affaires?: object[], entries?: object[], days?: Object<string, object|null>}} data
+ *        affaires / saisies avec `id` ; days : iso → jour (null = effacer)
+ */
+export function restore({ affaires: affs = [], entries: ents = [], days: ds = {} }) {
+    const ops = [];
+    if (affs.length) ops.push(touchUser);
+    affs.forEach(a => { const c = canonAffaire(a); affaires.set(a.id, c); ops.push(setAffaireOp(a.id, c)); });
+    const byMonth = {};
+    const put = (mid, field, key, val) => { ((byMonth[mid] ||= {})[field] ||= {})[key] = val; };
+    ents.forEach(e => {
+        const c = canonEntry(e), mid = monthOf(c.date);
+        month(mid).entries.set(e.id, c); put(mid, 'entries', e.id, c);
+    });
+    Object.entries(ds).forEach(([iso, d]) => {
+        const mid = monthOf(iso);
+        clearTimeout(dayTimers.get(iso)); dayTimers.delete(iso);
+        if (d) { const c = canonDay(d); month(mid).days.set(iso, c); put(mid, 'days', iso, c); }
+        else { months.get(mid)?.days.delete(iso); put(mid, 'days', iso, deleteField()); }
+    });
+    Object.entries(byMonth).forEach(([mid, data]) => ops.push(monthMergeOp(mid, data)));
+    invalidate();
+    commitOps(ops);
+}
+
+/**
+ * Force l'envoi des pointages différés et attend la confirmation du serveur.
+ * @returns {Promise<void>} rejetée si le serveur n'a pas confirmé sous 10 s (hors ligne)
+ */
+export function sync() {
+    flushDays();
+    return Promise.race([fsMod.waitForPendingWrites(db),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('Serveur injoignable (hors ligne ?)')), 10000))]);
+}
+
 /* ─────────────────────────── Abonnements ─────────────────────────── */
 /** Notifié à chaque changement venu d'un autre poste/onglet. @returns {() => void} désabonnement */
 export function subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }

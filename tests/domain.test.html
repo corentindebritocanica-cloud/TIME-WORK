@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="color-scheme" content="light dark">
+<title>TIME-WORK — tests du domaine</title>
+<style>
+    body { font: 14px "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; margin: 24px; }
+    h1 { font-size: 18px; }
+    .ok { color: #13803d; } .ko { color: #c21d1d; font-weight: 700; }
+    li { margin: 2px 0; } #summary { font-size: 16px; font-weight: 700; margin: 12px 0; }
+</style>
+</head>
+<body>
+<h1>TIME-WORK — tests des fonctions pures</h1>
+<p id="summary">Exécution…</p>
+<ol id="results"></ol>
+<script type="module">
+import { parseDuration, minsToHM, minsToDec, isoWeek, mondayOf, addDays, workWeek } from '../js/domain/time.js';
+import { computeBalance } from '../js/domain/balance.js';
+import { analyzeCSV, parseDate, mapType } from '../js/domain/csv.js';
+import { normalizeData, cleanLoadName, LOAD_RE } from '../js/domain/validate.js';
+import { typeLabel, typeClass, globalType } from '../js/domain/types.js';
+import { esc, html } from '../js/ui/dom.js';
+
+const results = [];
+const eq = (name, got, exp) => {
+    const ok = JSON.stringify(got) === JSON.stringify(exp);
+    results.push({ name, ok, got, exp });
+    console.assert(ok, name, got, exp);
+};
+const minutes = s => { const r = parseDuration(s); return 'minutes' in r ? r.minutes : 'erreur'; };
+
+// parseDuration
+eq('parseTime « 2:30 »', minutes('2:30'), 150);
+eq('parseTime « 2h30 »', minutes('2h30'), 150);
+eq('parseTime « 2h »', minutes('2h'), 120);
+eq('parseTime « 2 »', minutes('2'), 120);
+eq('parseTime « 2.5 »', minutes('2.5'), 150);
+eq('parseTime « 2,5 »', minutes('2,5'), 150);
+eq('parseTime « 0.75 »', minutes('0.75'), 45);
+eq('parseTime « 2,30 » (ambigu)', minutes('2,30'), 'erreur');
+eq('parseTime « 0 »', minutes('0'), 'erreur');
+eq('parseTime « »', minutes(''), 'erreur');
+eq('parseTime « abc »', minutes('abc'), 'erreur');
+eq('parseTime « 1:75 »', minutes('1:75'), 'erreur');
+eq('parseTime « 25 » (> 24 h)', minutes('25'), 'erreur');
+eq('minsToHM(135)', minsToHM(135), '2h15');
+eq('minsToDec(135)', minsToDec(135), '2,25');
+
+// semaines
+eq('lundi du mer. 30/09/2026', mondayOf('2026-09-30'), '2026-09-28');
+eq('lundi d’un dimanche', mondayOf('2026-10-04'), '2026-09-28');
+eq('semaine ISO 29/09/2026', isoWeek('2026-09-29'), 40);
+eq('semaine ISO 01/01/2027 (sem. 53 de 2026)', isoWeek('2027-01-01'), 53);
+eq('semaine ISO 29/12/2025 (sem. 1 de 2026)', isoWeek('2025-12-29'), 1);
+eq('addDays à travers le changement d’heure', addDays('2026-10-24', 2), '2026-10-26');
+eq('workWeek', workWeek('2026-09-28'), ['2026-09-28', '2026-09-29', '2026-09-30', '2026-10-01', '2026-10-02']);
+
+// computeBalance
+eq('solde : lun+mar 7h06, auj. mardi', computeBalance({ '2026-09-28': 426, '2026-09-29': 426 }, '2026-09-29'), 0);
+eq('solde : semaine complète + lun 8h', computeBalance({ '2026-09-21': 426, '2026-09-22': 426, '2026-09-23': 426, '2026-09-24': 426, '2026-09-25': 426, '2026-09-28': 480 }, '2026-09-28'), 54);
+eq('solde : lundi non pointé, auj. mardi pointé', computeBalance({ '2026-09-29': 426 }, '2026-09-29'), -426);
+eq('solde : congé posé à l’avance', computeBalance({ '2026-09-28': 426, '2026-10-02': 426 }, '2026-09-28'), 0);
+eq('solde : passage à l’heure d’hiver', computeBalance({ '2026-10-26': 426, '2026-10-27': 426 }, '2026-10-27'), 0);
+
+// CSV
+const csv = 'CLIENT;DATE;HEURES;CODE_AFFAIRE;TYPE\nSanofi;01/09/2026;2;AF-1;DE\nSanofi;02/09/2026;1,5;AF-1;verif\nX;bad;1;Y;DE\n';
+const a1 = analyzeCSV(csv, [], []);
+eq('CSV : 2 saisies valides, 1 erreur', [a1.newEntries.length, a1.errors.length], [2, 1]);
+eq('CSV : 1 nouvelle affaire', a1.newAffaires.length, 1);
+eq('CSV : alias « verif » → VERIFICATION', a1.newEntries[1].type, 'VERIFICATION');
+const affs = [{ id: 'a1', client: 'Sanofi', num: 'AF-1' }];
+const ents = a1.newEntries.map((e, i) => ({ id: 'e' + i, affaireId: 'a1', date: e.date, type: e.type, minutes: e.minutes }));
+const a2 = analyzeCSV(csv, affs, ents);
+eq('CSV : même fichier importé 2 fois → 0 ajout', [a2.newEntries.length, a2.duplicates], [0, 2]);
+eq('CSV : date jj/mm/aa', parseDate('1/9/26'), '2026-09-01');
+eq('CSV : type vide → AUTRE, inconnu → null', [mapType(''), mapType('zzz')], ['AUTRE', null]);
+
+// Validation
+const n = normalizeData([{ id: 17, client: 'C', loads: ['a', '<svg/onload=x>', 'b'] }, { id: '1);alert(1)//' }],
+                        [{ id: 'e1', affaireId: 17, date: '2026-09-29', type: '<img>', minutes: '90' }, { id: 2, affaireId: 17, date: 'x', minutes: 1 }]);
+eq('normalizeData : ids en chaînes, éléments invalides ignorés', [n.affaires.map(a => a.id), n.entries.map(e => e.id), n.dropped], [['17'], ['e1'], 2]);
+eq('normalizeData : Loads filtrés, type invalide → AUTRE', [n.affaires[0].loads, n.entries[0].type, n.entries[0].affaireId], [['A', 'B'], 'AUTRE', '17']);
+eq('cleanLoadName', [cleanLoadName(' a b '), LOAD_RE.test('AB_1'), LOAD_RE.test('A-B')], ['AB', true, false]);
+
+// Types
+eq('typeLabel', [typeLabel('DE_NP'), typeLabel('CD_LOAD_B'), typeLabel('XYZ')], ['DE - Tps non prod.', 'CD B', 'XYZ']);
+eq('typeClass', [typeClass('DE'), typeClass('CD_LOAD_A'), typeClass('CD_LOAD_K'), typeClass('???')], ['t-DE', 'load-0', 'load-0', 't-AUTRE']);
+eq('globalType', [globalType('CD_LOAD_A'), globalType('ECA')], ['CD', 'ECA']);
+
+// Échappement
+eq('esc', esc('<img onerror=x>"\''), '&lt;img onerror=x&gt;&quot;&#39;');
+eq('html`` échappe les valeurs', String(html`<b>${'<i>x</i>'}</b>`), '<b>&lt;i&gt;x&lt;/i&gt;</b>');
+eq('html`` imbriqué non ré-échappé', String(html`<p>${html`<i>${'<x>'}</i>`}</p>`), '<p><i>&lt;x&gt;</i></p>');
+
+// Affichage
+const ko = results.filter(r => !r.ok);
+document.getElementById('summary').textContent = ko.length ? `${ko.length} échec(s) sur ${results.length}` : `${results.length} tests réussis`;
+document.getElementById('summary').className = ko.length ? 'ko' : 'ok';
+document.getElementById('results').append(...results.map(r => {
+    const li = document.createElement('li');
+    li.className = r.ok ? 'ok' : 'ko';
+    li.textContent = (r.ok ? '✔ ' : '✘ ') + r.name + (r.ok ? '' : ` — obtenu ${JSON.stringify(r.got)}, attendu ${JSON.stringify(r.exp)}`);
+    return li;
+}));
+window.__testResults = { total: results.length, failed: ko.length };
+</script>
+</body>
+</html>

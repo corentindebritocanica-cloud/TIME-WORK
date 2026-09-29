@@ -1,23 +1,24 @@
 /**
  * Point d'entrée de l'application.
- *  - routage par l'URL : #/  ·  #/pointage  ·  #/suivi/<dashboard|affaires|chrono|imputees>
- *  - vues chargées à la demande (import() dynamique), montées/démontées proprement
+ *  - routage par l'URL : #/suivi/<dashboard|affaires|chrono|imputees|pointage>
+ *    (toute autre adresse, dont les anciennes #/ et #/pointage, est redirigée)
+ *  - sections chargées à la demande (import() dynamique), montées/démontées proprement
  *  - rafraîchissement quand un autre poste/onglet modifie les données (sans casser une saisie)
- *  - saisie rapide (Ctrl+K)
+ *  - saisie rapide (Ctrl+K), menu « Données » (sauvegarde, restauration, import CSV)
  */
 import { startCloud, logout, store } from './cloud.js';
 import { EMULATOR } from './firebase.js';
 import { ask, confirmAction, inform } from './ui/dialog.js';
 import { toast } from './ui/toast.js';
-import { isEditing } from './ui/dom.js';
+import { isEditing, on } from './ui/dom.js';
 
-const VIEWS = {
-    home:     () => import('./views/home.js'),
-    pointage: () => import('./views/pointage.js'),
-    suivi:    () => import('./views/suivi.js')
+const loadSuivi = () => import('./views/suivi.js');
+const TABS = ['dashboard', 'affaires', 'chrono', 'imputees', 'pointage'];
+const DEFAULT_TAB = 'dashboard';
+const TITLES = {
+    dashboard: 'Tableau de bord', affaires: 'Par affaire', chrono: 'Chronologie',
+    imputees: 'Heures imputées', pointage: 'Pointage CEGID'
 };
-const SUIVI_TABS = ['dashboard', 'affaires', 'chrono', 'imputees'];
-const TITLES = { home: 'TIME-WORK', pointage: 'Pointage CEGID — TIME-WORK', suivi: 'Suivi projet — TIME-WORK' };
 
 let ready = false;
 let current = null;            // { name, api }
@@ -30,37 +31,27 @@ const ctx = {
     refresh: () => refreshCurrent()
 };
 
-/** Analyse l'URL → { view, tab }. */
+/** Analyse l'URL → onglet ; corrige l'adresse si elle n'est pas canonique. */
 function parseRoute() {
     const [, view = '', tab = ''] = location.hash.replace(/^#/, '').split('/');
-    if (view === 'pointage') return { view: 'pointage' };
-    if (view === 'suivi') return { view: 'suivi', tab: SUIVI_TABS.includes(tab) ? tab : 'dashboard' };
-    return { view: 'home' };
+    const t = view === 'pointage' ? 'pointage' : (view === 'suivi' && TABS.includes(tab) ? tab : DEFAULT_TAB);
+    const canonical = '#/suivi/' + t;
+    if (location.hash !== canonical) history.replaceState(null, '', canonical);
+    return { view: 'suivi', tab: t };
 }
 
 async function route() {
     if (!ready) return;
     const r = parseRoute();
-    document.querySelectorAll('.nav-link').forEach(a => {
-        if (a.dataset.view === r.view) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
-    });
-    document.title = TITLES[r.view];
-    if (current?.name === r.view) { current.api.update?.(r); return; }
+    document.title = TITLES[r.tab] + ' — TIME-WORK';
+    if (current) { current.api.update?.(r); return; }
     let mod;
-    try { mod = await VIEWS[r.view](); }
-    catch (e) { console.error(e); toast('Chargement de la vue impossible (connexion ?).', { kind: 'error' }); return; }
-    const swap = () => {
-        current?.api.destroy?.();
-        document.querySelectorAll('.view').forEach(v => { v.hidden = true; });
-        const root = document.getElementById('view-' + r.view);
-        root.hidden = false;
-        current = { name: r.view, api: mod.mount(root, ctx, r) };
-    };
-    if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        await document.startViewTransition(swap).updateCallbackDone;
-    } else swap();
+    try { mod = await loadSuivi(); }
+    catch (e) { console.error(e); toast('Chargement de l\'application impossible (connexion ?).', { kind: 'error' }); return; }
+    const root = document.getElementById('view-suivi');
+    root.hidden = false;
+    current = { name: 'suivi', api: mod.mount(root, ctx, r) };
     document.getElementById('main').focus({ preventScroll: true });
-    scrollTo({ top: 0 });
 }
 
 /** Réaffiche la vue courante ; si l'utilisateur est en train de saisir, attend la fin de la saisie. */
@@ -92,11 +83,36 @@ function onKey(e) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openQuickEntry(); }
 }
 
-/** Précharge les modules des vues en tâche de fond (navigation possible même si la connexion tombe). */
+/* ───────────────────────── Menu « Données » ───────────────────────── */
+function bindDataMenu() {
+    const menu = document.getElementById('data-menu');
+    const data = () => import('./ui/data.js');
+    const pick = sel => { menu.hidePopover(); menu.querySelector(sel).click(); };
+    const guard = fn => async (...a) => {
+        if (!ready) return;
+        try { await fn(...a); } catch (e) { console.error(e); toast('Action impossible : ' + (e.message || e), { kind: 'error' }); }
+    };
+    on(menu, 'click', {
+        'export': guard(async () => { menu.hidePopover(); (await data()).exportBackup(ctx); }),
+        'pick-json': () => pick('[data-action="import-json"]'),
+        'pick-csv': () => pick('[data-action="import-csv"]')
+    });
+    const onFile = kind => guard(async input => {
+        const f = input.files[0]; input.value = '';
+        if (!f) return;
+        const text = await f.text(), mod = await data();
+        await (kind === 'json' ? mod.importJSON(text, ctx) : mod.importCSV(text, ctx));
+        refreshCurrent();
+    });
+    on(menu, 'change', { 'import-json': onFile('json'), 'import-csv': onFile('csv') });
+}
+
+/** Précharge les modules des sections en tâche de fond (navigation possible même si la connexion tombe). */
 function preload() {
     requestIdleCallback(() => {
-        [...Object.values(VIEWS), () => import('./views/dashboard.js'), () => import('./views/affaires.js'),
-         () => import('./views/chrono.js'), () => import('./views/imputees.js'), () => import('./ui/quick.js')]
+        [loadSuivi, () => import('./views/dashboard.js'), () => import('./views/affaires.js'),
+         () => import('./views/chrono.js'), () => import('./views/imputees.js'), () => import('./views/pointage.js'),
+         () => import('./ui/quick.js'), () => import('./ui/data.js')]
             .forEach(load => load().catch(() => {}));
     }, { timeout: 3000 });
 }
@@ -105,6 +121,7 @@ function preload() {
 function init() {
     document.getElementById('quick-btn').addEventListener('click', openQuickEntry);
     document.getElementById('logout-btn').addEventListener('click', logout);
+    bindDataMenu();
     addEventListener('hashchange', route);
     addEventListener('keydown', onKey);
 

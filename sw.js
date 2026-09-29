@@ -5,14 +5,14 @@
  *  - SDK Firebase (URL versionnée sur gstatic) : cache d'abord ;
  *  - Firestore / Auth : jamais interceptés (le SDK gère son propre cache IndexedDB).
  */
-const VERSION = 'tw-2026-09-29-lot3b';
+const VERSION = 'tw-2026-09-29-lot3c';
 const SHELL = [
     './', './index.html', './css/app.css', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png',
     './js/app.js', './js/cloud.js', './js/firebase.js', './js/store.js', './js/migrate.js',
     './js/domain/time.js', './js/domain/balance.js', './js/domain/types.js', './js/domain/validate.js',
     './js/domain/csv.js', './js/domain/backup.js',
-    './js/ui/dom.js', './js/ui/dialog.js', './js/ui/toast.js', './js/ui/pie.js', './js/ui/quick.js',
-    './js/views/home.js', './js/views/pointage.js', './js/views/suivi.js', './js/views/shared.js',
+    './js/ui/dom.js', './js/ui/dialog.js', './js/ui/toast.js', './js/ui/pie.js', './js/ui/quick.js', './js/ui/data.js',
+    './js/views/pointage.js', './js/views/suivi.js', './js/views/shared.js',
     './js/views/dashboard.js', './js/views/affaires.js', './js/views/chrono.js', './js/views/imputees.js'
 ];
 const SDK_PREFIX = 'https://www.gstatic.com/firebasejs/';

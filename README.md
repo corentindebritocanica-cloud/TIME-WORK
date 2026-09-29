@@ -6,7 +6,12 @@ dépendance ni étape de build : GitHub Pages sert le dépôt tel quel.
 
 ## Contenu
 
-- **Pointage CEGID** : saisie hebdomadaire des heures, motifs Férié / Congé,
+Pas de page d'accueil : l'app s'ouvre directement sur le **Tableau de bord**.
+Tout est dans une seule barre d'onglets : **Tableau de bord · Par affaire ·
+Chronologie · Heures imputées · Pointage CEGID**. Le menu **💾 Données** de
+l'en-tête regroupe sauvegarde, restauration et import CSV.
+
+- **Pointage CEGID** (dernier onglet) : saisie hebdomadaire des heures, motifs Férié / Congé,
   calculateur de sessions, solde cumulé (7h06 par jour ouvré, 35h30 / semaine).
 - **Suivi Projet** : gestion des affaires, saisies horaires par type
   (DE, ECA, CD, Réunion, Formation, MEP, Loads CD…), budgets par type,
@@ -128,7 +133,7 @@ Le paramètre `?emu` (uniquement sur `localhost`) branche l'app sur les
 
 ## Sauvegarde & restauration
 
-Depuis la page d'accueil, section **⚙ Administrateur** :
+Depuis le menu **💾 Données** de l'en-tête :
 
 - **💾 Sauvegarder** — télécharge un fichier JSON contenant toutes les
   affaires, saisies et heures CEGID.
@@ -219,6 +224,7 @@ service cloud.firestore {
 | 2026-09-29 | Lot 3 A12 + A15 | Application réécrite en modules ES : `index.html` réduit à une coquille sémantique, `js/app.js` (routage `#/…`, vues chargées à la demande), `js/domain/` (fonctions pures testées), `js/ui/` (gabarit `html`` échappé par défaut, dialogues, toasts, camemberts, saisie rapide), `js/views/` (une vue par écran). Plus aucun `onclick` ni `style` inline, aucune variable globale, une seule table des types. Tests unitaires `tests/domain.test.html` (42). |
 | 2026-09-29 | Lot 3 A16 | Design system en couches (`@layer`) et tokens, thèmes clair/sombre, Segoe UI Variable, PWA installable (manifeste, service worker hors ligne, Window Controls Overlay), `<dialog>` à la place de ~20 `alert`/`confirm`, toasts avec **Annuler** (5 s), raccourcis clavier + aide `?`, **saisie rapide Ctrl+K**, sémantique et navigation clavier complètes. 6 problèmes rencontrés consignés (C1 à C6). |
 | 2026-09-29 | Lot 3 retours | **Blocage sur « Chargement… »** corrigé : chargeur protégé dans `index.html` (en cas d'échec, rechargement forcé de tous les fichiers de l'app une fois, puis message clair « Ctrl+F5 »), service worker qui revalide chaque fichier (`cache: 'no-cache'`, VERSION `lot3b`), bouton **Recharger** si Firestore ne répond pas en 15 s. **Thème clair supprimé** (sombre uniquement, comme avant). **Raccourcis supprimés** (`Alt+H/P/S`, `1`–`4`, `←`/`→`/`T`, `Ctrl+F`, `Ctrl+S`, aide `?`) — seul `Ctrl+K` est conservé. Problèmes C7 à C9 consignés. |
+| 2026-09-29 | Navigation | **Page d'accueil supprimée** : l'app s'ouvre sur le Tableau de bord. **Pointage CEGID devient un onglet**, à droite de « Heures imputées » (`#/suivi/pointage`). Liens Accueil / Pointage / Suivi retirés de l'en-tête ; sauvegarde, restauration et import CSV déplacés dans un menu **💾 Données** (Popover API) de l'en-tête. Anciennes adresses `#/` et `#/pointage` redirigées. Raccourcis de l'icône PWA mis à jour. `js/views/home.js` supprimé, logique déplacée dans `js/ui/data.js`. Service worker `lot3c`. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 
@@ -234,14 +240,14 @@ css/app.css             Styles en couches (@layer reset, tokens, base, component
 manifest.webmanifest    Manifeste PWA (Window Controls Overlay, raccourcis)
 sw.js                   Service worker : démarrage hors ligne (⚠ incrémenter VERSION et tenir SHELL à jour à chaque livraison)
 icons/                  Icônes de l'application (SVG, PNG 192/512, maskable)
-js/app.js               Point d'entrée : routage #/…, vues chargées à la demande, Ctrl+K, rafraîchissement temps réel
+js/app.js               Point d'entrée : routage #/suivi/<onglet>, sections chargées à la demande, Ctrl+K, menu Données, rafraîchissement temps réel
 js/firebase.js          Initialisation Firebase (SDK modulaire 12.19, cache IndexedDB, mode émulateur)
 js/store.js             Store : état en mémoire, écritures ciblées, écoute temps réel, restauration (Annuler)
 js/cloud.js             Connexion, migration, démarrage du store, état de synchro
 js/migrate.js           Conversion de l'ancien format (kv / cache local) avec contrôle des totaux
 js/domain/              Fonctions pures : time (durées, semaines), balance (solde), types (table unique), csv, validate, backup
-js/ui/                  dom (gabarit html`` échappé par défaut, délégation), dialog, toast, pie, quick (saisie rapide)
-js/views/               home, pointage, suivi (hôte) + dashboard, affaires, chrono, imputees, shared
+js/ui/                  dom (gabarit html`` échappé par défaut, délégation), dialog, toast, pie, quick (saisie rapide), data (sauvegarde / restauration / import CSV)
+js/views/               suivi (hôte des onglets) + dashboard, affaires, chrono, imputees, pointage, shared
 tests/domain.test.html  Tests unitaires des fonctions pures
 AUDIT-2026-09-29.md Cahier de correction issu de l'audit
 DTO/              Données locales (ignoré par git)

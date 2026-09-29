@@ -1,6 +1,6 @@
 /**
- * Vue Pointage CEGID : saisie hebdomadaire (lun → ven), motifs Férié / Congé, solde global,
- * calculateur de sessions et soustraction.
+ * Suivi — onglet Pointage CEGID : saisie hebdomadaire (lun → ven), motifs Férié / Congé,
+ * solde global, calculateur de sessions et soustraction.
  */
 import { html, mount as render, on, $, $$, copyText } from '../ui/dom.js';
 import { computeBalance } from '../domain/balance.js';
@@ -21,18 +21,15 @@ const bar = (pct, cls = '') => html`<svg class="bar ${cls}" viewBox="0 0 100 5" 
  * @param {HTMLElement} root
  * @param {object} ctx
  */
-export function mount(root, ctx) {
+export function create(root, ctx) {
     const ac = new AbortController();
     const { store } = ctx;
 
     render(root, html`
-        <div class="container pointage">
-            <div class="page-head">
-                <h1>Pointage CEGID</h1>
-                <div class="tabs" role="tablist" aria-label="Outils">
-                    <button type="button" class="tab" role="tab" id="tab-hebdo" aria-controls="panel-hebdo" data-action="tab" data-tab="hebdo">Saisie hebdo</button>
-                    <button type="button" class="tab" role="tab" id="tab-calc" aria-controls="panel-calc" data-action="tab" data-tab="calc">Calculateur</button>
-                </div>
+        <div class="pointage">
+            <div class="tabs subtabs" role="tablist" aria-label="Outils du pointage CEGID">
+                <button type="button" class="tab" role="tab" id="tab-hebdo" aria-controls="panel-hebdo" data-action="tab" data-tab="hebdo">Saisie hebdo</button>
+                <button type="button" class="tab" role="tab" id="tab-calc" aria-controls="panel-calc" data-action="tab" data-tab="calc">Calculateur</button>
             </div>
             <div id="panel-hebdo" role="tabpanel" aria-labelledby="tab-hebdo"></div>
             <div id="panel-calc" role="tabpanel" aria-labelledby="tab-calc"></div>

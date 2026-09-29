@@ -1,5 +1,6 @@
 /**
- * Vue Suivi projet : hôte des 4 sections (tableau de bord, par affaire, chronologie, heures imputées).
+ * Vue principale : hôte des 5 sections (tableau de bord, par affaire, chronologie, heures imputées,
+ * pointage CEGID).
  * Chaque section est un module chargé à la demande.
  */
 import { html, mount as render } from '../ui/dom.js';
@@ -8,7 +9,8 @@ const SECTIONS = {
     dashboard: { label: 'Tableau de bord', icon: '🏠', load: () => import('./dashboard.js') },
     affaires:  { label: 'Par affaire',     icon: '📁', load: () => import('./affaires.js') },
     chrono:    { label: 'Chronologie',     icon: '📅', load: () => import('./chrono.js') },
-    imputees:  { label: 'Heures imputées', icon: '🕐', load: () => import('./imputees.js') }
+    imputees:  { label: 'Heures imputées', icon: '🕐', load: () => import('./imputees.js') },
+    pointage:  { label: 'Pointage CEGID',  icon: '⏱️', load: () => import('./pointage.js') }
 };
 
 /** Affaire à ouvrir à l'arrivée sur « Par affaire » (depuis le tableau de bord ou la saisie rapide). */
@@ -24,7 +26,7 @@ export function mount(root, ctx, route) {
     render(root, html`
         <div class="container suivi">
             <div class="page-head">
-                <h1>Suivi projet</h1>
+                <h1 class="sr-only">TIME-WORK — suivi des heures</h1>
                 <nav class="tabs" aria-label="Sections du suivi">
                     ${Object.entries(SECTIONS).map(([k, s], i) => html`
                         <a class="tab" href="#/suivi/${k}" data-tab="${k}"><span aria-hidden="true">${s.icon}</span> ${s.label}</a>`)}

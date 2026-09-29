@@ -17,7 +17,7 @@
         { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
     ],
     "shortcuts": [
-        { "name": "Pointage CEGID", "url": "./#/pointage" },
-        { "name": "Suivi projet", "url": "./#/suivi/dashboard" }
+        { "name": "Pointage CEGID", "url": "./#/suivi/pointage" },
+        { "name": "Tableau de bord", "url": "./#/suivi/dashboard" }
     ]
 }

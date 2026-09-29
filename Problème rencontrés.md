@@ -255,6 +255,12 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 - **Solution** : gestionnaires `onKey` retirés des vues, aide `?` et badges de touches supprimés, attributs `aria-keyshortcuts` retirés. Seul `Ctrl+K` (saisie rapide) est conservé. Tests e2e adaptés (46/46).
 - **Statut** : corrigé le 2026-09-29
 
+#### C10. Page d'accueil jugée inutile (choix Pointage / Suivi à chaque ouverture)
+- **Constat** : retour utilisateur — le menu d'accueil impose un clic de plus à chaque ouverture.
+- **Solution** : page d'accueil supprimée, ouverture directe sur le Tableau de bord ; Pointage CEGID devient le 5ᵉ onglet (après « Heures imputées »). Les fonctions qui vivaient sur l'accueil (sauvegarde JSON, restauration, import CSV) ont été déplacées dans un menu **💾 Données** de l'en-tête pour ne rien perdre. Les anciennes adresses (`#/`, `#/pointage`, raccourcis de l'icône) sont redirigées.
+- **Point d'attention** : avec 5 onglets, la barre passait sur deux lignes à 150 % (800 px). Titre « Suivi projet » masqué visuellement (conservé pour les lecteurs d'écran) et marges des onglets réduites sous 820 px : une seule ligne à 100 / 125 / 150 %.
+- **Statut** : corrigé le 2026-09-29
+
 ---
 
 ## Lancement en mode application (Edge)

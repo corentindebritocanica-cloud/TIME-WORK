@@ -1,67 +1,29 @@
 /**
- * Vue Accueil : accès aux applications, sauvegarde / restauration, import d'historique CSV.
+ * Menu « Données » de l'en-tête : sauvegarde JSON, restauration, import d'historique CSV.
+ * Module chargé à la demande (premier clic sur une action).
  */
-import { html, mount as render, on } from '../ui/dom.js';
+import { html } from './dom.js';
 import { buildBackup, downloadJSON, parseBackup } from '../domain/backup.js';
 import { analyzeCSV } from '../domain/csv.js';
 import { fromLegacy, summarize } from '../migrate.js';
 import { minsToHM, minsToDec, fmtNum } from '../domain/time.js';
 import { typeLabel } from '../domain/types.js';
 
-const LOGO_VIEWBOX = '-0.7075779 -0.7075779 160.8458358 25.0010858';
-
 /**
- * @param {HTMLElement} root
- * @param {object} ctx contexte de l'app (store, dialogues, toasts)
+ * Télécharge une sauvegarde JSON complète.
+ * @param {object} ctx contexte de l'app (store, toast)
  */
-export function mount(root, ctx) {
-    const ac = new AbortController();
-    render(root, html`
-        <div class="container home">
-            <div class="home-title">
-                <svg class="home-logo" viewBox="${LOGO_VIEWBOX}" role="img" aria-label="Getinge"><use href="#logo-getinge"/></svg>
-                <h1>Espace collaborateur</h1>
-                <p>Choisis une application</p>
-            </div>
-            <nav class="app-cards" aria-label="Ouvrir une application">
-                <a class="app-card" href="#/pointage">
-                    <span class="app-card-icon" aria-hidden="true">⏱️</span>
-                    <strong>Pointage CEGID</strong>
-                    <span>Heures de la semaine, solde, calculateur</span>
-                </a>
-                <a class="app-card" href="#/suivi/dashboard">
-                    <span class="app-card-icon" aria-hidden="true">📋</span>
-                    <strong>Suivi projet</strong>
-                    <span>Affaires, saisies par type, budgets, chronologie</span>
-                </a>
-            </nav>
-            <section class="admin" aria-labelledby="h-admin">
-                <h2 id="h-admin" class="label">Sauvegarde et import</h2>
-                <div class="toolbar">
-                    <button type="button" class="btn btn-ghost btn-sm" data-action="export">💾 Sauvegarder (JSON)</button>
-                    <button type="button" class="btn btn-ghost btn-sm" data-action="pick-json">📂 Restaurer une sauvegarde</button>
-                    <button type="button" class="btn btn-ghost btn-sm" data-action="pick-csv">📊 Importer un historique CSV</button>
-                </div>
-                <input type="file" accept=".json,application/json" data-action="import-json" hidden>
-                <input type="file" accept=".csv,.txt,text/csv" data-action="import-csv" hidden>
-            </section>
-        </div>`);
-
-    on(root, 'click', {
-        'export': () => { downloadJSON(buildBackup(ctx.store), 'backup_getinge_'); ctx.toast('Sauvegarde téléchargée.'); },
-        'pick-json': () => root.querySelector('[data-action="import-json"]').click(),
-        'pick-csv': () => root.querySelector('[data-action="import-csv"]').click()
-    }, ac.signal);
-    on(root, 'change', {
-        'import-json': async input => { const f = input.files[0]; input.value = ''; if (f) await importJSON(await f.text(), ctx); },
-        'import-csv': async input => { const f = input.files[0]; input.value = ''; if (f) await importCSV(await f.text(), ctx); }
-    }, ac.signal);
-
-    return { destroy: () => ac.abort() };
+export function exportBackup(ctx) {
+    downloadJSON(buildBackup(ctx.store), 'backup_getinge_');
+    ctx.toast('Sauvegarde téléchargée.');
 }
 
-/** Restauration complète depuis une sauvegarde JSON. */
-async function importJSON(text, ctx) {
+/**
+ * Restauration complète depuis une sauvegarde JSON (confirmation + sauvegarde préalable).
+ * @param {string} text contenu du fichier
+ * @param {object} ctx
+ */
+export async function importJSON(text, ctx) {
     const src = parseBackup(text);
     if (!src) { await ctx.inform('Fichier invalide', 'Ce fichier n\'est pas une sauvegarde TIME-WORK valide.'); return; }
     const data = fromLegacy(src);
@@ -82,8 +44,12 @@ async function importJSON(text, ctx) {
     }
 }
 
-/** Import d'historique CSV avec aperçu. */
-async function importCSV(text, ctx) {
+/**
+ * Import d'historique CSV avec aperçu (doublons ignorés).
+ * @param {string} text contenu du fichier
+ * @param {object} ctx
+ */
+export async function importCSV(text, ctx) {
     const a = analyzeCSV(text, ctx.store.getAffaires(), ctx.store.getEntries());
     const n = a.newEntries.length;
     const tile = (label, value, cls) => html`<div class="tile ${cls}"><span class="tile-label">${label}</span><span class="tile-value">${value}</span></div>`;

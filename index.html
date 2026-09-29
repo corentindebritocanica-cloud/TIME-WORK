@@ -2719,7 +2719,7 @@
     /**
      * Solde CEGID (A6), fonction pure.
      * Pour chaque semaine contenant au moins un jour pointé, l'objectif est de 7h06
-     * par jour ouvré échu (≤ aujourd'hui) ou déjà pointé (ex. congé posé à l'avance) ;
+     * par jour ouvré passé (< aujourd'hui) ou déjà pointé (aujourd'hui, congé posé à l'avance) ;
      * la semaine en cours n'est donc plus comptée pleine.
      * @param {Record<string, number>} days minutes pointées par date ISO « AAAA-MM-JJ »
      * @param {string} todayIso date du jour « AAAA-MM-JJ »
@@ -2743,7 +2743,7 @@
             const d = new Date(mon + 'T00:00:00Z');
             for (let i = 0; i < 5; i++) {
                 const iso = toIso(d);
-                if (iso <= todayIso || w.dates.has(iso)) target += dayTarget;
+                if (iso < todayIso || w.dates.has(iso)) target += dayTarget;
                 d.setUTCDate(d.getUTCDate() + 1);
             }
             balance += w.worked - target;
@@ -2876,7 +2876,7 @@
         else {
             let sign = delta >= 0 ? "+" : "-"; let adiff = Math.abs(delta);
             deltaDiv.innerHTML = 'SOLDE GLOBAL<br>' + sign + Math.floor(adiff/60) + 'h' + String(adiff%60).padStart(2,'0');
-            deltaDiv.title = 'Heures pointées − 7h06 par jour ouvré échu (ou déjà pointé) des semaines saisies';
+            deltaDiv.title = 'Heures pointées − 7h06 par jour ouvré passé ou déjà pointé des semaines saisies';
             deltaDiv.className = "delta-badge " + (delta >= 0 ? (delta === 0 ? "delta-ok" : "delta-pos") : "delta-neg");
         }
         document.getElementById('total_hebdo').innerText = decTotal.toFixed(2).replace('.', ',');

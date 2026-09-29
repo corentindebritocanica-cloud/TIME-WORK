@@ -96,6 +96,8 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 - **Symptôme** : un mardi avec 2 jours saisis (14h12) → solde « −21h18 ».
 - **Cause** : toute semaine contenant au moins une heure compte pour 35h30, y compris la semaine en cours.
 - **Solution** : objectif au prorata des jours échus (7h06/jour) ou exclure la semaine en cours du solde.
+- **Statut** : corrigé le 2026-09-29
+- **Correction appliquée** : Nouvelle fonction pure `computeBalance(days, todayIso)` utilisée par `calculateCegidHebdo()`. Choix assumé en plus du cahier : un jour futur déjà pointé (congé posé à l'avance) compte aussi dans l'objectif, sinon il gonflerait le solde de +7h06 jusqu'à la date. Calculs de dates en UTC (pas de décalage au changement d'heure). Info-bulle d'explication sur le badge. Vérifié : 6 cas (dont les 2 du cahier) OK.
 
 #### A7. Saisie « 2,30 » interprétée comme 2h18
 - **Cause** : `parseTime()` traite la virgule comme un décimal. Pas de contrôle des minutes > 59 ni des heures > 24 dans la saisie CEGID.

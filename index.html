@@ -2672,6 +2672,42 @@
     // ════════════════════════════════════════════════════════
     let cegidCurrentOffset = 0;
     const CEGID_TARGET_WEEK_MIN = 2130;
+    const CEGID_TARGET_DAY_MIN  = 426;   // 7h06 × 5 = 35h30
+
+    /**
+     * Solde CEGID (A6), fonction pure.
+     * Pour chaque semaine contenant au moins un jour pointé, l'objectif est de 7h06
+     * par jour ouvré échu (≤ aujourd'hui) ou déjà pointé (ex. congé posé à l'avance) ;
+     * la semaine en cours n'est donc plus comptée pleine.
+     * @param {Record<string, number>} days minutes pointées par date ISO « AAAA-MM-JJ »
+     * @param {string} todayIso date du jour « AAAA-MM-JJ »
+     * @param {number} [dayTarget=426] objectif quotidien en minutes
+     * @returns {number} solde en minutes (positif = avance)
+     */
+    function computeBalance(days, todayIso, dayTarget = CEGID_TARGET_DAY_MIN) {
+        const toIso = d => d.toISOString().slice(0, 10);
+        const weeks = new Map();
+        for (const [iso, min] of Object.entries(days)) {
+            if (!(min > 0)) continue;
+            const d = new Date(iso + 'T00:00:00Z');
+            d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));   // lundi
+            const mon = toIso(d);
+            if (!weeks.has(mon)) weeks.set(mon, { worked: 0, dates: new Set() });
+            const w = weeks.get(mon); w.worked += min; w.dates.add(iso);
+        }
+        let balance = 0;
+        for (const [mon, w] of weeks) {
+            let target = 0;
+            const d = new Date(mon + 'T00:00:00Z');
+            for (let i = 0; i < 5; i++) {
+                const iso = toIso(d);
+                if (iso <= todayIso || w.dates.has(iso)) target += dayTarget;
+                d.setUTCDate(d.getUTCDate() + 1);
+            }
+            balance += w.worked - target;
+        }
+        return balance;
+    }
 
     function initCegid() {
         renderCegidGrid();
@@ -2770,24 +2806,19 @@
                 if (key && key.startsWith('h_')) window._cegidDayCache.add(key.slice(2));
             }
         }
-        let totalWorked = 0;
-        const weeksCounted = new Set();
+        const days = {};
         window._cegidDayCache.forEach(dp => {
             const h = parseInt(localStorage.getItem('h_' + dp)) || 0;
             const m = parseInt(localStorage.getItem('m_' + dp)) || 0;
-            if (h > 0 || m > 0) {
-                totalWorked += (h * 60) + m;
-                const d = new Date(dp + "T12:00:00"), day = d.getDay();
-                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-                weeksCounted.add(getCegidLocalISODate(new Date(d.getFullYear(), d.getMonth(), diff)));
-            }
+            if (h > 0 || m > 0) days[dp] = h * 60 + m;
         });
-        let delta = totalWorked - (weeksCounted.size * CEGID_TARGET_WEEK_MIN);
+        const delta = computeBalance(days, getCegidLocalISODate(new Date()));
         const deltaDiv = document.getElementById('week-delta');
-        if (weeksCounted.size === 0) { deltaDiv.innerHTML = ""; }
+        if (Object.keys(days).length === 0) { deltaDiv.innerHTML = ""; }
         else {
             let sign = delta >= 0 ? "+" : "-"; let adiff = Math.abs(delta);
             deltaDiv.innerHTML = 'SOLDE GLOBAL<br>' + sign + Math.floor(adiff/60) + 'h' + String(adiff%60).padStart(2,'0');
+            deltaDiv.title = 'Heures pointées − 7h06 par jour ouvré échu (ou déjà pointé) des semaines saisies';
             deltaDiv.className = "delta-badge " + (delta >= 0 ? (delta === 0 ? "delta-ok" : "delta-pos") : "delta-neg");
         }
         document.getElementById('total_hebdo').innerText = decTotal.toFixed(2).replace('.', ',');

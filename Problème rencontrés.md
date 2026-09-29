@@ -80,6 +80,8 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 #### A4. Règles Firestore sans liste blanche ni validation
 - **Constat** : tout compte Google peut se connecter et créer son document `users/{uid}` ; aucune limite de taille ni de format.
 - **Solution** : restreindre à ton adresse (`request.auth.token.email == …` et `email_verified`), valider les champs et types. Vérifier aussi que le projet `lisa-cmpt` n'héberge pas d'autre app : la règle `match /{document=**} { allow … if false }` bloquerait ses collections.
+- **Statut** : corrigé le 2026-09-29
+- **Correction appliquée** : `firestore.rules` réécrit : fonction `isOwner()` (uid + `email_verified` + liste blanche), écriture limitée aux champs `kv` (map) et `updatedAt`, suppression de `match /{document=**}` pour ne pas bloquer d'éventuelles autres apps du projet `lisa-cmpt`. Message d'accès refusé explicite dans l'app (affiche le compte utilisé). README : rappel qu'il faut republier les règles à chaque modification. Reste à faire côté console : coller et publier le fichier, puis tester dans le simulateur de règles.
 
 ### Fonctionnels
 

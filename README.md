@@ -28,6 +28,11 @@ de cache ; la pastille en bas à gauche indique l'état de synchronisation.
    `corentindebritocanica-cloud.github.io`.
 3. **Firestore Database** → créer la base (région `eur3` / Europe), puis
    onglet **Règles** → coller le contenu de [`firestore.rules`](./firestore.rules) → Publier.
+   **À refaire à chaque modification de `firestore.rules`** : le fichier du repo
+   n'est pas déployé automatiquement.
+   Les règles n'autorisent que le compte `corentin.debritocanica@gmail.com`
+   (liste blanche dans `isOwner()`) : pour utiliser un autre compte Google,
+   l'ajouter à la liste puis republier.
 4. Renseigner `FIREBASE_CONFIG` dans `index.html` (Paramètres du projet →
    Vos applications → app Web → Config).
 
@@ -69,6 +74,7 @@ bash auto-push.sh
 | 2026-09-29 | Correctif A1 | Premier login sur cloud vide : choix explicite (envoyer / sauvegarder puis repartir de zéro / annuler) dans un `<dialog>` natif. « Annuler » et Échap déconnectent sans rien effacer. |
 | 2026-09-29 | Correctif A2 | Démarrage : les clés en attente d'envoi gardent leur valeur locale au lieu d'être écrasées par le cloud, puis sont renvoyées automatiquement. |
 | 2026-09-29 | Correctif A3 | XSS : échappement de toutes les données utilisateur restantes (machines, Loads, types, aperçu CSV), noms de Load validés, données importées normalisées, plus aucune chaîne utilisateur dans un `onclick`. |
+| 2026-09-29 | Correctif A4 | Règles Firestore : accès limité au compte `corentin.debritocanica@gmail.com` (e-mail vérifié), validation du format du document, suppression de la règle globale. **À republier dans la console Firebase.** |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

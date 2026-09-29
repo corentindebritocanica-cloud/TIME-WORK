@@ -1,12 +1,25 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Chaque utilisateur connecté n'accède qu'à son propre document.
+
+    // Seul le propriétaire, connecté avec un compte Google vérifié
+    // et présent dans la liste blanche, accède à son document.
+    function isOwner(uid) {
+      return request.auth != null
+        && request.auth.uid == uid
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in ['corentin.debritocanica@gmail.com'];
+    }
+
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if isOwner(uid);
+      allow write: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['kv', 'updatedAt'])
+        && request.resource.data.kv is map;
     }
-    match /{document=**} {
-      allow read, write: if false;
-    }
+
+    // Pas de règle globale « /{document=**} » : tout ce qui n'est pas
+    // autorisé ci-dessus est refusé par défaut, et d'éventuelles autres
+    // applications du projet lisa-cmpt gardent leurs propres règles.
   }
 }

@@ -1110,7 +1110,8 @@
             } catch (e) {
                 console.warn('[TWCloud] lecture impossible, mode hors ligne', e);
                 if (e.code === 'permission-denied') {
-                    showLogin('', 'Accès refusé par Firestore : vérifie les règles de sécurité (voir README).');
+                    showLogin('', 'Accès refusé par Firestore pour « ' + (user.email || '?') + ' ».\n' +
+                        'Seul le compte de la liste blanche (firestore.rules) est autorisé, et les règles doivent être publiées dans la console.');
                     return;
                 }
                 if (lastUid === user.uid) {       // même compte : on travaille sur le cache local

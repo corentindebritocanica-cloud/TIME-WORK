@@ -48,6 +48,87 @@ Journal des problèmes rencontrés sur Time-Work et de leur résolution.
 
 ---
 
+## 2026-09-29 — Audit complet (design / architecture / code / Firestore)
+
+Constats vérifiés par lecture du code et rendu headless (Chromium, fenêtre
+1200×800 à 100 % et 150 %, jeu de test : 4 affaires, 200 saisies).
+Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
+
+### Critiques
+
+#### A1. Perte des données locales au premier login si on clique « Annuler »
+- **Symptôme** : cloud vide + données locales → la question « Les envoyer vers Firestore ? » ; si on répond *Annuler*, toutes les clés locales sont effacées.
+- **Cause** : `onUser()` enchaîne sur l'étape 4 (« le cloud fait foi ») qui supprime les clés locales puis recopie un cloud vide.
+- **Solution** : sur refus, ne rien effacer (sortir en mode lecture seule ou reposer la question), ou exporter automatiquement un JSON avant écrasement.
+
+#### A2. Écrasement des saisies entre deux postes / deux onglets
+- **Symptôme** : deux fenêtres ouvertes (bureau + portable, ou 2 onglets) → les saisies de l'une disparaissent.
+- **Cause** : toutes les saisies tiennent dans une seule chaîne JSON `kv.sp_entries` réécrite en entier ; aucune écoute temps réel (`onSnapshot`) ; dernière écriture gagnante. Même effet si l'écriture échoue mais la lecture réussit au démarrage (l'étape 4 écrase les modifs en attente).
+- **Solution** : modèle par mois avec écritures par champ (`entries.{id}`) + `onSnapshot` (voir Lot 2 du README).
+
+#### A3. XSS stockée (confirmée)
+- **Symptôme** : un nom de machine `<img src=x onerror=…>` exécute du JS à l'ouverture du Dashboard (test headless positif).
+- **Cause** : champs insérés dans `innerHTML` sans `esc()` : machine (camembert + légende « Machines »), noms de Load (badges, options, `onclick`), aperçu CSV (client, code, types inconnus, messages d'erreur).
+- **Solution** : `esc()` partout à court terme ; à terme rendu via `textContent` / `<template>` et suppression des `onclick` inline.
+
+#### A4. Règles Firestore sans liste blanche ni validation
+- **Constat** : tout compte Google peut se connecter et créer son document `users/{uid}` ; aucune limite de taille ni de format.
+- **Solution** : restreindre à ton adresse (`request.auth.token.email == …` et `email_verified`), valider les champs et types. Vérifier aussi que le projet `lisa-cmpt` n'héberge pas d'autre app : la règle `match /{document=**} { allow … if false }` bloquerait ses collections.
+
+### Fonctionnels
+
+#### A5. Accordéons tronqués à 4 000 px
+- **Symptôme** : une affaire avec 129 saisies mesure 8 977 px mais seuls 4 000 px s'affichent → plus de la moitié des saisies invisibles. Idem semaines (4 000 px) et jours CEGID (2 000 px).
+- **Cause** : animation par `max-height` codée en dur.
+- **Solution** : `<details>` natif ou `interpolate-size: allow-keywords` + `height: auto`.
+
+#### A6. Solde global CEGID faux en cours de semaine
+- **Symptôme** : un mardi avec 2 jours saisis (14h12) → solde « −21h18 ».
+- **Cause** : toute semaine contenant au moins une heure compte pour 35h30, y compris la semaine en cours.
+- **Solution** : objectif au prorata des jours échus (7h06/jour) ou exclure la semaine en cours du solde.
+
+#### A7. Saisie « 2,30 » interprétée comme 2h18
+- **Cause** : `parseTime()` traite la virgule comme un décimal. Pas de contrôle des minutes > 59 ni des heures > 24 dans la saisie CEGID.
+- **Solution** : n'accepter que `2:30`, `2h30`, `2.5` ; refuser l'ambiguïté avec un message ; bornes sur h/m.
+
+#### A8. Réimport CSV = doublons
+- **Solution** : clé de dédoublonnage (date + affaire + type + minutes) et avertissement dans l'aperçu.
+
+#### A9. Modification d'une saisie invalide ignorée sans retour
+- **Solution** : bordure d'erreur + message, restauration de la valeur précédente.
+
+#### A10. Vue « Heure CEGID » coupée à 150 %
+- **Symptôme** : dans la fenêtre 1200×800 à 150 %, les cartes Lundi et Vendredi sont rognées et le total de la semaine est sous la ligne de flottaison (zone de défilement interne `max-height: calc(100vh - 200px)`).
+- **Solution** : grille `repeat(5, minmax(0, 1fr))` + container queries, suppression du scroll interne.
+
+#### A11. Deux écrans « Heure CEGID » aux chiffres différents
+- **Constat** : l'un additionne les heures saisies à la main (`h_`/`m_`), l'autre les saisies projet. Les boutons Férié et Congé font exactement la même chose (7h06) sans garder le motif.
+- **Solution** : renommer (« Pointage CEGID » vs « Heures imputées »), afficher l'écart entre les deux, stocker le motif d'absence.
+
+### Architecture / code
+
+#### A12. Mono-fichier global
+- **Constat** : 2 715 lignes / 177 Ko, 84 fonctions globales, 45 `onclick` inline, 284 `style=""` inline, rendu par concaténation `innerHTML` complète (9 818 nœuds DOM pour 200 saisies, contenu replié compris).
+- **Solution** : modules ES (store, rendu par composant, utilitaires purs testés), délégation d'événements.
+
+#### A13. Synchro par monkey-patch de `Storage.prototype.setItem`
+- **Constat** : fonctionne mais fragile ; `sp_dash_filter` (simple préférence d'affichage) est synchronisé par erreur via le préfixe `sp_`.
+- **Solution** : store explicite + SDK Firestore modulaire avec `persistentLocalCache` (IndexedDB).
+
+#### A14. SDK Firebase « compat » v10
+- **Constat** : 3 scripts bloquants non modulaires, contraire au standard du projet (SDK modulaire v9+).
+- **Solution** : imports ES depuis `gstatic.com/firebasejs/…/firebase-*.js`, chargés en différé.
+
+#### A15. Doublons et code mort
+- **Constat** : types définis 4 fois (tokens `--t-*`, `SV_COLORS`, `SV_TYPES`, `HIST_TYPES_LIST`) avec noms divergents (`CONCEP3D`/`CONCEPTION3D`, `VERIF`/`VERIFICATION`) ; ~10 règles CSS inutilisées (`.file-status`, `.affaire-table`, `.micro-input`, `.btn-pdf`…) ; `#view-suivi` déclaré 2 fois (marges autour de la barre sticky) ; `top: 55px` en dur pour la nav ; libellé de tâche VS Code corrompu (`� Commit & Push`).
+- **Solution** : une seule table de types, purge du CSS mort, `position: sticky` sur un conteneur commun.
+
+#### A16. Accessibilité et design system
+- **Constat** : contrastes mesurés sous WCAG AA — texte `--tx-muted` 4,15:1, client des accordéons 3,38:1, légendes 3,09:1, blanc sur bouton bleu `#3d9eff` 2,79:1 ; textes de 9–10 px ; thème sombre uniquement ; police Inter chargée via `@import` Google Fonts au lieu de Segoe UI Variable ; ~20 `alert()`/`confirm()` natifs ; cartes du Dashboard non focusables ; boutons ✕ sans `aria-label` ; labels non reliés aux champs ; pas de `prefers-reduced-motion` ; aucun raccourci clavier ; pas de manifest PWA.
+- **Solution** : Lot 3 du README.
+
+---
+
 ## Lancement en mode application (Edge)
 
 Raccourci Windows utilisé (champ *Cible*) :

@@ -59,6 +59,19 @@ Le script `auto-push.sh` est aussi utilisable en ligne de commande :
 bash auto-push.sh
 ```
 
+## Historique des mises à jour
+
+| Date | Type | Détail |
+|------|------|--------|
+| 2026-09-29 | Migration | Stockage déplacé du `localStorage` vers Firebase Firestore (`users/{uid}`), connexion Google, publication GitHub Pages. |
+| 2026-09-29 | Audit | Audit complet design / architecture / code / sécurité / Firestore. Aucun code modifié. 16 problèmes consignés dans [`Problème rencontrés.md`](./Problème%20rencontrés.md) (section « Audit complet »), dont 4 critiques : perte de données au premier login, écrasement multi-poste, XSS stockée, règles Firestore sans liste blanche. |
+
+### Plan de correction issu de l'audit (2026-09-29)
+
+1. **Lot 1 — Correctifs critiques** : perte de données au login, XSS (échappement systématique), accordéons tronqués, solde CEGID de la semaine en cours, règles Firestore (liste blanche + validation), contrastes.
+2. **Lot 2 — Données** : SDK Firebase modulaire, modèle `users/{uid}/months/{YYYY-MM}` avec écritures par champ, `onSnapshot` temps réel, cache IndexedDB natif, suppression du monkey-patch `localStorage`, script de migration.
+3. **Lot 3 — Front** : découpage en modules ES, CSS `@layer` + tokens uniquement, thème clair, PWA (manifest, service worker, Window Controls Overlay), `<dialog>`, raccourcis clavier, saisie rapide.
+
 ## Structure
 
 ```

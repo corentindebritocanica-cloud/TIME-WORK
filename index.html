@@ -862,6 +862,262 @@
 </div>
 
 
+<!-- ═══════════════════════════════ CLOUD — FIREBASE / FIRESTORE ═══════════════════════════════
+     Les données (affaires, saisies, heures CEGID) sont stockées dans Firestore :
+       users/{uid}  →  { kv: { sp_affaires: "...", sp_entries: "...", h_2026-09-29: "7", ... } }
+     localStorage sert de cache local : chaque écriture de l'app est interceptée
+     et renvoyée vers Firestore (regroupée, ~0,8 s après la dernière modif).
+     ══════════════════════════════════════════════════════════════════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<style>
+    #tw-login {
+        position: fixed; inset: 0; z-index: 100000;
+        background: radial-gradient(ellipse at top, #0f1e36, #070d1a 70%);
+        display: flex; align-items: center; justify-content: center; padding: 20px;
+        font-family: 'Inter', 'Segoe UI', sans-serif; color: #fff;
+    }
+    #tw-login .tw-box {
+        background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 18px; padding: 36px 40px; max-width: 420px; width: 100%; text-align: center;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    #tw-login h1 { font-size: 20px; font-weight: 800; margin: 0 0 6px; letter-spacing: 1px; }
+    #tw-login p  { font-size: 13px; color: rgba(255,255,255,0.6); margin: 0 0 24px; line-height: 1.5; }
+    #tw-login button {
+        background: #3d9eff; color: #fff; border: none; border-radius: 10px;
+        padding: 12px 22px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    #tw-login button:hover { filter: brightness(1.1); }
+    #tw-login .tw-err { color: #ff8a8a; font-size: 12px; margin-top: 16px; min-height: 16px; white-space: pre-line; }
+    #tw-status {
+        position: fixed; left: 12px; bottom: 12px; z-index: 99999;
+        display: none; align-items: center; gap: 8px;
+        background: rgba(11,22,40,0.92); border: 1px solid rgba(255,255,255,0.14);
+        border-radius: 999px; padding: 6px 12px; font: 600 11px 'Inter','Segoe UI',sans-serif;
+        color: rgba(255,255,255,0.75); backdrop-filter: blur(8px);
+    }
+    #tw-status .tw-dot { width: 8px; height: 8px; border-radius: 50%; background: #00e4a8; }
+    #tw-status[data-s="pending"] .tw-dot { background: #f5c518; }
+    #tw-status[data-s="error"]   .tw-dot { background: #ff5252; }
+    #tw-status button {
+        background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer;
+        font: inherit; padding: 0 0 0 6px; border-left: 1px solid rgba(255,255,255,0.15);
+    }
+    #tw-status button:hover { color: #fff; }
+</style>
+<script>
+    // ── CONFIG FIREBASE ─────────────────────────────────────────────
+    // À remplir avec la config « Web app » de ta console Firebase
+    // (Paramètres du projet → Général → Vos applications → SDK setup → Config).
+    // Ces valeurs ne sont pas secrètes : la sécurité vient des règles Firestore.
+    const FIREBASE_CONFIG = {
+        apiKey:            "",
+        authDomain:        "",
+        projectId:         "",
+        storageBucket:     "",
+        messagingSenderId: "",
+        appId:             ""
+    };
+
+    window.TWCloud = (function () {
+        const SYNC_RE     = /^(sp_|h_|m_)/;       // clés synchronisées avec Firestore
+        const PENDING_KEY = '__tw_pending';       // écritures pas encore confirmées par le cloud
+        const ls   = window.localStorage;
+        const _set = Storage.prototype.setItem;
+        const _rem = Storage.prototype.removeItem;
+
+        let ready = false, docRef = null, timer = null, flushing = null;
+        let pending = new Set();
+
+        // ── Interception des écritures localStorage de l'app ──
+        Storage.prototype.setItem = function (k, v) {
+            _set.call(this, k, v);
+            if (this === ls && ready && SYNC_RE.test(k)) markPending(k);
+        };
+        Storage.prototype.removeItem = function (k) {
+            _rem.call(this, k);
+            if (this === ls && ready && SYNC_RE.test(k)) markPending(k);
+        };
+
+        function savePendingList() {
+            if (pending.size) _set.call(ls, PENDING_KEY, JSON.stringify([...pending]));
+            else _rem.call(ls, PENDING_KEY);
+        }
+        function markPending(k) {
+            pending.add(k); savePendingList(); setStatus('pending');
+            clearTimeout(timer); timer = setTimeout(flush, 800);
+        }
+
+        async function flush() {
+            if (flushing) { await flushing; }
+            if (!pending.size || !docRef) return;
+            const keys = [...pending]; pending.clear();
+            const kv = {};
+            keys.forEach(k => {
+                const v = ls.getItem(k);
+                kv[k] = (v === null) ? firebase.firestore.FieldValue.delete() : v;
+            });
+            flushing = docRef.set({ kv, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true })
+                .then(() => { savePendingList(); setStatus(pending.size ? 'pending' : 'ok'); })
+                .catch(err => {
+                    console.error('[TWCloud] écriture Firestore échouée', err);
+                    keys.forEach(k => pending.add(k)); savePendingList();
+                    setStatus('error', 'Non synchronisé — nouvel essai…');
+                    clearTimeout(timer); timer = setTimeout(flush, 5000);
+                })
+                .finally(() => { flushing = null; });
+            await flushing;
+        }
+
+        async function flushThenReload() {
+            clearTimeout(timer);
+            try { await flush(); } catch (e) {}
+            location.reload();
+        }
+
+        // ── UI : écran de connexion + pastille d'état ──
+        function el(id) { return document.getElementById(id); }
+        function showLogin(msg, err) {
+            el('tw-login').style.display = 'flex';
+            el('tw-login-msg').textContent = msg || 'Connecte-toi pour accéder à tes heures et tes affaires.';
+            el('tw-login-err').textContent = err || '';
+            el('tw-login-btn').style.display = FIREBASE_CONFIG.apiKey ? '' : 'none';
+        }
+        function hideLogin() { el('tw-login').style.display = 'none'; }
+        function setStatus(s, label) {
+            const box = el('tw-status'); if (!box) return;
+            box.style.display = 'flex'; box.dataset.s = s;
+            el('tw-status-txt').textContent = label ||
+                (s === 'ok' ? 'Synchronisé' : s === 'pending' ? 'Enregistrement…' : 'Hors ligne');
+        }
+
+        async function login() {
+            el('tw-login-err').textContent = '';
+            const provider = new firebase.auth.GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' });
+            try {
+                await firebase.auth().signInWithPopup(provider);
+            } catch (e) {
+                if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') {
+                    return firebase.auth().signInWithRedirect(provider);
+                }
+                if (e.code === 'auth/unauthorized-domain') {
+                    el('tw-login-err').textContent = 'Domaine non autorisé : ajoute « ' + location.hostname +
+                        ' » dans Firebase → Authentication → Settings → Authorized domains.';
+                } else if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
+                    el('tw-login-err').textContent = 'Connexion impossible : ' + (e.message || e.code);
+                }
+            }
+        }
+
+        async function logout() {
+            if (pending.size) {
+                await flush();
+                if (pending.size && !confirm('Des modifications ne sont pas encore synchronisées. Se déconnecter quand même ?')) return;
+            }
+            await firebase.auth().signOut();
+            location.reload();
+        }
+
+        // ── Chargement des données du cloud dans le cache local ──
+        function localSyncedKeys() {
+            const out = [];
+            for (let i = 0; i < ls.length; i++) { const k = ls.key(i); if (k && SYNC_RE.test(k)) out.push(k); }
+            return out;
+        }
+
+        async function onUser(user) {
+            if (!user) { ready = false; docRef = null; showLogin(); return; }
+            el('tw-login-msg').textContent = 'Chargement des données…';
+            el('tw-login-btn').style.display = 'none';
+            docRef = firebase.firestore().collection('users').doc(user.uid);
+            const lastUid = ls.getItem('__tw_uid');
+
+            // 1. Pousser d'abord ce qui n'avait pas été envoyé lors de la session précédente
+            if (lastUid === user.uid) {
+                try { JSON.parse(ls.getItem(PENDING_KEY) || '[]').forEach(k => pending.add(k)); } catch (e) {}
+                if (pending.size) await flush();
+            } else {
+                _rem.call(ls, PENDING_KEY);
+            }
+
+            // 2. Lire le cloud
+            let snap;
+            try {
+                snap = await docRef.get();
+            } catch (e) {
+                console.warn('[TWCloud] lecture impossible, mode hors ligne', e);
+                if (e.code === 'permission-denied') {
+                    showLogin('', 'Accès refusé par Firestore : vérifie les règles de sécurité (voir README).');
+                    return;
+                }
+                if (lastUid === user.uid) {       // même compte : on travaille sur le cache local
+                    ready = true; hideLogin(); setStatus('error', 'Hors ligne — cache local');
+                    return;
+                }
+                showLogin('', 'Impossible de joindre Firestore. Vérifie ta connexion puis recharge la page.');
+                return;
+            }
+
+            const cloud = (snap.exists && snap.data().kv) || {};
+            const localKeys = localSyncedKeys();
+
+            // 3. Premier lancement sur un cloud vide avec des données locales → proposer l'envoi
+            if (!snap.exists && localKeys.length &&
+                confirm('Ton espace cloud est vide mais ce navigateur contient des données locales (' +
+                        localKeys.length + ' clés).\nLes envoyer vers Firestore ?')) {
+                _set.call(ls, '__tw_uid', user.uid);
+                ready = true; hideLogin();
+                localKeys.forEach(k => pending.add(k));
+                setStatus('pending'); await flush();
+                return;
+            }
+
+            // 4. Le cloud fait foi : on remplace le cache local
+            localKeys.forEach(k => _rem.call(ls, k));
+            Object.keys(cloud).forEach(k => { if (SYNC_RE.test(k)) _set.call(ls, k, cloud[k]); });
+            _set.call(ls, '__tw_uid', user.uid);
+            ready = true; hideLogin(); setStatus('ok');
+            el('tw-status-user').textContent = user.email || '';
+        }
+
+        function boot() {
+            if (!FIREBASE_CONFIG.apiKey || typeof firebase === 'undefined') {
+                showLogin('', typeof firebase === 'undefined'
+                    ? 'Impossible de charger Firebase (réseau bloqué ?).'
+                    : 'Configuration Firebase manquante : renseigne FIREBASE_CONFIG dans index.html.');
+                return;
+            }
+            firebase.initializeApp(FIREBASE_CONFIG);
+            firebase.auth().getRedirectResult().catch(e => { el('tw-login-err').textContent = e.message || e.code; });
+            firebase.auth().onAuthStateChanged(u => { onUser(u).catch(e => showLogin('', 'Erreur : ' + (e.message || e))); });
+        }
+
+        window.addEventListener('beforeunload', e => {
+            if (pending.size) { flush(); e.preventDefault(); e.returnValue = ''; }
+        });
+        document.addEventListener('DOMContentLoaded', boot);
+
+        return { login, logout, flush, flushThenReload, isReady: () => ready };
+    })();
+</script>
+<div id="tw-login">
+    <div class="tw-box">
+        <h1>⏱️ TIME-WORK</h1>
+        <p id="tw-login-msg">Chargement…</p>
+        <button id="tw-login-btn" style="display:none" onclick="TWCloud.login()">Se connecter avec Google</button>
+        <div class="tw-err" id="tw-login-err"></div>
+    </div>
+</div>
+<div id="tw-status" data-s="ok">
+    <span class="tw-dot"></span>
+    <span id="tw-status-txt">Synchronisé</span>
+    <span id="tw-status-user" style="opacity:.55;font-weight:500;"></span>
+    <button onclick="TWCloud.logout()" title="Se déconnecter">Déconnexion</button>
+</div>
+
 <script>
     // ── HELPERS SÉCURITÉ ─────────────────────────────────────────
     // Échappe le texte pour injection sûre dans innerHTML.
@@ -922,10 +1178,16 @@
     function exportAdminBackup() {
         const sp_affaires = localStorage.getItem('sp_affaires') || '[]';
         const sp_entries  = localStorage.getItem('sp_entries')  || '[]';
+        const cegid = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && /^(h_|m_)/.test(k)) cegid[k] = localStorage.getItem(k);
+        }
         const payload = {
             exportedAt: new Date().toISOString(),
             affaires: JSON.parse(sp_affaires),
-            entries:  JSON.parse(sp_entries)
+            entries:  JSON.parse(sp_entries),
+            cegid
         };
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
         const url  = URL.createObjectURL(blob);
@@ -941,12 +1203,29 @@
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
-                const p = JSON.parse(e.target.result);
+                let p = JSON.parse(e.target.result);
+                // Accepte aussi un dump brut du localStorage (clés sp_affaires / sp_entries / h_* / m_* en texte)
+                if (!p.affaires && typeof p.sp_affaires === 'string') {
+                    const raw = p, cegid = {};
+                    Object.keys(raw).forEach(k => { if (/^(h_|m_)/.test(k)) cegid[k] = raw[k]; });
+                    p = { affaires: JSON.parse(raw.sp_affaires || '[]'), entries: JSON.parse(raw.sp_entries || '[]'), cegid };
+                }
                 if (!p.affaires || !p.entries) { alert('Fichier de sauvegarde invalide.'); return; }
+                const cegidKeys = p.cegid ? Object.keys(p.cegid).filter(k => /^(h_|m_)/.test(k)) : [];
+                if (!confirm('Restaurer ' + p.affaires.length + ' affaire(s), ' + p.entries.length + ' saisie(s)' +
+                             (cegidKeys.length ? ' et ' + cegidKeys.length / 2 + ' jour(s) CEGID' : '') +
+                             ' ?\nLes données actuelles de l\'app seront remplacées.')) return;
                 localStorage.setItem('sp_affaires', JSON.stringify(p.affaires));
                 localStorage.setItem('sp_entries',  JSON.stringify(p.entries));
-                alert('✅ ' + p.affaires.length + ' affaire(s) et ' + p.entries.length + ' saisie(s) restaurées.\nLa page va se recharger.');
-                location.reload();
+                if (p.cegid) {
+                    const old = [];
+                    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && /^(h_|m_)/.test(k)) old.push(k); }
+                    old.forEach(k => { if (!(k in p.cegid)) localStorage.removeItem(k); });
+                    cegidKeys.forEach(k => localStorage.setItem(k, String(p.cegid[k])));
+                }
+                alert('✅ ' + p.affaires.length + ' affaire(s) et ' + p.entries.length + ' saisie(s) restaurées' +
+                      (cegidKeys.length ? ', + heures CEGID' : '') + '.\nEnvoi vers le cloud puis rechargement.');
+                TWCloud.flushThenReload();
             } catch { alert('Fichier JSON invalide.'); }
         };
         reader.readAsText(file);
@@ -1206,8 +1485,8 @@
         const okCount = p.newEntries.length;
         const affCount = p.newAffairesMap.size;
         closeHistoryModal();
-        alert('✅ Import terminé : ' + okCount + ' saisie(s) ajoutée(s), ' + affCount + ' nouvelle(s) affaire(s) créée(s).\nLa page va se recharger.');
-        location.reload();
+        alert('✅ Import terminé : ' + okCount + ' saisie(s) ajoutée(s), ' + affCount + ' nouvelle(s) affaire(s) créée(s).\nEnvoi vers le cloud puis rechargement.');
+        TWCloud.flushThenReload();
     }
 
     // ── SUIVI PROJET ───────────────────────────────────────────────

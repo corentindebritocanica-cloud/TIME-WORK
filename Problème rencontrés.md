@@ -165,26 +165,33 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 #### M1. Migration des données existantes
 - **Besoin** : passer du document unique `users/{uid}.kv` (ou du cache local de l'ancienne version) au modèle `users/{uid}` + `months/{AAAA-MM}` sans aucun risque de perte.
 - **Risques identifiés** : conversion partielle, re-migration écrasant des saisies plus récentes, ancienne fenêtre de l'app réécrivant `kv` après la conversion.
+- **Statut** : corrigé le 2026-09-29
+- **Correction appliquée** : Voir `js/migrate.js` et `js/cloud.js`. Fenêtre d'accord explicite (« Plus tard » / Échap = déconnexion sans rien modifier), sauvegarde `backup_avant_migration_*.json`, écriture par lots ≤ 400, relecture `getDocFromServer/getDocsFromServer`, comparaison de 6 totaux (affaires, saisies, minutes, jours, minutes pointées, motifs), puis suppression de `kv` + pose de `migratedAt` en une seule écriture. Cache local de l'ancienne version : même conversion via le choix « Envoyer vers le cloud » (A1 conservé). Vérifié sur émulateurs : 40 affaires / 2 000 saisies / 215 jours / 11 motifs convertis en 2,0 s, totaux identiques, pas de 2ᵉ migration au rechargement ; annulation → kv intact ; règles non publiées → migration refusée avec message explicite, kv intact, 0 mois créé.
 
 #### B1. Identifiants devenus des chaînes dans les gestionnaires inline
 - **Symptôme** : les nouveaux identifiants UUID cassaient les `onclick="updateEntry(123,…)"` (argument non numérique).
 - **Solution** : tous les identifiants sont des chaînes (anciens nombres convertis) ; passage dans les gestionnaires via `jsId()`, qui n'accepte que `[A-Za-z0-9_-]`.
+- **Statut** : corrigé le 2026-09-29
 
 #### B2. Pointage tapé au clavier écrasé par un instantané Firestore
 - **Cause** : l'écriture d'un jour est différée de 500 ms (une écriture par frappe serait coûteuse) ; un instantané arrivant entre-temps remplaçait la valeur locale en mémoire.
 - **Solution** : `applyMonthDoc()` conserve la valeur locale des jours dont l'écriture est encore en attente ; envoi immédiat à la fermeture de la fenêtre (`pagehide`) et à la déconnexion.
+- **Statut** : corrigé le 2026-09-29
 
 #### B3. `setDoc(…, { merge: true })` ne supprime pas une clé de map imbriquée
 - **Symptôme** : retirer un budget d'une affaire le laissait dans Firestore (fusion profonde).
 - **Solution** : les affaires sont écrites avec `update(FieldPath('affaires', id), valeur)`, qui remplace l'affaire entière ; saisies et jours ont une forme canonique complète (champs toujours présents, `reason: null` explicite).
+- **Statut** : corrigé le 2026-09-29
 
 #### B4. Clés Firestore réinjectées dans des attributs `id` HTML
 - **Risque** : une clé d'affaire contenant `">…` aurait cassé le HTML (XSS).
 - **Solution** : le store ignore toute clé qui ne respecte pas `ID_RE` et toute date non ISO (test : clé piégée ignorée, aucun script exécuté).
+- **Statut** : corrigé le 2026-09-29
 
 #### B5. Environnement de test (sans impact sur l'app en production)
 - **Symptôme** : modules ES refusés en `file://` ; émulateur Firebase en échec au rechargement à chaud des règles (appel local routé vers le proxy réseau).
 - **Solution** : tests servis par `python3 -m http.server`, SDK 12.19 mis en cache local, émulateurs relancés (et non rechargés à chaud) à chaque changement de règles, `NO_PROXY=localhost,127.0.0.1`.
+- **Statut** : corrigé le 2026-09-29
 
 ---
 

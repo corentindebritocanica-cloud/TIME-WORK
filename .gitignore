@@ -1,0 +1,19 @@
+# Données locales — ne jamais pousser sur GitHub
+DTO/
+**/data.json
+*.local.json
+
+# Sauvegardes / dumps
+backup_*.json
+*_backup_*.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+*.swp
+*.swo
+*~
+.idea/
+

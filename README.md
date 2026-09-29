@@ -13,12 +13,22 @@ Un seul code, **les mêmes données** (Firestore, temps réel entre PC et iPhone
 L'app ne détecte pas le système : la mise en page suit la largeur d'écran
 (≤ 600 px = téléphone) et la connexion suit l'adresse (voir « iPhone » ci-dessous).
 
+## Documentation
+
+| Fichier | Contenu |
+|---|---|
+| [`UX-UI.md`](./UX-UI.md) | Design « Verre » (aspect identique aux apps PORTAIL-DUO) : règles à ne pas casser, écarts assumés, jetons, composants, méthode de vérification (contraste au pixel), checklist, historique + charte de référence en annexe. **À lire avant toute modification visuelle.** |
+| [`GUIDE-PWA-IOS.md`](./GUIDE-PWA-IOS.md) | iPhone / Safari : deux adresses, connexion, installation iOS 26, bande du bas, zones sûres, service worker, tests sans iPhone + guide de référence en annexe. |
+| [`Problème rencontrés.md`](./Problème%20rencontrés.md) | Journal de tous les problèmes rencontrés et de leur solution (audit A, lot 2 B, lot 3 C, iPhone D, refonte Verre E). |
+| [`AUDIT-2026-09-29.md`](./AUDIT-2026-09-29.md) | Cahier de correction de l'audit (lots 1 à 3, terminés). |
+
 ## Contenu
 
 Pas de page d'accueil : l'app s'ouvre directement sur le **Tableau de bord**.
-Tout est dans une seule barre d'onglets : **Tableau de bord · Par affaire ·
-Chronologie · Heures imputées · Pointage CEGID**. Le menu **💾 Données** de
-l'en-tête regroupe sauvegarde, restauration et import CSV.
+Tout est dans une seule barre d'onglets flottante (en bas de l'écran) : **Tableau ·
+Affaires · Chrono · Imputées · Pointage** ; le titre de la section s'affiche en
+haut à gauche. Le bouton rond **Données** de l'en-tête regroupe sauvegarde,
+restauration et import CSV ; le bouton rond voisin déconnecte.
 
 - **Pointage CEGID** (dernier onglet) : saisie hebdomadaire des heures, motifs Férié / Congé,
   calculateur de sessions, solde cumulé (7h06 par jour ouvré, 35h30 / semaine).
@@ -26,12 +36,18 @@ l'en-tête regroupe sauvegarde, restauration et import CSV.
   (DE, ECA, CD, Réunion, Formation, MEP, Loads CD…), budgets par type,
   répartition graphique (camemberts), chronologie hebdomadaire, vue
   « Heures imputées (semaine) » avec l'écart pointé − imputé.
-- **Saisie rapide** (`Ctrl+K`) depuis n'importe quel écran : affaire
-  (autocomplétion code / client / machine), type, date, durée → `Entrée`.
+- **Saisie rapide** (bouton rond **« + »** de la barre d'onglets, ou `Ctrl+K`) depuis
+  n'importe quel écran : affaire (autocomplétion code / client / machine), type, date,
+  durée → `Entrée`.
 - **Annuler** pendant 5 s après la suppression d'une saisie, d'une affaire ou
   l'effacement d'une semaine.
-- Thème **sombre** unique (le thème clair a été retiré à la demande), police
-  Segoe UI Variable, contraste WCAG AA vérifié.
+- **Design « Verre »**, identique aux apps PORTAIL-DUO (Portail, Muscu, Budget,
+  Course) : fond sombre éclairé par deux halos animés (bleu Corentin + violet
+  TIME-WORK), une plaque de verre pour le contenu, panneaux et boutons en pilule,
+  police **Unbounded** pour le titre et les grands chiffres (police système pour
+  le reste : Segoe UI Variable sous Windows, SF sur iPhone), barre d'onglets
+  flottante en pilule. Thème sombre unique. Contraste WCAG AA vérifié au pixel,
+  halos compris. Détail : [`UX-UI.md`](./UX-UI.md).
 
 ## Utilisation
 
@@ -41,9 +57,10 @@ et **https://lisa-cmpt.web.app** (iPhone).
 Connexion avec un compte Google. Les données sont stockées dans **Firebase
 Firestore** et synchronisées **en temps réel** entre postes et onglets. Hors
 ligne, les saisies sont enregistrées sur le poste (cache IndexedDB du SDK) puis
-envoyées à la reconnexion. La pastille de l'en-tête indique l'état :
-*Synchronisé*, *Enregistrement…*, *Hors ligne — enregistré sur ce poste*,
-*Erreur de synchronisation*.
+envoyées à la reconnexion. La **pastille à côté du titre** indique l'état :
+**verte** = synchronisé, **or** = enregistrement en cours, **rouge** = hors ligne
+(enregistré sur ce poste) ou erreur de synchronisation. Le détail s'affiche au
+survol de la pastille.
 
 ### Installer l'application (PWA)
 
@@ -60,13 +77,15 @@ L'ancien raccourci `msedge.exe --app=…` fonctionne toujours.
 ### iPhone (PWA Safari)
 
 **Installation** : ouvrir **https://lisa-cmpt.web.app** dans **Safari** →
-bouton **Partager** → **Sur l'écran d'accueil**. L'app s'ouvre ensuite en plein
-écran, comme une app native, et démarre hors ligne.
+bouton **« ··· »** → **Partager** → **Sur l'écran d'accueil** (iOS 26 et plus ;
+laisser **« Ouvrir en tant qu'app Web »** activé, sinon l'icône ouvre un simple
+onglet Safari). L'app s'ouvre ensuite en plein écran, comme une app native, et
+démarre hors ligne. Pièges et règles iPhone : [`GUIDE-PWA-IOS.md`](./GUIDE-PWA-IOS.md).
 
-Sur téléphone (≤ 600 px) : onglets dans une **barre en bas** (sous le pouce),
-jours du pointage en liste, zones sûres respectées (Dynamic Island, barre
-d'accueil), champs en 16 px (pas de zoom automatique de Safari), dialogues
-pleine largeur.
+Sur téléphone (≤ 600 px) : onglets dans une **pilule flottante en bas** (sous le
+pouce) avec le bouton **« + »** juste au-dessus, jours du pointage en liste,
+zones sûres respectées (Dynamic Island, barre d'accueil), champs en 16 px (pas
+de zoom automatique de Safari), dialogues en **feuille du bas**.
 
 **Pourquoi une seconde adresse ?** Safari bloque le stockage « tiers » : la
 connexion Google de Firebase ne fonctionne pas quand la page de connexion
@@ -91,9 +110,9 @@ connexion Google de Firebase ne fonctionne pas quand la page de connexion
 
 ### Raccourci clavier
 
-Un seul raccourci global : **`Ctrl+K`** ouvre la saisie rapide. Tout le reste
-se fait à la souris / au Tab (liens de l'en-tête, onglets du Suivi, boutons ❮ ❯
-des semaines, champ de recherche).
+Un seul raccourci global : **`Ctrl+K`** ouvre la saisie rapide (comme le bouton
+rond « + »). Tout le reste se fait à la souris / au Tab (boutons de l'en-tête,
+onglets, boutons ❮ ❯ des semaines, champ de recherche).
 
 ### Si l'app reste bloquée au démarrage
 
@@ -173,6 +192,10 @@ Le paramètre `?emu` (uniquement sur `localhost`) branche l'app sur les
 émulateurs Auth (9099) et Firestore (8080) du projet `demo-lisa` et expose
 `__twTestSignIn(email)` pour se connecter sans popup Google.
 
+- **Interface (design Verre)** : débordement horizontal, champs ≥ 16 px en
+  tactile, nombre de surfaces floutées et **contraste mesuré au pixel** (halos
+  compris) à 1200×800, 800×533 et 430×932 — méthode et limites du navigateur
+  headless dans [`UX-UI.md`](./UX-UI.md) §4.
 - **iPhone** : mêmes tests dans **WebKit** (moteur de Safari, Playwright) au
   format iPhone 16 Pro Max (430 × 932, tactile) : navigation par la barre du bas,
   pointage au doigt, Férié, menu Données, saisie rapide, absence de débordement
@@ -274,6 +297,8 @@ service cloud.firestore {
 | 2026-09-29 | Lot 3 retours | **Blocage sur « Chargement… »** corrigé : chargeur protégé dans `index.html` (en cas d'échec, rechargement forcé de tous les fichiers de l'app une fois, puis message clair « Ctrl+F5 »), service worker qui revalide chaque fichier (`cache: 'no-cache'`, VERSION `lot3b`), bouton **Recharger** si Firestore ne répond pas en 15 s. **Thème clair supprimé** (sombre uniquement, comme avant). **Raccourcis supprimés** (`Alt+H/P/S`, `1`–`4`, `←`/`→`/`T`, `Ctrl+F`, `Ctrl+S`, aide `?`) — seul `Ctrl+K` est conservé. Problèmes C7 à C9 consignés. |
 | 2026-09-29 | Navigation | **Page d'accueil supprimée** : l'app s'ouvre sur le Tableau de bord. **Pointage CEGID devient un onglet**, à droite de « Heures imputées » (`#/suivi/pointage`). Liens Accueil / Pointage / Suivi retirés de l'en-tête ; sauvegarde, restauration et import CSV déplacés dans un menu **💾 Données** (Popover API) de l'en-tête. Anciennes adresses `#/` et `#/pointage` redirigées. Raccourcis de l'icône PWA mis à jour. `js/views/home.js` supprimé, logique déplacée dans `js/ui/data.js`. Service worker `lot3c`. |
 | 2026-09-29 | iPhone | **App utilisable en PWA sur iPhone** : seconde adresse **https://lisa-cmpt.web.app** (Firebase Hosting, même code, mêmes données) avec connexion Google par redirection sur le même domaine (contourne le blocage du stockage tiers de Safari) ; l'adresse PC ne change pas. Mise en page téléphone (barre d'onglets en bas, pointage en liste, zones sûres, champs 16 px, dialogues pleine largeur), icône iPhone, balises `apple-mobile-web-app-*`. Corrigé : plantage Safari au démarrage (`requestIdleCallback`). Ajout de `firebase.json`, `.firebaserc`, workflow de publication. Tests WebKit iPhone 11/11. Service worker `ios1`. Problèmes D1 à D7 consignés. |
+| 2026-09-29 | UX/UI Verre | **Refonte de l'interface, aspect identique aux apps PORTAIL-DUO** (charte UX/UI v2.0, `verre.css`) : fond `#08080a` + deux halos animés calés sur l'horloge (bleu Corentin, violet TIME-WORK), une seule plaque de verre pour le contenu, panneaux sans flou (rayons 22–34 px), boutons / puces / onglets en pilule, Unbounded pour le titre de section et les grands chiffres, en-tête posé sur les halos (titre + pastille de connexion verte / or / rouge, boutons ronds Données et Déconnexion), **barre d'onglets flottante** en pilule avec icônes + **bouton rond « + »** (saisie rapide), dialogues en verre (feuille du bas sur téléphone), toasts en pilule, camemberts en anneau évidé. Contraste AA conservé (voile de lisibilité dans la plaque, textes éclaircis) : **0 défaut sur 5 024 textes mesurés au pixel**. Service worker `verre1` (police mise en cache). Problèmes E1 à E10 consignés. |
+| 2026-09-29 | Doc | Ajout de [`UX-UI.md`](./UX-UI.md) (design, règles, méthode, historique + charte de référence) et [`GUIDE-PWA-IOS.md`](./GUIDE-PWA-IOS.md) (iPhone : règles, tests, corrections du guide de référence + guide en annexe). README : section Documentation. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 
@@ -284,8 +309,8 @@ service cloud.firestore {
 ## Structure
 
 ```
-index.html              Coquille : en-tête, <main>, écran de connexion, <dialog>, zone de toasts
-css/app.css             Styles en couches (@layer reset, tokens, base, components, views, utilities), thème sombre, mise en page téléphone ≤ 600 px
+index.html              Coquille : sprite d'icônes, en-tête (titre + pastille), <main> (plaque de verre), #tabbar, écran de connexion, <dialog>, toasts ; calage des halos sur l'horloge
+css/app.css             Design « Verre » en couches (@layer reset, tokens, base, components, views, utilities) : jetons, halos, plaque, barre flottante, mise en page téléphone ≤ 600 px, WCO
 manifest.webmanifest    Manifeste PWA (Window Controls Overlay, raccourcis)
 firebase.json           Firebase Hosting (adresse iPhone) : fichiers publiés, en-têtes de cache
 .firebaserc             Projet Firebase par défaut (lisa-cmpt)
@@ -299,8 +324,11 @@ js/cloud.js             Connexion, migration, démarrage du store, état de sync
 js/migrate.js           Conversion de l'ancien format (kv / cache local) avec contrôle des totaux
 js/domain/              Fonctions pures : time (durées, semaines), balance (solde), types (table unique), csv, validate, backup
 js/ui/                  dom (gabarit html`` échappé par défaut, délégation), dialog, toast, pie, quick (saisie rapide), data (sauvegarde / restauration / import CSV)
-js/views/               suivi (hôte des onglets) + dashboard, affaires, chrono, imputees, pointage, shared
+js/views/               suivi (hôte des sections + barre d'onglets flottante) + dashboard, affaires, chrono, imputees, pointage, shared
 tests/domain.test.html  Tests unitaires des fonctions pures
-AUDIT-2026-09-29.md Cahier de correction issu de l'audit
+UX-UI.md                Design « Verre » : règles, jetons, composants, méthode de vérification, historique (+ charte PORTAIL-DUO)
+GUIDE-PWA-IOS.md        iPhone / Safari : règles, pièges, tests (+ guide PWA iOS PORTAIL-DUO)
+Problème rencontrés.md  Journal des problèmes et de leurs solutions
+AUDIT-2026-09-29.md     Cahier de correction issu de l'audit
 DTO/              Données locales (ignoré par git)
 ```

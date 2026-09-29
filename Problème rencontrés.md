@@ -275,7 +275,7 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 - **Cause** : Safari bloque le stockage tiers. La connexion Firebase (popup ou redirection) passe par `lisa-cmpt.firebaseapp.com`, un autre domaine que `github.io` : le résultat de connexion n'est pas relu. La popup est en plus peu fiable en PWA iOS (documentation Firebase « Redirect best practices »).
 - **Solution** : seconde adresse **https://lisa-cmpt.web.app** (Firebase Hosting) servant le même code. Sur cette adresse, `authDomain = location.hostname` (page `/__/auth/handler` sur le même domaine) et connexion par redirection. L'adresse PC (GitHub Pages) garde la popup, rien ne change sur Windows.
 - **Prérequis** : ajouter `https://lisa-cmpt.web.app/__/auth/handler` aux URI de redirection du client OAuth « Web client (auto created by Google Service) » dans Google Cloud. Sans cela, Google répond `Error 400: redirect_uri_mismatch` (constaté lors du premier test).
-- **Statut** : corrigé le 2026-09-29 (URI de redirection à ajouter par l'utilisateur)
+- **Statut** : corrigé le 2026-09-29 — URI de redirection ajoutée par l'utilisateur ; vérifié : la connexion depuis lisa-cmpt.web.app arrive sur la page Google « to continue to lisa-cmpt.web.app » (plus d'erreur `redirect_uri_mismatch`).
 
 #### D3. Champs en 13 px : Safari zoome à chaque saisie
 - **Cause** : la règle « 16 px minimum sur écran tactile » était dans la couche `base`, qui passe **après** la couche `components` (`.control` en 13 px) : elle n'avait aucun effet.

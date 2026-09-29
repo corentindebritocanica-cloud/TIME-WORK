@@ -304,6 +304,16 @@
             white-space: nowrap;
         }
 
+        #app-toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translate(-50%, 12px);
+            max-width: min(560px, calc(100% - 32px)); padding: 10px 18px; border-radius: 12px;
+            font-size: 13px; font-weight: 600; line-height: 1.4; z-index: 9999; pointer-events: none;
+            opacity: 0; transition: opacity .25s, transform .25s;
+            background: #0f1e36; color: var(--tx-primary); border: 1px solid var(--c-border-2); box-shadow: var(--shadow-md);
+        }
+        #app-toast.show { opacity: 1; transform: translate(-50%, 0); }
+        #app-toast[data-kind="error"] { border-color: rgba(255,82,82,.6); color: #ffb3b3; }
+        #app-toast[data-kind="ok"]    { border-color: rgba(0,228,168,.5); color: #9ff5da; }
         .path-info { font-size: 9px; color: rgba(255,255,255,0.07); margin-top: 20px; text-align: center; letter-spacing: 0.5px; }
 
         /* ── FILE STATUS ── */
@@ -641,6 +651,7 @@
 </svg>
 
 <div id="copy-toast">Copié !</div>
+<div id="app-toast" role="status" aria-live="polite"></div>
 
 <!-- ═══════════════════════════════ VUE ACCUEIL ═══════════════════════════════ -->
 <div id="view-home">
@@ -1245,6 +1256,19 @@
             .replace(/</g, '&lt;')
             .replace(/\r?\n/g, '\\n');
     }
+    /**
+     * Toast de retour utilisateur (succès / erreur), lu par les lecteurs d'écran.
+     * @param {string} msg
+     * @param {'ok'|'error'} [kind='ok']
+     */
+    function showToast(msg, kind = 'ok') {
+        const t = document.getElementById('app-toast');
+        if (!t) return;
+        t.textContent = msg; t.dataset.kind = kind; t.classList.add('show');
+        clearTimeout(showToast._timer);
+        showToast._timer = setTimeout(() => t.classList.remove('show'), kind === 'error' ? 4000 : 2000);
+    }
+
     function debounce(fn, delay) {
         let t = null;
         return function() {
@@ -1792,11 +1816,26 @@
         localStorage.setItem('sp_entries',  JSON.stringify(entries));
     }
 
-    function updateEntry(id, field, value) {
+    function updateEntry(id, field, value, inputEl) {
         const e = entries.find(x => x.id === id);
         if (!e) return;
         if (field === 'type') { e.type = value; }
-        else if (field === 'time') { const m = parseTime(value); if (!m || m <= 0) return; e.minutes = m; }
+        else if (field === 'time') {
+            const r = parseDuration(value);
+            if ('error' in r) {
+                // A9 : retour visible + restauration de la valeur précédente
+                showToast('Durée non modifiée — ' + r.error, 'error');
+                if (inputEl) {
+                    inputEl.value = minsToHM(e.minutes);
+                    inputEl.classList.add('is-invalid');
+                    setTimeout(() => inputEl.classList.remove('is-invalid'), 2500);
+                }
+                return;
+            }
+            if (r.minutes === e.minutes) return;
+            e.minutes = r.minutes;
+            showToast('Durée mise à jour : ' + minsToHM(r.minutes), 'ok');
+        }
         save();
         _sv_dirty.add('sv-dash'); _sv_dirty.add('sv-chrono');
         if (_sv_active === 'sv-aff') _svRefreshOneAcc(e.affaireId);
@@ -2234,7 +2273,7 @@
                 return '<tr>' +
                     '<td>' + d + '</td>' +
                     '<td><select class="entry-select" onchange="updateEntry(' + e.id + ',\'type\',this.value)">' + svGetTypeOptsHTML(a).replace('value="' + esc(e.type) + '"', 'value="' + esc(e.type) + '" selected') + '</select></td>' +
-                    '<td><input type="text" class="entry-time-edit" value="' + minsToHM(e.minutes) + '" onblur="updateEntry(' + e.id + ',\'time\',this.value)" onkeydown="if(event.key===\'Enter\')this.blur()"></td>' +
+                    '<td><input type="text" class="entry-time-edit" value="' + minsToHM(e.minutes) + '" aria-label="Durée" onblur="updateEntry(' + e.id + ',\'time\',this.value,this)" onkeydown="if(event.key===\'Enter\')this.blur()"></td>' +
                     '<td><button class="btn-del" onclick="svDeleteEntry(' + e.id + ',' + a.id + ')">✕</button></td></tr>';
               }).join('');
         const pieData = _allTypesPresent.map(t => ({label:svGetTypeLabel(t), mins:mpt[t], color:svGetTypeColor(t), type:t}));

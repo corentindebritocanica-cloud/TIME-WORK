@@ -113,6 +113,8 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 
 #### A9. Modification d'une saisie invalide ignorée sans retour
 - **Solution** : bordure d'erreur + message, restauration de la valeur précédente.
+- **Statut** : corrigé le 2026-09-29
+- **Correction appliquée** : `updateEntry()` utilise `parseDuration()` ; en cas d'erreur : `showToast()` (nouveau composant `#app-toast`, `role=status` + `aria-live`), classe `is-invalid` 2,5 s, ancienne valeur remise dans le champ. Pas d'écriture si la durée est identique. Vérifié : « 2,30 » → 1h30 restauré + message ; « 2h15 » → 135 min + toast de succès.
 
 #### A10. Vue « Heure CEGID » coupée à 150 %
 - **Symptôme** : dans la fenêtre 1200×800 à 150 %, les cartes Lundi et Vendredi sont rognées et le total de la semaine est sous la ligne de flottaison (zone de défilement interne `max-height: calc(100vh - 200px)`).

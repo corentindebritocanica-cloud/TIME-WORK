@@ -3,19 +3,38 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // Seul le propriétaire, connecté avec un compte Google vérifié
-    // et présent dans la liste blanche, accède à son document.
+    // et présent dans la liste blanche, accède à ses documents.
     function isOwner(uid) {
       return request.auth != null
         && request.auth.uid == uid
         && request.auth.token.email_verified == true
         && request.auth.token.email in ['corentin.debritocanica@gmail.com'];
     }
+    function isMapOrAbsent(data, field) {
+      return !(field in data) || data[field] is map;
+    }
 
+    // users/{uid} : affaires + réglages (+ ancien champ kv jusqu'à la migration)
     match /users/{uid} {
       allow read: if isOwner(uid);
-      allow write: if isOwner(uid)
-        && request.resource.data.keys().hasOnly(['kv', 'updatedAt'])
-        && request.resource.data.kv is map;
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['affaires', 'settings', 'updatedAt', 'migratedAt', 'kv'])
+        && isMapOrAbsent(request.resource.data, 'affaires')
+        && isMapOrAbsent(request.resource.data, 'settings')
+        && isMapOrAbsent(request.resource.data, 'kv')
+        // Après migration, l'ancien format est refusé (fenêtre de l'ancienne version restée ouverte).
+        && !('migratedAt' in request.resource.data && 'kv' in request.resource.data);
+
+      // users/{uid}/months/{AAAA-MM} : saisies + pointages CEGID du mois
+      match /months/{month} {
+        allow read: if isOwner(uid);
+        allow delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && month.matches('^[0-9]{4}-[0-9]{2}$')
+          && request.resource.data.keys().hasOnly(['entries', 'days', 'updatedAt'])
+          && isMapOrAbsent(request.resource.data, 'entries')
+          && isMapOrAbsent(request.resource.data, 'days');
+      }
     }
 
     // Pas de règle globale « /{document=**} » : tout ce qui n'est pas

@@ -137,6 +137,7 @@ bash auto-push.sh
 | 2026-09-29 | Correctif A11 | Écrans renommés « Pointage CEGID » (portail) et « Heures imputées (semaine) » (Suivi) ; écart pointé − imputé affiché par jour et sur la semaine ; motif Férié / Congé enregistré (`r_AAAA-MM-JJ`) et affiché sur la carte du jour. |
 | 2026-09-29 | Correctif A16 | Contrastes : tous les textes des 7 vues ≥ 4,5:1 (3:1 pour les grands titres), aucun texte < 11 px ; couleurs d'accent et de types éclaircies pour le texte, boutons pleins sur un bleu plus foncé. |
 | 2026-09-29 | Lot 2 A13 + A14 | SDK Firebase modulaire 12.19 (ESM, cache IndexedDB multi-onglets), store unique `js/store.js` (mémoire + écritures ciblées + écoute temps réel), amorçage `js/cloud.js`, migration `js/migrate.js` ; suppression des scripts « compat » et du monkey-patch `localStorage` ; mode émulateur `?emu` pour les tests locaux. |
+| 2026-09-29 | Lot 2 A2 | Nouveau modèle Firestore `users/{uid}` (affaires, réglages) + `users/{uid}/months/{AAAA-MM}` (saisies, pointages) : écritures ciblées par champ, écoute temps réel, IDs UUID. Deux postes qui saisissent en même temps ne s'écrasent plus. **Règles à republier dans la console.** |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

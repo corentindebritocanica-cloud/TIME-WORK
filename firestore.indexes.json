@@ -1,0 +1,10 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    { "collectionGroup": "users",  "fieldPath": "affaires", "indexes": [] },
+    { "collectionGroup": "users",  "fieldPath": "settings", "indexes": [] },
+    { "collectionGroup": "users",  "fieldPath": "kv",       "indexes": [] },
+    { "collectionGroup": "months", "fieldPath": "entries",  "indexes": [] },
+    { "collectionGroup": "months", "fieldPath": "days",     "indexes": [] }
+  ]
+}

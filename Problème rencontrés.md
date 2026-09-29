@@ -119,6 +119,8 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 #### A10. Vue « Heure CEGID » coupée à 150 %
 - **Symptôme** : dans la fenêtre 1200×800 à 150 %, les cartes Lundi et Vendredi sont rognées et le total de la semaine est sous la ligne de flottaison (zone de défilement interne `max-height: calc(100vh - 200px)`).
 - **Solution** : grille `repeat(5, minmax(0, 1fr))` + container queries, suppression du scroll interne.
+- **Statut** : corrigé le 2026-09-29
+- **Correction appliquée** : `.days-grid` en `grid repeat(5, minmax(0, 1fr))` + container queries (`.cegid-tab-content` = conteneur) ; cartes sans largeur fixe ; suppression de `max-height: calc(100vh - 200px)` et du scroll interne ; `.total-container` en `width: min(450px, 100%)`, `.calc-wrapper` en `min(680px, 100%)` ; ligne total/bouton en flex-wrap (`.cegid-total-row`). Badge de solde vide masqué (`:empty`). Vérifié à 1200×800, 960×640 (125 %), 800×533 (150 %) et 560×500 : 0 px de débordement, cartes et total entièrement visibles, aucun scroll interne.
 
 #### A11. Deux écrans « Heure CEGID » aux chiffres différents
 - **Constat** : l'un additionne les heures saisies à la main (`h_`/`m_`), l'autre les saisies projet. Les boutons Férié et Congé font exactement la même chose (7h06) sans garder le motif.

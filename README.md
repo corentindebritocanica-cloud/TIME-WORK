@@ -80,6 +80,7 @@ bash auto-push.sh
 | 2026-09-29 | Correctif A7 | Durées : « 2,30 » refusé comme ambigu, aperçu de l'interprétation sous le champ (« = 2h18 »), minutes > 59 et heures > 23 signalées en rouge côté CEGID. |
 | 2026-09-29 | Correctif A8 | Import CSV : les lignes identiques à des saisies existantes (date, affaire, type, durée) sont détectées, affichées dans l'aperçu (« Déjà importées ») et ignorées. |
 | 2026-09-29 | Correctif A9 | Modification d'une durée existante : si la saisie est invalide, toast d'erreur explicite, champ en rouge et valeur précédente restaurée ; toast de confirmation si la modification est acceptée. |
+| 2026-09-29 | Correctif A10 | Vue CEGID : grille fluide 5 colonnes (3 puis 2 en container query), plus de scroll interne ; les 5 jours et le total restent visibles de 1200×800 à 560×500. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

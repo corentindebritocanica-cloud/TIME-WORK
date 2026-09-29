@@ -571,11 +571,15 @@
         .cegid-tabs { display:flex; gap:6px; margin-bottom:24px; background:rgba(255,255,255,0.04); padding:5px; border-radius:30px; border:1px solid var(--c-border); backdrop-filter:blur(12px); }
         .cegid-tab-btn { padding:9px 26px; border-radius:25px; cursor:pointer; border:none; background:transparent; color:var(--tx-secondary); font-weight:700; transition:all var(--tx); text-transform:uppercase; font-size:10px; font-family:inherit; letter-spacing:0.5px; }
         .cegid-tab-btn.active { background:linear-gradient(135deg, var(--blue), #0050d4); color:#fff; box-shadow:var(--shadow-blue); }
-        .cegid-tab-content { display:none; width:100%; flex-direction:column; align-items:center; overflow-y:auto; max-height:calc(100vh - 200px); padding:10px; }
+        .cegid-tab-content { display:none; width:100%; max-width:1000px; flex-direction:column; align-items:center; padding:10px; container-type:inline-size; }
         .cegid-tab-content.active { display:flex; }
 
-        .days-grid { display:flex; gap:12px; justify-content:center; width:100%; margin-bottom:28px; }
-        .day-card { background:var(--c-surface); border:1px solid var(--c-border); border-radius:var(--r-lg); padding:18px 14px; text-align:center; width:155px; transition:all var(--tx); box-shadow:var(--shadow-sm), var(--shadow-inset); }
+        .days-grid { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:12px; width:100%; margin-bottom:28px; }
+        @container (max-width: 620px) { .days-grid { grid-template-columns:repeat(3, minmax(0, 1fr)); } }
+        @container (max-width: 380px) { .days-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
+        .cegid-total-row { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:16px 20px; width:100%; margin-top:10px; }
+        .cegid-total-row .btn-reset { margin-left:0; }
+        .day-card { background:var(--c-surface); border:1px solid var(--c-border); border-radius:var(--r-lg); padding:18px 14px; text-align:center; min-width:0; transition:all var(--tx); box-shadow:var(--shadow-sm), var(--shadow-inset); }
         .day-card:hover { border-color:rgba(61,158,255,0.3); background:rgba(61,158,255,0.07); }
         .day-card.active { border-color:rgba(61,158,255,0.55); background:rgba(61,158,255,0.12); box-shadow:0 6px 26px rgba(61,100,255,0.22), var(--shadow-inset); }
         .main-input { width:50px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.18); color:#fff; padding:8px; border-radius:var(--r-xs); text-align:center; outline:none; font-size:15px; font-family:inherit; }
@@ -594,17 +598,18 @@
         .btn-add-affaire { background:var(--blue); color:#fff; border:none; padding:10px 20px; border-radius:20px; cursor:pointer; font-weight:700; font-size:12px; font-family:inherit; transition:all var(--tx); }
         .btn-add-affaire:hover { filter:brightness(1.12); transform:translateY(-1px); }
 
-        .total-container { background:linear-gradient(135deg, rgba(61,158,255,0.88), rgba(0,50,210,0.92)); padding:28px 50px; border-radius:var(--r-lg); text-align:center; min-width:450px; cursor:pointer; position:relative; box-shadow:0 14px 44px rgba(0,50,200,0.45), var(--shadow-inset); display:flex; flex-direction:column; align-items:center; border:1px solid rgba(61,158,255,0.35); backdrop-filter:blur(22px); transition:all var(--tx); }
+        .total-container { background:linear-gradient(135deg, rgba(61,158,255,0.88), rgba(0,50,210,0.92)); padding:28px clamp(20px, 5cqi, 50px); border-radius:var(--r-lg); text-align:center; width:min(450px, 100%); cursor:pointer; position:relative; box-shadow:0 14px 44px rgba(0,50,200,0.45), var(--shadow-inset); display:flex; flex-direction:column; align-items:center; border:1px solid rgba(61,158,255,0.35); backdrop-filter:blur(22px); transition:all var(--tx); }
         .total-container:hover { box-shadow:0 22px 60px rgba(0,80,220,0.55), var(--shadow-inset); transform:translateY(-2px); }
         .total-val { font-size:48px; font-weight:900; line-height:1.1; }
         .delta-badge { position:absolute; top:-10px; right:-10px; padding:6px 12px; border-radius:10px; font-size:11px; font-weight:700; background:var(--c-bg-2); border:1px solid var(--c-border); text-align:center; box-shadow:var(--shadow-sm); z-index:10; }
+        .delta-badge:empty { display:none; }
         .delta-neg { color:var(--red); } .delta-pos { color:var(--gold); } .delta-ok { color:var(--green); }
         .progress-bg { width:100%; height:5px; background:rgba(255,255,255,0.18); border-radius:10px; margin:10px 0; overflow:hidden; }
         .progress-bar { width:0%; height:100%; transition:0.5s ease-out; background-color:var(--green); border-radius:10px; }
         .btn-reset { background:var(--c-surface); border:1px solid var(--c-border); color:var(--tx-secondary); padding:10px 20px; border-radius:20px; cursor:pointer; font-size:11px; margin-left:20px; font-family:inherit; transition:all var(--tx); }
         .btn-reset:hover { background:var(--red); color:#fff; border-color:var(--red); }
 
-        .calc-wrapper { background:var(--c-surface); padding:24px; border-radius:var(--r-lg); border:1px solid var(--c-border); width:680px; backdrop-filter:blur(14px); box-shadow:var(--shadow-md); }
+        .calc-wrapper { background:var(--c-surface); padding:24px; border-radius:var(--r-lg); border:1px solid var(--c-border); width:min(680px, 100%); backdrop-filter:blur(14px); box-shadow:var(--shadow-md); }
         .time-input { width:55px; background:rgba(0,0,0,0.3); border:1px solid var(--c-border-2); color:#fff; padding:6px; border-radius:var(--r-xs); text-align:center; font-family:inherit; }
 
         .decimal-val { color:var(--green); font-weight:700; font-size:18px; cursor:pointer; margin-bottom:12px; transition:color var(--tx); }
@@ -622,8 +627,6 @@
             .cards { gap: 16px; }
             .card  { width: 100%; max-width: 340px; }
             .totals-row { grid-template-columns: repeat(3, 1fr); }
-            .days-grid  { flex-wrap: wrap; justify-content: center; }
-            .day-card   { width: 130px; }
             .total-container { min-width: unset; width: 100%; padding: 20px 24px; }
             .calc-wrapper { width: 100%; }
             .form-row  { gap: 8px; }
@@ -845,7 +848,7 @@
             <button style="cursor:pointer;background:none;border:none;color:#00aaff;font-size:20px;" onclick="changeCegidWeek(1)">❯</button>
         </div>
         <div class="days-grid" id="grid-container"></div>
-        <div style="display:flex;align-items:center;margin-top:10px;">
+        <div class="cegid-total-row">
             <div class="total-container" onclick="copyValue(document.getElementById('total_hebdo').innerText,this)">
                 <div id="week-delta" class="delta-badge"></div>
                 <span style="font-size:11px;font-weight:bold;opacity:0.9;letter-spacing:1px;margin-bottom:5px;">TOTAL DÉCIMAL CEGID (SEMAINE)</span>

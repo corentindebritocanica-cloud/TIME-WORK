@@ -1497,6 +1497,13 @@
         try { entries  = JSON.parse(localStorage.getItem('sp_entries')  || '[]'); } catch { entries  = []; }
 
         const errors = [], newEntries = [], newAffairesMap = new Map(), unknownTypes = new Set();
+        // A8 : saisies déjà présentes (multi-ensemble date|affaire|type|minutes)
+        const existingKeys = new Map();
+        entries.forEach(e => {
+            const k = e.date + '|' + e.affaireId + '|' + e.type + '|' + e.minutes;
+            existingKeys.set(k, (existingKeys.get(k) || 0) + 1);
+        });
+        let duplicates = 0;
 
         const findAff = (client, num) => {
             const cU = (client || '').trim().toUpperCase();
@@ -1537,11 +1544,14 @@
                 }
             } else {
                 affKey = 'existing_' + aff.id;
+                const dk = date + '|' + aff.id + '|' + type + '|' + minutes;
+                const left = existingKeys.get(dk) || 0;
+                if (left > 0) { existingKeys.set(dk, left - 1); duplicates++; return; }
             }
             newEntries.push({ affKey, existingAffId: aff ? aff.id : null, date, type, minutes, line: lineNum, client, codeAff, typeRaw });
         });
 
-        _histPending = { newEntries, newAffairesMap, errors, unknownTypes };
+        _histPending = { newEntries, newAffairesMap, errors, unknownTypes, duplicates };
         _histRenderModal();
     }
 
@@ -1559,9 +1569,13 @@
         html += '<div style="' + cardStyle + '"><div style="font-size:10px;color:var(--tx-muted);text-transform:uppercase;letter-spacing:1px;">Saisies valides</div><div style="font-size:24px;font-weight:800;color:var(--green);margin-top:4px;">' + okCount + '</div></div>';
         html += '<div style="' + cardStyle + '"><div style="font-size:10px;color:var(--tx-muted);text-transform:uppercase;letter-spacing:1px;">Total heures</div><div style="font-size:24px;font-weight:800;color:var(--blue);margin-top:4px;">' + totH + ' h</div></div>';
         html += '<div style="' + cardStyle + '"><div style="font-size:10px;color:var(--tx-muted);text-transform:uppercase;letter-spacing:1px;">Nouvelles affaires</div><div style="font-size:24px;font-weight:800;color:var(--gold);margin-top:4px;">' + affCount + '</div></div>';
+        html += '<div style="' + cardStyle + '"><div style="font-size:10px;color:var(--tx-muted);text-transform:uppercase;letter-spacing:1px;">Déjà importées</div><div style="font-size:24px;font-weight:800;color:' + (p.duplicates ? 'var(--gold)' : 'var(--tx-muted)') + ';margin-top:4px;">' + p.duplicates + '</div></div>';
         html += '<div style="' + cardStyle + '"><div style="font-size:10px;color:var(--tx-muted);text-transform:uppercase;letter-spacing:1px;">Lignes ignorées</div><div style="font-size:24px;font-weight:800;color:' + (errCount ? 'var(--red)' : 'var(--tx-muted)') + ';margin-top:4px;">' + errCount + '</div></div>';
         html += '</div>';
 
+        if (p.duplicates) {
+            html += '<div style="background:rgba(61,158,255,0.08);border:1px solid rgba(61,158,255,0.3);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--tx-primary);">ℹ ' + p.duplicates + ' ligne(s) identique(s) à des saisies existantes (même date, affaire, type et durée) : ignorée(s).' + (okCount === 0 ? ' Rien de nouveau à importer.' : '') + '</div>';
+        }
         if (p.unknownTypes.size) {
             html += '<div style="background:rgba(245,197,24,0.08);border:1px solid rgba(245,197,24,0.3);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:14px;font-size:11px;color:var(--gold);">⚠ Types inconnus reclassés en AUTRE : ' + Array.from(p.unknownTypes).map(t => '<b>' + (t ? esc(t) : '(vide)') + '</b>').join(', ') + '</div>';
         }

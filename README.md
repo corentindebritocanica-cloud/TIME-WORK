@@ -78,6 +78,7 @@ bash auto-push.sh
 | 2026-09-29 | Correctif A5 | Accordéons (affaires, semaines, jours) : animation `height: 0 → auto`, plus aucune saisie masquée quelle que soit la longueur. |
 | 2026-09-29 | Correctif A6 | Solde global CEGID : objectif de 7h06 par jour ouvré échu (ou déjà pointé) au lieu de 35h30 par semaine entamée. Un mardi avec lundi et mardi pointés affiche désormais +0h00. |
 | 2026-09-29 | Correctif A7 | Durées : « 2,30 » refusé comme ambigu, aperçu de l'interprétation sous le champ (« = 2h18 »), minutes > 59 et heures > 23 signalées en rouge côté CEGID. |
+| 2026-09-29 | Correctif A8 | Import CSV : les lignes identiques à des saisies existantes (date, affaire, type, durée) sont détectées, affichées dans l'aperçu (« Déjà importées ») et ignorées. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

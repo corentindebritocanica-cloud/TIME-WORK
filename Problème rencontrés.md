@@ -108,6 +108,8 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 
 #### A8. Réimport CSV = doublons
 - **Solution** : clé de dédoublonnage (date + affaire + type + minutes) et avertissement dans l'aperçu.
+- **Statut** : corrigé le 2026-09-29
+- **Correction appliquée** : Multi-ensemble des saisies existantes (clé `date|affaireId|type|minutes`) construit dans `_histAnalyzeAndShow()` ; chaque ligne CSV correspondante consomme une occurrence et est ignorée (deux lignes identiques légitimes dans un même fichier restent importées). Nouvelle tuile « Déjà importées » + message quand rien n'est nouveau ; bouton de confirmation désactivé si 0 saisie. Vérifié : même CSV importé 2 fois → 2ᵉ import = 0 ajout, 3 doublons.
 
 #### A9. Modification d'une saisie invalide ignorée sans retour
 - **Solution** : bordure d'erreur + message, restauration de la valeur précédente.

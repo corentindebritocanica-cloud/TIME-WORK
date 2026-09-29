@@ -137,10 +137,14 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 #### A13. Synchro par monkey-patch de `Storage.prototype.setItem`
 - **Constat** : fonctionne mais fragile ; `sp_dash_filter` (simple préférence d'affichage) est synchronisé par erreur via le préfixe `sp_`.
 - **Solution** : store explicite + SDK Firestore modulaire avec `persistentLocalCache` (IndexedDB).
+- **Statut** : corrigé le 2026-09-29
+- **Correction appliquée** : Suppression des 3 scripts `firebase-*-compat.js` et du bloc `TWCloud` qui interceptait `Storage.prototype.setItem`. Nouveaux modules : `js/firebase.js` (`initializeFirestore` + `persistentLocalCache` + `persistentMultipleTabManager`), `js/store.js` (source unique : lecture `getAffaires/getEntries/getDay(s)/getSettings`, écriture `createAffaire/updateAffaire/deleteAffaire/addEntry/updateEntry/deleteEntry/removeLoad/setDay/setSettings/bulkAdd/replaceAll`, abonnement aux changements distants, état de synchro), `js/cloud.js` (connexion, choix au premier lancement, migration, pastille). Le script de index.html ne touche plus au `localStorage` pour les données : 25 accès remplacés par le store ; `onDataChanged()` réaffiche les vues ouvertes quand un autre poste/onglet modifie les données, en attendant la fin d'une saisie en cours. Vérifié sur émulateurs Firebase avec le vrai SDK : 2 onglets synchronisés en 0,09 s, déconnexion OK.
 
 #### A14. SDK Firebase « compat » v10
 - **Constat** : 3 scripts bloquants non modulaires, contraire au standard du projet (SDK modulaire v9+).
 - **Solution** : imports ES depuis `gstatic.com/firebasejs/…/firebase-*.js`, chargés en différé.
+- **Statut** : corrigé le 2026-09-29
+- **Correction appliquée** : Suppression des 3 scripts `firebase-*-compat.js` et du bloc `TWCloud` qui interceptait `Storage.prototype.setItem`. Nouveaux modules : `js/firebase.js` (`initializeFirestore` + `persistentLocalCache` + `persistentMultipleTabManager`), `js/store.js` (source unique : lecture `getAffaires/getEntries/getDay(s)/getSettings`, écriture `createAffaire/updateAffaire/deleteAffaire/addEntry/updateEntry/deleteEntry/removeLoad/setDay/setSettings/bulkAdd/replaceAll`, abonnement aux changements distants, état de synchro), `js/cloud.js` (connexion, choix au premier lancement, migration, pastille). Le script de index.html ne touche plus au `localStorage` pour les données : 25 accès remplacés par le store ; `onDataChanged()` réaffiche les vues ouvertes quand un autre poste/onglet modifie les données, en attendant la fin d'une saisie en cours. Vérifié sur émulateurs Firebase avec le vrai SDK : 2 onglets synchronisés en 0,09 s, déconnexion OK.
 
 #### A15. Doublons et code mort
 - **Constat** : types définis 4 fois (tokens `--t-*`, `SV_COLORS`, `SV_TYPES`, `HIST_TYPES_LIST`) avec noms divergents (`CONCEP3D`/`CONCEPTION3D`, `VERIF`/`VERIFICATION`) ; ~10 règles CSS inutilisées (`.file-status`, `.affaire-table`, `.micro-input`, `.btn-pdf`…) ; `#view-suivi` déclaré 2 fois (marges autour de la barre sticky) ; `top: 55px` en dur pour la nav ; libellé de tâche VS Code corrompu (`� Commit & Push`).
@@ -151,6 +155,34 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 - **Solution** : Lot 3 du README.
 - **Statut** : corrigé le 2026-09-29 (partiel — suite au lot 2)
 - **Correction appliquée** : Tokens : `--tx-muted` 0,45 → 0,64 ; nouveau `--blue-strong` (#1a66d0, 5,45:1 sous texte blanc) pour boutons pleins, puce active, onglet actif, total CEGID, pastille du jour ; `--blue` #3d9eff → #6cb8ff, `--red` #ff5252 → #ff8f8f ; 11 couleurs de types + palette des Loads éclaircies (tokens CSS et table `SV_COLORS` alignés). Suppression des atténuations par `opacity` sur du texte (libellés de tuiles, boutons ✕, compteurs) ; ~24 blancs à 0,3–0,55 remplacés par `--tx-muted` ; séparateurs et flèches décoratifs en `aria-hidden`. 47 tailles de 7 à 10 px portées à 11 px. Vérification : script de contraste maison (compose les fonds semi-transparents et teste chaque arrêt de dégradé) : 207 défauts avant → 0 ; axe-core `color-contrast` : 0. Contrôles désactivés exclus (exemptés par WCAG).
+
+---
+
+## 2026-09-29 — Lot 2 (couche données) : problèmes rencontrés
+
+#### M1. Migration des données existantes
+- **Besoin** : passer du document unique `users/{uid}.kv` (ou du cache local de l'ancienne version) au modèle `users/{uid}` + `months/{AAAA-MM}` sans aucun risque de perte.
+- **Risques identifiés** : conversion partielle, re-migration écrasant des saisies plus récentes, ancienne fenêtre de l'app réécrivant `kv` après la conversion.
+
+#### B1. Identifiants devenus des chaînes dans les gestionnaires inline
+- **Symptôme** : les nouveaux identifiants UUID cassaient les `onclick="updateEntry(123,…)"` (argument non numérique).
+- **Solution** : tous les identifiants sont des chaînes (anciens nombres convertis) ; passage dans les gestionnaires via `jsId()`, qui n'accepte que `[A-Za-z0-9_-]`.
+
+#### B2. Pointage tapé au clavier écrasé par un instantané Firestore
+- **Cause** : l'écriture d'un jour est différée de 500 ms (une écriture par frappe serait coûteuse) ; un instantané arrivant entre-temps remplaçait la valeur locale en mémoire.
+- **Solution** : `applyMonthDoc()` conserve la valeur locale des jours dont l'écriture est encore en attente ; envoi immédiat à la fermeture de la fenêtre (`pagehide`) et à la déconnexion.
+
+#### B3. `setDoc(…, { merge: true })` ne supprime pas une clé de map imbriquée
+- **Symptôme** : retirer un budget d'une affaire le laissait dans Firestore (fusion profonde).
+- **Solution** : les affaires sont écrites avec `update(FieldPath('affaires', id), valeur)`, qui remplace l'affaire entière ; saisies et jours ont une forme canonique complète (champs toujours présents, `reason: null` explicite).
+
+#### B4. Clés Firestore réinjectées dans des attributs `id` HTML
+- **Risque** : une clé d'affaire contenant `">…` aurait cassé le HTML (XSS).
+- **Solution** : le store ignore toute clé qui ne respecte pas `ID_RE` et toute date non ISO (test : clé piégée ignorée, aucun script exécuté).
+
+#### B5. Environnement de test (sans impact sur l'app en production)
+- **Symptôme** : modules ES refusés en `file://` ; émulateur Firebase en échec au rechargement à chaud des règles (appel local routé vers le proxy réseau).
+- **Solution** : tests servis par `python3 -m http.server`, SDK 12.19 mis en cache local, émulateurs relancés (et non rechargés à chaud) à chaque changement de règles, `NO_PROXY=localhost,127.0.0.1`.
 
 ---
 

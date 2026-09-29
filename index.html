@@ -896,14 +896,9 @@
 
 
 <!-- ═══════════════════════════════ CLOUD — FIREBASE / FIRESTORE ═══════════════════════════════
-     Les données (affaires, saisies, heures CEGID) sont stockées dans Firestore :
-       users/{uid}  →  { kv: { sp_affaires: "...", sp_entries: "...", h_2026-09-29: "7", ... } }
-     localStorage sert de cache local : chaque écriture de l'app est interceptée
-     et renvoyée vers Firestore (regroupée, ~0,8 s après la dernière modif).
+     Modèle : users/{uid} (affaires, réglages) + users/{uid}/months/{AAAA-MM} (saisies, pointages).
+     SDK modulaire chargé par js/cloud.js ; cache IndexedDB du SDK (hors ligne, multi-onglets).
      ══════════════════════════════════════════════════════════════════════════════════════ -->
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <style>
     #tw-login {
         position: fixed; inset: 0; z-index: 100000;
@@ -970,257 +965,6 @@
         messagingSenderId: "868775649067",
         appId:             "1:868775649067:web:2b48bbe124cb93ade66f6e"
     };
-
-    window.TWCloud = (function () {
-        const SYNC_RE     = /^(sp_|h_|m_|r_)/;    // clés synchronisées avec Firestore (r_ = motif Férié/Congé)
-        const PENDING_KEY = '__tw_pending';       // écritures pas encore confirmées par le cloud
-        const ls   = window.localStorage;
-        const _set = Storage.prototype.setItem;
-        const _rem = Storage.prototype.removeItem;
-
-        let ready = false, docRef = null, timer = null, flushing = null;
-        let pending = new Set();
-
-        // ── Interception des écritures localStorage de l'app ──
-        Storage.prototype.setItem = function (k, v) {
-            _set.call(this, k, v);
-            if (this === ls && ready && SYNC_RE.test(k)) markPending(k);
-        };
-        Storage.prototype.removeItem = function (k) {
-            _rem.call(this, k);
-            if (this === ls && ready && SYNC_RE.test(k)) markPending(k);
-        };
-
-        function savePendingList() {
-            if (pending.size) _set.call(ls, PENDING_KEY, JSON.stringify([...pending]));
-            else _rem.call(ls, PENDING_KEY);
-        }
-        function markPending(k) {
-            pending.add(k); savePendingList(); setStatus('pending');
-            clearTimeout(timer); timer = setTimeout(flush, 800);
-        }
-
-        async function flush() {
-            if (flushing) { await flushing; }
-            if (!pending.size || !docRef) return;
-            const keys = [...pending]; pending.clear();
-            const kv = {};
-            keys.forEach(k => {
-                const v = ls.getItem(k);
-                kv[k] = (v === null) ? firebase.firestore.FieldValue.delete() : v;
-            });
-            flushing = docRef.set({ kv, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true })
-                .then(() => { savePendingList(); setStatus(pending.size ? 'pending' : 'ok'); })
-                .catch(err => {
-                    console.error('[TWCloud] écriture Firestore échouée', err);
-                    keys.forEach(k => pending.add(k)); savePendingList();
-                    setStatus('error', 'Non synchronisé — nouvel essai…');
-                    clearTimeout(timer); timer = setTimeout(flush, 5000);
-                })
-                .finally(() => { flushing = null; });
-            await flushing;
-        }
-
-        async function flushThenReload() {
-            clearTimeout(timer);
-            try { await flush(); } catch (e) {}
-            location.reload();
-        }
-
-        // ── UI : écran de connexion + pastille d'état ──
-        function el(id) { return document.getElementById(id); }
-        function showLogin(msg, err) {
-            el('tw-login').style.display = 'flex';
-            el('tw-login-msg').textContent = msg || 'Connecte-toi pour accéder à tes heures et tes affaires.';
-            el('tw-login-err').textContent = err || '';
-            el('tw-login-btn').style.display = FIREBASE_CONFIG.apiKey ? '' : 'none';
-        }
-        function hideLogin() { el('tw-login').style.display = 'none'; }
-        function setStatus(s, label) {
-            const box = el('tw-status'); if (!box) return;
-            box.style.display = 'flex'; box.dataset.s = s;
-            el('tw-status-txt').textContent = label ||
-                (s === 'ok' ? 'Synchronisé' : s === 'pending' ? 'Enregistrement…' : 'Hors ligne');
-        }
-
-        async function login() {
-            el('tw-login-err').textContent = '';
-            const provider = new firebase.auth.GoogleAuthProvider();
-            provider.setCustomParameters({ prompt: 'select_account' });
-            try {
-                await firebase.auth().signInWithPopup(provider);
-            } catch (e) {
-                if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') {
-                    return firebase.auth().signInWithRedirect(provider);
-                }
-                if (e.code === 'auth/unauthorized-domain') {
-                    el('tw-login-err').textContent = 'Domaine non autorisé : ajoute « ' + location.hostname +
-                        ' » dans Firebase → Authentication → Settings → Authorized domains.';
-                } else if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
-                    el('tw-login-err').textContent = 'Connexion impossible : ' + (e.message || e.code);
-                }
-            }
-        }
-
-        async function logout() {
-            if (pending.size) {
-                await flush();
-                if (pending.size && !confirm('Des modifications ne sont pas encore synchronisées. Se déconnecter quand même ?')) return;
-            }
-            await firebase.auth().signOut();
-            location.reload();
-        }
-
-        // ── Chargement des données du cloud dans le cache local ──
-        let nextLoginMsg = '';
-
-        /**
-         * Affiche un choix modal (<dialog> natif) et renvoie l'id du bouton choisi.
-         * Échap = dernier bouton (annulation).
-         * @param {string} title
-         * @param {string} text
-         * @param {{id:string,label:string,primary?:boolean}[]} buttons
-         * @returns {Promise<string>}
-         */
-        function askChoice(title, text, buttons) {
-            const dlg = el('tw-choice');
-            el('tw-choice-title').textContent = title;
-            el('tw-choice-text').textContent = text;
-            const box = el('tw-choice-actions');
-            box.replaceChildren(...buttons.map(b => {
-                const btn = document.createElement('button');
-                btn.type = 'submit'; btn.value = b.id; btn.textContent = b.label;
-                if (b.primary) btn.className = 'primary';
-                return btn;
-            }));
-            return new Promise(resolve => {
-                dlg.addEventListener('close', () => resolve(dlg.returnValue || buttons[buttons.length - 1].id), { once: true });
-                dlg.returnValue = '';
-                dlg.showModal();
-                box.querySelector('.primary')?.focus();
-            });
-        }
-
-        /** Télécharge un dump brut des clés synchronisées (format accepté par « Importer »). */
-        function downloadLocalBackup() {
-            const dump = {};
-            localSyncedKeys().forEach(k => { dump[k] = ls.getItem(k); });
-            const url = URL.createObjectURL(new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' }));
-            const a = document.createElement('a');
-            a.href = url; a.download = 'backup_local_' + new Date().toISOString().slice(0, 10) + '.json';
-            document.body.append(a); a.click(); a.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-        }
-        function localSyncedKeys() {
-            const out = [];
-            for (let i = 0; i < ls.length; i++) { const k = ls.key(i); if (k && SYNC_RE.test(k)) out.push(k); }
-            return out;
-        }
-
-        async function onUser(user) {
-            if (!user) {
-                ready = false; docRef = null;
-                showLogin(nextLoginMsg); nextLoginMsg = '';
-                return;
-            }
-            el('tw-login-msg').textContent = 'Chargement des données…';
-            el('tw-login-btn').style.display = 'none';
-            docRef = firebase.firestore().collection('users').doc(user.uid);
-            const lastUid = ls.getItem('__tw_uid');
-
-            // 1. Pousser d'abord ce qui n'avait pas été envoyé lors de la session précédente
-            if (lastUid === user.uid) {
-                try { JSON.parse(ls.getItem(PENDING_KEY) || '[]').forEach(k => pending.add(k)); } catch (e) {}
-                if (pending.size) await flush();
-            } else {
-                _rem.call(ls, PENDING_KEY);
-            }
-
-            // 2. Lire le cloud
-            let snap;
-            try {
-                snap = await docRef.get();
-            } catch (e) {
-                console.warn('[TWCloud] lecture impossible, mode hors ligne', e);
-                if (e.code === 'permission-denied') {
-                    showLogin('', 'Accès refusé par Firestore pour « ' + (user.email || '?') + ' ».\n' +
-                        'Seul le compte de la liste blanche (firestore.rules) est autorisé, et les règles doivent être publiées dans la console.');
-                    return;
-                }
-                if (lastUid === user.uid) {       // même compte : on travaille sur le cache local
-                    ready = true; hideLogin(); setStatus('error', 'Hors ligne — cache local');
-                    return;
-                }
-                showLogin('', 'Impossible de joindre Firestore. Vérifie ta connexion puis recharge la page.');
-                return;
-            }
-
-            const cloud = (snap.exists && snap.data().kv) || {};
-            const localKeys = localSyncedKeys();
-
-            // 3. Cloud vide + données locales → choix explicite (A1 : ne jamais effacer sans accord)
-            if (!snap.exists && localKeys.length) {
-                const choice = await askChoice(
-                    'Espace cloud vide',
-                    'Ce navigateur contient des données locales (' + localKeys.length + ' clés). Que veux-tu en faire ?',
-                    [
-                        { id: 'upload', label: 'Envoyer vers le cloud', primary: true },
-                        { id: 'reset',  label: 'Télécharger une sauvegarde puis repartir de zéro' },
-                        { id: 'cancel', label: 'Annuler (se déconnecter)' }
-                    ]);
-                if (choice === 'upload') {
-                    _set.call(ls, '__tw_uid', user.uid);
-                    ready = true; hideLogin();
-                    localKeys.forEach(k => pending.add(k));
-                    setStatus('pending'); await flush();
-                    return;
-                }
-                if (choice === 'reset') {
-                    downloadLocalBackup();      // sauvegarde AVANT tout effacement
-                } else {
-                    // Annuler : rien n'est effacé, on se déconnecte
-                    docRef = null;
-                    nextLoginMsg = 'Déconnecté — aucune donnée locale n\'a été modifiée.';
-                    await firebase.auth().signOut();
-                    return;
-                }
-            }
-
-            // 4. Le cloud fait foi, SAUF pour les clés encore en attente d'envoi (A2) :
-            //    leur valeur locale est conservée puis renvoyée.
-            const keep = new Set(pending);
-            localKeys.forEach(k => { if (!keep.has(k)) _rem.call(ls, k); });
-            Object.keys(cloud).forEach(k => { if (SYNC_RE.test(k) && !keep.has(k)) _set.call(ls, k, cloud[k]); });
-            _set.call(ls, '__tw_uid', user.uid);
-            ready = true; hideLogin();
-            el('tw-status-user').textContent = user.email || '';
-            if (pending.size) {
-                savePendingList(); setStatus('pending');
-                clearTimeout(timer); timer = setTimeout(flush, 800);
-            } else {
-                setStatus('ok');
-            }
-        }
-
-        function boot() {
-            if (!FIREBASE_CONFIG.apiKey || typeof firebase === 'undefined') {
-                showLogin('', typeof firebase === 'undefined'
-                    ? 'Impossible de charger Firebase (réseau bloqué ?).'
-                    : 'Configuration Firebase manquante : renseigne FIREBASE_CONFIG dans index.html.');
-                return;
-            }
-            firebase.initializeApp(FIREBASE_CONFIG);
-            firebase.auth().getRedirectResult().catch(e => { el('tw-login-err').textContent = e.message || e.code; });
-            firebase.auth().onAuthStateChanged(u => { onUser(u).catch(e => showLogin('', 'Erreur : ' + (e.message || e))); });
-        }
-
-        window.addEventListener('beforeunload', e => {
-            if (pending.size) { flush(); e.preventDefault(); e.returnValue = ''; }
-        });
-        document.addEventListener('DOMContentLoaded', boot);
-
-        return { login, logout, flush, flushThenReload, isReady: () => ready };
-    })();
 </script>
 <div id="tw-login">
     <div class="tw-box">
@@ -1240,7 +984,7 @@
 <div id="tw-status" data-s="ok">
     <span class="tw-dot"></span>
     <span id="tw-status-txt">Synchronisé</span>
-    <span id="tw-status-user" style="opacity:.55;font-weight:500;"></span>
+    <span id="tw-status-user" style="color:rgba(255,255,255,0.72);font-weight:500;"></span>
     <button onclick="TWCloud.logout()" title="Se déconnecter">Déconnexion</button>
 </div>
 
@@ -1298,8 +1042,17 @@
         return String(raw || '').trim().toUpperCase().replace(/\s+/g, '');
     }
 
+    const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+    /** Identifiant valide (ancien : nombre ; nouveau : UUID) → chaîne, sinon null. */
+    function normId(v) {
+        if (typeof v === 'number' && Number.isFinite(v)) return String(v);
+        return (typeof v === 'string' && ID_RE.test(v)) ? v : null;
+    }
+    /** Identifiant en argument JS d'un gestionnaire inline (validé par ID_RE → sans guillemet ni balise). */
+    function jsId(id) { return "'" + (ID_RE.test(String(id)) ? id : '') + "'"; }
+
     /**
-     * Nettoie affaires et saisies (import JSON, cache local) : identifiants numériques,
+     * Nettoie affaires et saisies (import JSON, migration) : identifiants valides (chaînes),
      * noms de Load et types valides, dates ISO, durées positives. Rien d'inconnu
      * ne doit pouvoir finir dans un attribut ou un gestionnaire d'événement.
      * @param {any[]} affs
@@ -1310,8 +1063,8 @@
         let dropped = 0;
         const str = v => (v === null || v === undefined) ? '' : String(v);
         const affaires = (Array.isArray(affs) ? affs : []).flatMap(a => {
-            const id = Number(a && a.id);
-            if (!a || !Number.isFinite(id)) { dropped++; return []; }
+            const id = normId(a && a.id);
+            if (!a || !id) { dropped++; return []; }
             const budgets = {};
             Object.entries(a.budgets || {}).forEach(([k, v]) => {
                 const n = Number(v);
@@ -1322,8 +1075,8 @@
                       productive: !!a.productive, unbilled: !!a.unbilled }];
         });
         const entries = (Array.isArray(ents) ? ents : []).flatMap(e => {
-            const id = Number(e && e.id), affaireId = Number(e && e.affaireId), minutes = Math.round(Number(e && e.minutes));
-            if (!e || !Number.isFinite(id) || !Number.isFinite(affaireId) || !DATE_RE.test(str(e.date)) ||
+            const id = normId(e && e.id), affaireId = normId(e && e.affaireId), minutes = Math.round(Number(e && e.minutes));
+            if (!e || !id || !affaireId || !DATE_RE.test(str(e.date)) ||
                 !Number.isFinite(minutes) || minutes <= 0) { dropped++; return []; }
             return [{ ...e, id, affaireId, minutes, date: str(e.date), type: TYPE_RE.test(str(e.type)) ? str(e.type) : 'AUTRE' }];
         });
@@ -1356,18 +1109,18 @@
     }
 
     // ── ADMINISTRATEUR — BACKUP ────────────────────────────────────
+    /** Télécharge toutes les données (affaires, saisies, pointages CEGID) au format JSON de sauvegarde. */
     function exportAdminBackup() {
-        const sp_affaires = localStorage.getItem('sp_affaires') || '[]';
-        const sp_entries  = localStorage.getItem('sp_entries')  || '[]';
         const cegid = {};
-        for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i);
-            if (k && /^(h_|m_|r_)/.test(k)) cegid[k] = localStorage.getItem(k);
-        }
+        Object.entries(TWStore.getDays()).forEach(([iso, d]) => {
+            cegid['h_' + iso] = String(d.h);
+            cegid['m_' + iso] = String(d.m).padStart(2, '0');
+            if (d.reason) cegid['r_' + iso] = d.reason;
+        });
         const payload = {
             exportedAt: new Date().toISOString(),
-            affaires: JSON.parse(sp_affaires),
-            entries:  JSON.parse(sp_entries),
+            affaires: TWStore.getAffaires(),
+            entries:  TWStore.getEntries(),
             cegid
         };
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -1375,44 +1128,39 @@
         const a    = document.createElement('a');
         a.href = url;
         a.download = 'backup_getinge_' + new Date().toISOString().slice(0,10) + '.json';
-        a.click();
-        URL.revokeObjectURL(url);
+        document.body.append(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     function handleAdminImport(event) {
         const file = event.target.files[0]; if (!file) return;
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = async function(e) {
+            let p;
             try {
-                let p = JSON.parse(e.target.result);
-                // Accepte aussi un dump brut du localStorage (clés sp_affaires / sp_entries / h_* / m_* en texte)
+                p = JSON.parse(e.target.result);
+                // Accepte aussi un dump brut de l'ancienne version (clés sp_affaires / sp_entries / h_* / m_* / r_* en texte)
                 if (!p.affaires && typeof p.sp_affaires === 'string') {
                     const raw = p, cegid = {};
                     Object.keys(raw).forEach(k => { if (/^(h_|m_|r_)/.test(k)) cegid[k] = raw[k]; });
                     p = { affaires: JSON.parse(raw.sp_affaires || '[]'), entries: JSON.parse(raw.sp_entries || '[]'), cegid };
                 }
-                if (!p.affaires || !p.entries) { alert('Fichier de sauvegarde invalide.'); return; }
-                const norm = normalizeData(p.affaires, p.entries);
-                p.affaires = norm.affaires; p.entries = norm.entries;
-                const cegidKeys = p.cegid ? Object.keys(p.cegid).filter(k => /^(h_|m_)\d{4}-\d{2}-\d{2}$/.test(k)) : [];
-                const reasonKeys = p.cegid ? Object.keys(p.cegid).filter(k => /^r_\d{4}-\d{2}-\d{2}$/.test(k) && CEGID_REASONS[p.cegid[k]]) : [];
-                if (!confirm('Restaurer ' + p.affaires.length + ' affaire(s), ' + p.entries.length + ' saisie(s)' +
-                             (cegidKeys.length ? ' et ' + cegidKeys.filter(k => k.startsWith('h_')).length + ' jour(s) CEGID' : '') +
-                             (norm.dropped ? ' (' + norm.dropped + ' élément(s) invalide(s) ignoré(s))' : '') +
-                             ' ?\nLes données actuelles de l\'app seront remplacées.')) return;
-                localStorage.setItem('sp_affaires', JSON.stringify(p.affaires));
-                localStorage.setItem('sp_entries',  JSON.stringify(p.entries));
-                if (p.cegid) {
-                    const old = [];
-                    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && /^(h_|m_|r_)/.test(k)) old.push(k); }
-                    old.forEach(k => { if (!(k in p.cegid)) localStorage.removeItem(k); });
-                    cegidKeys.forEach(k => localStorage.setItem(k, String(p.cegid[k]).replace(/[^0-9]/g, '').slice(0, 2)));
-                    reasonKeys.forEach(k => localStorage.setItem(k, p.cegid[k]));
-                }
-                alert('✅ ' + p.affaires.length + ' affaire(s) et ' + p.entries.length + ' saisie(s) restaurées' +
-                      (cegidKeys.length ? ', + heures CEGID' : '') + '.\nEnvoi vers le cloud puis rechargement.');
-                TWCloud.flushThenReload();
-            } catch { alert('Fichier JSON invalide.'); }
+            } catch { alert('Fichier JSON invalide.'); return; }
+            if (!Array.isArray(p.affaires) || !Array.isArray(p.entries)) { alert('Fichier de sauvegarde invalide.'); return; }
+            const data = TWLegacy.fromLegacy({ affaires: p.affaires, entries: p.entries, cegid: p.cegid || {} });
+            const s = TWLegacy.summarize(data);
+            if (!confirm('Restaurer ' + s.affaires + ' affaire(s), ' + s.entries + ' saisie(s) et ' + s.days + ' jour(s) pointé(s)' +
+                         (data.dropped ? ' (' + data.dropped + ' élément(s) invalide(s) ignoré(s))' : '') +
+                         ' ?\nToutes les données actuelles seront remplacées (sur tous les postes).')) return;
+            exportAdminBackup();                         // sauvegarde de l'état actuel avant remplacement
+            showToast('Restauration en cours…', 'ok');
+            try {
+                await TWStore.replaceAll(data);
+                showToast('✅ Restauré : ' + s.affaires + ' affaire(s), ' + s.entries + ' saisie(s), ' + s.days + ' jour(s).', 'ok');
+            } catch (err) {
+                showToast('Restauration incomplète : ' + (err.message || err), 'error');
+            }
+            onDataChanged();
         };
         reader.readAsText(file);
         event.target.value = '';
@@ -1528,9 +1276,8 @@
     }
 
     function _histAnalyzeAndShow(dataRows, map) {
-        // Charger l'état actuel
-        try { affaires = JSON.parse(localStorage.getItem('sp_affaires') || '[]'); } catch { affaires = []; }
-        try { entries  = JSON.parse(localStorage.getItem('sp_entries')  || '[]'); } catch { entries  = []; }
+        // État actuel
+        affaires = TWStore.getAffaires(); entries = TWStore.getEntries();
 
         const errors = [], newEntries = [], newAffairesMap = new Map(), unknownTypes = new Set();
         // A8 : saisies déjà présentes (multi-ensemble date|affaire|type|minutes)
@@ -1656,37 +1403,18 @@
 
     function confirmHistoryImport() {
         const p = _histPending; if (!p || !p.newEntries.length) return;
-        try { affaires = JSON.parse(localStorage.getItem('sp_affaires') || '[]'); } catch { affaires = []; }
-        try { entries  = JSON.parse(localStorage.getItem('sp_entries')  || '[]'); } catch { entries  = []; }
-
-        // Créer les nouvelles affaires avec des IDs uniques
-        const tempToId = new Map();
-        let base = Date.now();
-        Array.from(p.newAffairesMap.values()).forEach((a, i) => {
-            const id = base + i;
-            affaires.push({ id, client: a.client, num: a.num, machine: '', loads: [], budgets: {} });
-            tempToId.set(a.tempId, id);
+        const newAffaires = Array.from(p.newAffairesMap.values()).map(a =>
+            ({ tempId: a.tempId, client: a.client, num: a.num, machine: '', loads: [], budgets: {} }));
+        const newEntries = p.newEntries.map(e => {
+            const ne = { date: e.date, type: e.type, minutes: e.minutes };
+            if (e.existingAffId) ne.affaireId = e.existingAffId;
+            else ne.tempAffId = p.newAffairesMap.get((e.codeAff.toUpperCase() || '') + '||' + (e.client.toUpperCase() || '')).tempId;
+            return ne;
         });
-
-        // Ajouter les entries
-        base = Date.now() + 10000;
-        p.newEntries.forEach((e, i) => {
-            let affId = e.existingAffId;
-            if (!affId) {
-                const key = (e.codeAff.toUpperCase() || '') + '||' + (e.client.toUpperCase() || '');
-                const nA = p.newAffairesMap.get(key);
-                affId = tempToId.get(nA.tempId);
-            }
-            entries.push({ id: base + i, affaireId: affId, date: e.date, type: e.type, minutes: e.minutes });
-        });
-
-        localStorage.setItem('sp_affaires', JSON.stringify(affaires));
-        localStorage.setItem('sp_entries',  JSON.stringify(entries));
-        const okCount = p.newEntries.length;
-        const affCount = p.newAffairesMap.size;
+        const r = TWStore.bulkAdd(newAffaires, newEntries);   // un document par mois, regroupé en lots
         closeHistoryModal();
-        alert('✅ Import terminé : ' + okCount + ' saisie(s) ajoutée(s), ' + affCount + ' nouvelle(s) affaire(s) créée(s).\nEnvoi vers le cloud puis rechargement.');
-        TWCloud.flushThenReload();
+        onDataChanged();
+        showToast('✅ Import terminé : ' + r.entries + ' saisie(s) ajoutée(s), ' + r.affaires + ' nouvelle(s) affaire(s).', 'ok');
     }
 
     // ── SUIVI PROJET ───────────────────────────────────────────────
@@ -1697,23 +1425,17 @@
     const _sv_dirty = new Set();
 
     function initSuivi() {
-        const sa = localStorage.getItem('sp_affaires');
-        const se = localStorage.getItem('sp_entries');
-        if (sa) try { affaires = JSON.parse(sa); } catch(e) { affaires = []; }
-        if (se) try { entries  = JSON.parse(se); } catch(e) { entries  = []; }
-        const norm = normalizeData(affaires, entries);
-        affaires = norm.affaires; entries = norm.entries;
-        if (norm.dropped) console.warn('[Suivi] ' + norm.dropped + ' élément(s) invalide(s) ignoré(s) au chargement');
+        reloadData();
         _svLoadDashFilter();
         // Délégation (A3) : aucune chaîne utilisateur dans les gestionnaires inline
         const accList = document.getElementById('sv-acc-list');
         accList.addEventListener('click', ev => {
             const b = ev.target.closest('[data-action="remove-load"]');
-            if (b) { ev.stopPropagation(); svRemoveLoad(Number(b.dataset.aff), b.dataset.load); }
+            if (b) { ev.stopPropagation(); svRemoveLoad(b.dataset.aff, b.dataset.load); }
         });
         accList.addEventListener('focusout', ev => {
             const inp = ev.target.closest('[data-action="budget"]');
-            if (inp) svUpdateBudget(Number(inp.dataset.aff), inp.dataset.type, +inp.value || 0);
+            if (inp) svUpdateBudget(inp.dataset.aff, inp.dataset.type, +inp.value || 0);
         });
         const newNumEl = document.getElementById('new-num');
         if (newNumEl) newNumEl.addEventListener('keydown', e => { if (e.key === 'Enter') createAffaire(); });
@@ -1739,9 +1461,8 @@
         const badLoads = loads.filter(l => !LOAD_RE.test(l));
         if (badLoads.length) { alert('Nom de Load invalide : ' + badLoads.join(', ') + '\nLettres A-Z, chiffres et _ uniquement, 10 caractères max.'); return; }
         if (!num && !client) { alert('Renseignez au moins un client ou un code affaire.'); return; }
-        const aff = { id: Date.now(), client, num, machine, loads, budgets: {} };
-        affaires.push(aff);
-        save();
+        const aff = TWStore.createAffaire({ client, num, machine, loads, budgets: {} });
+        reloadData();
         document.getElementById('new-client').value = '';
         document.getElementById('new-num').value = '';
         const nmEl = document.getElementById('new-machine'); if (nmEl) nmEl.value = '';
@@ -1760,9 +1481,8 @@
         ev.stopPropagation();
         const aff = affaires.find(a => a.id === id);
         if (!confirm('Supprimer l\'affaire "' + (aff.num || aff.client) + '" et toutes ses saisies ?')) return;
-        affaires = affaires.filter(a => a.id !== id);
-        entries  = entries.filter(e => e.affaireId !== id);
-        save();
+        TWStore.deleteAffaire(id);
+        reloadData();
         _sv_dirty.add('sv-chrono');
         svRenderAccordions();
         svRenderDash();
@@ -1822,16 +1542,43 @@
     function minsToHM(min)  { return Math.floor(min/60) + 'h' + String(min%60).padStart(2,'0'); }
     function minsToDec(min) { return (min/60).toFixed(2).replace('.', ','); }
 
-    // ── SAUVEGARDE ────────────────────────────────────────────────
-    function save() {
-        localStorage.setItem('sp_affaires', JSON.stringify(affaires));
-        localStorage.setItem('sp_entries',  JSON.stringify(entries));
+    // ── DONNÉES (store Firestore, voir js/store.js) ───────────────
+    /** Recharge les tableaux de travail depuis le store (copies). */
+    function reloadData() {
+        affaires = TWStore.getAffaires();
+        entries  = TWStore.getEntries();
+    }
+
+    let _refreshQueued = false;
+    /**
+     * Données modifiées ailleurs (autre poste, autre onglet) ou importées : recharge et réaffiche
+     * les vues ouvertes. Si un champ de l'app est en cours d'édition, attend qu'il perde le focus.
+     */
+    function onDataChanged() {
+        const active = document.activeElement;
+        if (active && active.matches('input, select, textarea') && active.closest('#view-suivi, #view-cegid')) {
+            if (!_refreshQueued) {
+                _refreshQueued = true;
+                active.addEventListener('blur', () => { _refreshQueued = false; setTimeout(onDataChanged, 0); }, { once: true });
+            }
+            return;
+        }
+        if (suiviInited) {
+            reloadData(); _svLoadDashFilter(); updateClientSuggest();
+            ['sv-dash', 'sv-aff', 'sv-chrono', 'sv-cegid'].forEach(s => _sv_dirty.add(s));
+            _sv_dirty.delete(_sv_active);
+            if (_sv_active === 'sv-dash') svRenderDash();
+            else if (_sv_active === 'sv-aff') svRenderAccordions();
+            else if (_sv_active === 'sv-chrono') svRenderChrono();
+            else if (_sv_active === 'sv-cegid') svRenderCegid();
+        }
+        if (cegidInited) renderCegidGrid();
     }
 
     function updateEntry(id, field, value, inputEl) {
         const e = entries.find(x => x.id === id);
         if (!e) return;
-        if (field === 'type') { e.type = value; }
+        if (field === 'type') { TWStore.updateEntry(id, { type: value }); }
         else if (field === 'time') {
             const r = parseDuration(value);
             if ('error' in r) {
@@ -1845,10 +1592,10 @@
                 return;
             }
             if (r.minutes === e.minutes) return;
-            e.minutes = r.minutes;
+            TWStore.updateEntry(id, { minutes: r.minutes });
             showToast('Durée mise à jour : ' + minsToHM(r.minutes), 'ok');
         }
-        save();
+        reloadData();
         _sv_dirty.add('sv-dash'); _sv_dirty.add('sv-chrono');
         if (_sv_active === 'sv-aff') _svRefreshOneAcc(e.affaireId);
         else if (_sv_active === 'sv-dash') { _sv_dirty.delete('sv-dash'); svRenderDash(); }
@@ -1967,9 +1714,8 @@
         let workMin = 0;
         days.forEach(d => {
             const k = toISO(d);
-            const h = parseInt(localStorage.getItem('h_' + k)) || 0;
-            const m = parseInt(localStorage.getItem('m_' + k)) || 0;
-            workMin += h * 60 + m;
+            const day = TWStore.getDay(k);
+            if (day) workMin += day.h * 60 + day.m;
         });
         const wkEntries = entries.filter(e => e.date >= monISO && e.date <= friISO);
         const unbilledIds = new Set(affaires.filter(a => a.unbilled).map(a => a.id));
@@ -2081,17 +1827,14 @@
     // ── FILTRE PÉRIODE DASHBOARD ──────────────────────────────────
     let _sv_dashFilter = { preset: 'ALL', year: null, from: '', to: '' };
 
+    /** Filtre du Dashboard : réglage synchronisé (users/{uid}.settings.dashFilter). */
     function _svLoadDashFilter() {
-        try {
-            const raw = localStorage.getItem('sp_dash_filter');
-            if (raw) {
-                const f = JSON.parse(raw);
-                if (f && typeof f === 'object') _sv_dashFilter = Object.assign(_sv_dashFilter, f);
-            }
-        } catch(e) {}
+        const f = TWStore.getSettings().dashFilter;
+        if (f && typeof f === 'object') _sv_dashFilter = Object.assign({ preset: 'ALL', year: null, from: '', to: '' }, f);
     }
     function _svSaveDashFilter() {
-        try { localStorage.setItem('sp_dash_filter', JSON.stringify(_sv_dashFilter)); } catch(e) {}
+        TWStore.setSettings({ dashFilter: { preset: _sv_dashFilter.preset, year: _sv_dashFilter.year || null,
+                                            from: _sv_dashFilter.from || '', to: _sv_dashFilter.to || '' } });
     }
 
     function _svGetDashRange() {
@@ -2218,7 +1961,7 @@
                     '<div class="budget-bar-wrap"><div class="budget-bar" style="width:' + Math.min(pct,100) + '%;background:' + bc + ';"></div></div>' +
                     '<div class="budget-label' + (over ? ' over' : '') + '">' + pct + '% sur ' + minsToHM(_ctbm) + '</div></div>';
             })() : '';
-            return '<div class="affaire-card" style="cursor:pointer;" onclick="svOpenAffCard(' + aId + ');">' +
+            return '<div class="affaire-card" style="cursor:pointer;" onclick="svOpenAffCard(' + jsId(aId) + ');">' +
                 '<div style="min-width:0;flex:1;"><div class="ac-num">' + esc(a.num || '(sans N°)') + '</div><div class="ac-client">' + esc(a.client || '(sans client)') + '</div>' + (a.machine ? '<div style="font-size:11px;color:var(--blue);margin-top:3px;font-weight:600;">' + esc(a.machine) + '</div>' : '') + budgetBar + '</div>' +
                 '<div style="font-size:18px;font-weight:800;color:#fff;flex-shrink:0;">' + (tot > 0 ? minsToHM(tot) : '—') + '</div>' +
                 '<span class="ac-arrow" aria-hidden="true" style="flex-shrink:0;">›</span>' +
@@ -2284,9 +2027,9 @@
                 const d    = new Date(e.date + 'T12:00:00').toLocaleDateString('fr-FR', {day:'2-digit', month:'short', year:'numeric'});
                 return '<tr>' +
                     '<td>' + d + '</td>' +
-                    '<td><select class="entry-select" onchange="updateEntry(' + e.id + ',\'type\',this.value)">' + svGetTypeOptsHTML(a).replace('value="' + esc(e.type) + '"', 'value="' + esc(e.type) + '" selected') + '</select></td>' +
-                    '<td><input type="text" class="entry-time-edit" value="' + minsToHM(e.minutes) + '" aria-label="Durée" onblur="updateEntry(' + e.id + ',\'time\',this.value,this)" onkeydown="if(event.key===\'Enter\')this.blur()"></td>' +
-                    '<td><button class="btn-del" onclick="svDeleteEntry(' + e.id + ',' + a.id + ')">✕</button></td></tr>';
+                    '<td><select class="entry-select" onchange="updateEntry(' + jsId(e.id) + ',\'type\',this.value)">' + svGetTypeOptsHTML(a).replace('value="' + esc(e.type) + '"', 'value="' + esc(e.type) + '" selected') + '</select></td>' +
+                    '<td><input type="text" class="entry-time-edit" value="' + minsToHM(e.minutes) + '" aria-label="Durée" onblur="updateEntry(' + jsId(e.id) + ',\'time\',this.value,this)" onkeydown="if(event.key===\'Enter\')this.blur()"></td>' +
+                    '<td><button class="btn-del" onclick="svDeleteEntry(' + jsId(e.id) + ',' + jsId(a.id) + ')">✕</button></td></tr>';
               }).join('');
         const pieData = _allTypesPresent.map(t => ({label:svGetTypeLabel(t), mins:mpt[t], color:svGetTypeColor(t), type:t}));
         const _aScope = 'a' + a.id;
@@ -2334,7 +2077,7 @@
                     '<div class="budget-label' + (over ? ' over' : '') + '">' + pct + '% / ' + minsToHM(_tbm) + '</div>' +
                     '</div>';
             })() +
-            '<button onclick="event.stopPropagation();deleteAffaire(' + a.id + ',event);" class="ac-del" title="Supprimer">✕</button>' +
+            '<button onclick="event.stopPropagation();deleteAffaire(' + jsId(a.id) + ',event);" class="ac-del" title="Supprimer">✕</button>' +
             '</div>' +
             '<div class="sv-acc-body" id="sv-body-' + a.id + '">' +
             '<div class="sv-acc-body-inner">' +
@@ -2343,23 +2086,23 @@
             '<div class="form-row">' +
             '<div class="form-group"><label>Date</label><input type="date" id="ed-date-' + a.id + '" value="' + todayISO() + '" style="width:150px;"></div>' +
             '<div class="form-group"><label>Type</label><select id="ed-type-' + a.id + '" style="min-width:130px;">' + svGetTypeOptsHTML(a) + '</select></div>' +
-            '<div class="form-group" style="position:relative;"><label for="ed-time-' + a.id + '">Durée</label><input type="text" id="ed-time-' + a.id + '" placeholder="ex : 2:30" maxlength="6" style="width:80px;text-align:center;" aria-describedby="ed-hint-' + a.id + '" oninput="svTimeHint(this,\'ed-hint-' + a.id + '\')" onkeydown="if(event.key===\'Enter\')svAddEntry(' + a.id + ')"><small class="time-hint" id="ed-hint-' + a.id + '" aria-live="polite"></small></div>' +
-            '<button class="btn-primary" onclick="svAddEntry(' + a.id + ')" style="align-self:flex-end;">+ Ajouter</button>' +
+            '<div class="form-group" style="position:relative;"><label for="ed-time-' + a.id + '">Durée</label><input type="text" id="ed-time-' + a.id + '" placeholder="ex : 2:30" maxlength="6" style="width:80px;text-align:center;" aria-describedby="ed-hint-' + a.id + '" oninput="svTimeHint(this,\'ed-hint-' + a.id + '\')" onkeydown="if(event.key===\'Enter\')svAddEntry(' + jsId(a.id) + ')"><small class="time-hint" id="ed-hint-' + a.id + '" aria-live="polite"></small></div>' +
+            '<button class="btn-primary" onclick="svAddEntry(' + jsId(a.id) + ')" style="align-self:flex-end;">+ Ajouter</button>' +
             '</div></div>' +
             totBlock +
             '<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;">' +
             '<div style="flex:1;min-width:260px;overflow-x:auto;"><table class="entries-table"><thead><tr><th>Date</th><th>Type</th><th style="color:#fff;">Temps</th><th></th></tr></thead><tbody>' + entryRows + '</tbody></table></div>' +
             pieSVG + '</div>' +
             '<div style="margin-top:14px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding-top:14px;border-top:1px solid rgba(255,255,255,.06);">' +
-            '<div class="form-group" style="flex:1;min-width:120px;"><label>Code affaire</label><input type="text" value="' + esc(a.num || '') + '" style="width:100%;" onblur="svUpdateAff(' + a.id + ',\'num\',this.value)"></div>' +
-            '<div class="form-group" style="flex:2;min-width:160px;"><label>Client</label><input type="text" value="' + esc(a.client || '') + '" style="width:100%;" onblur="svUpdateAff(' + a.id + ',\'client\',this.value)" list="client-suggest"></div>' +
-            '<div class="form-group" style="flex:1;min-width:120px;"><label>Machine</label><input type="text" value="' + esc(a.machine || '') + '" style="width:100%;" onblur="svUpdateAff(' + a.id + ',\'machine\',this.value)"></div>' +
+            '<div class="form-group" style="flex:1;min-width:120px;"><label>Code affaire</label><input type="text" value="' + esc(a.num || '') + '" style="width:100%;" onblur="svUpdateAff(' + jsId(a.id) + ',\'num\',this.value)"></div>' +
+            '<div class="form-group" style="flex:2;min-width:160px;"><label>Client</label><input type="text" value="' + esc(a.client || '') + '" style="width:100%;" onblur="svUpdateAff(' + jsId(a.id) + ',\'client\',this.value)" list="client-suggest"></div>' +
+            '<div class="form-group" style="flex:1;min-width:120px;"><label>Machine</label><input type="text" value="' + esc(a.machine || '') + '" style="width:100%;" onblur="svUpdateAff(' + jsId(a.id) + ',\'machine\',this.value)"></div>' +
             '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;background:' + (a.productive ? 'rgba(0,228,168,.10)' : 'rgba(255,255,255,.04)') + ';border:1px solid ' + (a.productive ? 'rgba(0,228,168,.35)' : 'rgba(255,255,255,.12)') + ';border-radius:var(--r-sm);transition:all var(--tx);align-self:flex-end;">' +
-                '<input type="checkbox" ' + (a.productive ? 'checked' : '') + ' onchange="svToggleProductive(' + a.id + ',this.checked)" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;">' +
+                '<input type="checkbox" ' + (a.productive ? 'checked' : '') + ' onchange="svToggleProductive(' + jsId(a.id) + ',this.checked)" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;">' +
                 '<span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:' + (a.productive ? 'var(--green)' : 'var(--tx-secondary)') + ';">Temps productif</span>' +
             '</label>' +
             '<label title="Les heures saisies ici ne comptent pas dans la semaine de travail." style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;background:' + (a.unbilled ? 'rgba(245,197,24,.10)' : 'rgba(255,255,255,.04)') + ';border:1px solid ' + (a.unbilled ? 'rgba(245,197,24,.35)' : 'rgba(255,255,255,.12)') + ';border-radius:var(--r-sm);transition:all var(--tx);align-self:flex-end;">' +
-                '<input type="checkbox" ' + (a.unbilled ? 'checked' : '') + ' onchange="svToggleUnbilled(' + a.id + ',this.checked)" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer;">' +
+                '<input type="checkbox" ' + (a.unbilled ? 'checked' : '') + ' onchange="svToggleUnbilled(' + jsId(a.id) + ',this.checked)" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer;">' +
                 '<span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:' + (a.unbilled ? 'var(--gold)' : 'var(--tx-secondary)') + ';">Temps non comptabilisé</span>' +
             '</label>' +
             '</div>' +
@@ -2377,8 +2120,8 @@
             '<div style="display:flex;gap:6px;align-items:center;">' +
             '<input type="text" id="load-input-' + a.id + '" placeholder="Ex: A" maxlength="10" ' +
             'style="width:62px;text-align:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#fff;padding:4px 6px;font-size:12px;font-family:inherit;" ' +
-            'onkeydown="if(event.key===\'Enter\'){svAddLoad(' + a.id + ',this.value);this.value=\'\'}">' +
-            '<button class="btn-ghost" style="padding:5px 12px;font-size:11px;" onclick="(function(){const el=document.getElementById(\'load-input-' + a.id + '\');svAddLoad(' + a.id + ',el.value);el.value=\'\'})()">+ Load</button>' +
+            'onkeydown="if(event.key===\'Enter\'){svAddLoad(' + jsId(a.id) + ',this.value);this.value=\'\'}">' +
+            '<button class="btn-ghost" style="padding:5px 12px;font-size:11px;" onclick="(function(){const el=document.getElementById(\'load-input-' + a.id + '\');svAddLoad(' + jsId(a.id) + ',el.value);el.value=\'\'})()">+ Load</button>' +
             '</div>' +
             '</div></div>' +
             '<div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06);">' +
@@ -2447,8 +2190,8 @@
         const parsed = parseDuration(timeRaw);
         if ('error' in parsed) { svTimeHint(timeEl, 'ed-hint-' + affaireId); alert(parsed.error); timeEl.focus(); return; }
         const minutes = parsed.minutes;
-        entries.push({ id: Date.now(), affaireId, date, type, minutes });
-        save();
+        TWStore.addEntry({ affaireId, date, type, minutes });
+        reloadData();
         timeEl.value = '';
         _sv_dirty.add('sv-dash'); _sv_dirty.add('sv-chrono');
         _svRefreshOneAcc(affaireId);
@@ -2457,8 +2200,8 @@
 
     function svDeleteEntry(id, affaireId) {
         if (!confirm('Supprimer cette saisie ?')) return;
-        entries = entries.filter(e => e.id !== id);
-        save();
+        TWStore.deleteEntry(id);
+        reloadData();
         _sv_dirty.add('sv-dash'); _sv_dirty.add('sv-chrono');
         _svRefreshOneAcc(affaireId);
         setTimeout(() => { const el = document.getElementById('sv-aff-' + affaireId); if (el && !el.classList.contains('open')) svToggleAcc('sv-aff-' + affaireId); }, 30);
@@ -2467,8 +2210,8 @@
     function svUpdateAff(id, field, value) {
         const aff = affaires.find(a => a.id === id);
         if (!aff) return;
-        aff[field] = value;
-        save();
+        TWStore.updateAffaire(id, { [field]: value });
+        reloadData();
         updateClientSuggest();
         svRenderDash();
         if (_sv_active === 'sv-aff') _svRefreshOneAcc(id);
@@ -2477,9 +2220,8 @@
     function svToggleProductive(id, checked) {
         const aff = affaires.find(a => a.id === id);
         if (!aff) return;
-        aff.productive = !!checked;
-        if (aff.productive) aff.unbilled = false;
-        save();
+        TWStore.updateAffaire(id, checked ? { productive: true, unbilled: false } : { productive: false });
+        reloadData();
         _sv_dirty.add('sv-dash');
         if (_sv_active === 'sv-aff') _svRefreshOneAcc(id);
         else svRenderDash();
@@ -2488,9 +2230,8 @@
     function svToggleUnbilled(id, checked) {
         const aff = affaires.find(a => a.id === id);
         if (!aff) return;
-        aff.unbilled = !!checked;
-        if (aff.unbilled) aff.productive = false;
-        save();
+        TWStore.updateAffaire(id, checked ? { unbilled: true, productive: false } : { unbilled: false });
+        reloadData();
         _sv_dirty.add('sv-dash');
         if (_sv_active === 'sv-aff') _svRefreshOneAcc(id);
         else svRenderDash();
@@ -2498,23 +2239,19 @@
 
     function svAddLoad(affId, loadName) {
         const aff = affaires.find(a => a.id === affId); if (!aff) return;
-        if (!aff.loads) aff.loads = [];
         const clean = cleanLoadName(loadName);
         if (!clean) { alert('Entrez un nom de Load (ex : A, B, C...).'); return; }
         if (!LOAD_RE.test(clean)) { alert('Nom de Load invalide : lettres A-Z, chiffres et _ uniquement, 10 caractères max.'); return; }
         if (aff.loads.includes(clean)) { alert('Le Load "' + clean + '" existe déjà pour cette affaire.'); return; }
-        aff.loads.push(clean);
-        save();
+        TWStore.updateAffaire(affId, { loads: [...aff.loads, clean] });
+        reloadData();
         _svRefreshOneAcc(affId);
     }
     function svRemoveLoad(affId, loadName) {
         const aff = affaires.find(a => a.id === affId); if (!aff || !aff.loads) return;
         if (!confirm('Supprimer le Load "' + loadName + '" ? Le budget CD Load ' + loadName + ' sera également supprimé.')) return;
-        aff.loads = aff.loads.filter(l => l !== loadName);
-        const key = 'CD_LOAD_' + loadName;
-        if (aff.budgets) delete aff.budgets[key];
-        entries.forEach(e => { if (e.affaireId === affId && e.type === key) e.type = 'CD'; });
-        save();
+        TWStore.removeLoad(affId, loadName);          // budget + saisies du Load reclassées en CD (un seul lot)
+        reloadData();
         _sv_dirty.add('sv-dash'); _sv_dirty.add('sv-chrono');
         _svRefreshOneAcc(affId);
     }
@@ -2522,10 +2259,10 @@
     function svUpdateBudget(affId, type, hrs) {
         const aff = affaires.find(a => a.id === affId);
         if (!aff) return;
-        if (!aff.budgets) aff.budgets = {};
-        if (hrs > 0) aff.budgets[type] = hrs;
-        else delete aff.budgets[type];
-        save();
+        const budgets = { ...aff.budgets };
+        if (hrs > 0) budgets[type] = hrs; else delete budgets[type];
+        TWStore.updateAffaire(affId, { budgets });
+        reloadData();
         _sv_dirty.add('sv-dash');
         if (_sv_active === 'sv-aff') _svRefreshOneAcc(affId);
         else svRenderDash();
@@ -2637,8 +2374,8 @@
         // A11 : pointage CEGID (h_/m_) pour comparer avec les heures imputées
         const pointed = days.map(d => {
             const iso = toISO(d);
-            const h = parseInt(localStorage.getItem('h_' + iso)) || 0, m = parseInt(localStorage.getItem('m_' + iso)) || 0;
-            return h * 60 + m;
+            const day = TWStore.getDay(iso);
+            return day ? day.h * 60 + day.m : 0;
         });
         const fmtGap = g => (g > 0 ? '+' : g < 0 ? '−' : '±') + minsToHM(Math.abs(g));
         const gapHTML = (pt, imp) => (pt || imp)
@@ -2680,7 +2417,7 @@
 
         daysEl.innerHTML = days.map((d, i) => {
             const iso     = toISO(d);
-            const list    = (byDay[iso] || []).slice().sort((a, b) => a.id - b.id);
+            const list    = (byDay[iso] || []).slice().sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
             const dayTot  = dayTotals[i];
             const isToday = iso === todayISOStr;
             const headBg  = isToday ? 'background:linear-gradient(90deg, rgba(61,158,255,.18), rgba(61,158,255,.04));' : '';
@@ -2864,9 +2601,10 @@
         const dates = getCegidWeekDates(cegidCurrentOffset);
         let html = "";
         dates.forEach((d, i) => {
-            let h = esc(localStorage.getItem('h_' + d.key) || "");
-            let m = esc(localStorage.getItem('m_' + d.key) || "");
-            const reason = CEGID_REASONS[localStorage.getItem('r_' + d.key)] ? localStorage.getItem('r_' + d.key) : '';
+            const day = TWStore.getDay(d.key);
+            const h = day ? String(day.h) : '';
+            const m = day ? String(day.m).padStart(2, '0') : '';
+            const reason = day && CEGID_REASONS[day.reason] ? day.reason : '';
             html += '<div class="day-card" id="card_' + i + '"' + (reason ? ' data-reason="' + reason + '"' : '') + '>' +
                 '<div style="color:#6cb8ff;font-weight:bold;font-size:13px;">' + jours[i] + '</div>' +
                 '<div style="font-size:11px;color:var(--tx-secondary);">' + d.label + '</div>' +
@@ -2900,24 +2638,21 @@
     function setCegidAutoTime(idx, reason) {
         const dates = getCegidWeekDates(cegidCurrentOffset);
         const key = dates[idx].key;
-        const current = localStorage.getItem('r_' + key);
-        if (current === reason) {
-            localStorage.removeItem('r_' + key);
+        const day = TWStore.getDay(key);
+        if (day && day.reason === reason) {
+            TWStore.setDay(key, { ...day, reason: null });
         } else {
             document.getElementById('h_' + idx).value = "7";
             document.getElementById('m_' + idx).value = "06";
             ['h_' + idx, 'm_' + idx].forEach(id => { const f = document.getElementById(id); f.classList.remove('is-invalid'); f.removeAttribute('aria-invalid'); });
-            localStorage.setItem('h_' + key, "7");
-            localStorage.setItem('m_' + key, "06");
-            localStorage.setItem('r_' + key, reason);
-            if (window._cegidDayCache) window._cegidDayCache.add(key);
+            TWStore.setDay(key, { h: 7, m: 6, reason });
         }
         _cegidRefreshReason(idx, key);
         calculateCegidHebdo();
     }
 
     function _cegidRefreshReason(idx, key) {
-        const r = localStorage.getItem('r_' + key);
+        const r = TWStore.getDay(key)?.reason;
         const card = document.getElementById('card_' + idx);
         const lbl = document.getElementById('reason_' + idx);
         if (card) { if (CEGID_REASONS[r]) card.dataset.reason = r; else delete card.dataset.reason; }
@@ -2946,14 +2681,14 @@
         }
         el.removeAttribute('aria-invalid'); el.title = '';
         if (type === 'h' && el.value.length >= 2) document.getElementById('m_' + idx).focus();
-        const dates = getCegidWeekDates(cegidCurrentOffset);
-        if (localStorage.getItem('r_' + dates[idx].key)) {       // heures modifiées à la main : plus un jour Férié/Congé
-            localStorage.removeItem('r_' + dates[idx].key);
-            _cegidRefreshReason(idx, dates[idx].key);
+        const key = getCegidWeekDates(cegidCurrentOffset)[idx].key;
+        const h = cegidFieldValue(document.getElementById('h_' + idx), 'h');
+        const m = cegidFieldValue(document.getElementById('m_' + idx), 'm');
+        if (h !== null && m !== null) {
+            // heures modifiées à la main : plus un jour Férié/Congé
+            TWStore.setDay(key, (h || m) ? { h, m, reason: null } : null);
+            _cegidRefreshReason(idx, key);
         }
-        localStorage.setItem('h_' + dates[idx].key, document.getElementById('h_' + idx).value);
-        localStorage.setItem('m_' + dates[idx].key, document.getElementById('m_' + idx).value);
-        if (window._cegidDayCache) window._cegidDayCache.add(dates[idx].key);
         calculateCegidHebdo();
     }
 
@@ -2968,20 +2703,9 @@
             document.getElementById('card_' + i).classList.toggle('active', dec > 0);
             decTotal += dec;
         }
-        // Solde global : scan cache des cl\u00e9s h_YYYY-MM-DD (\u00e9vite un scan localStorage \u00e0 chaque frappe).
-        if (!window._cegidDayCache) {
-            window._cegidDayCache = new Set();
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith('h_')) window._cegidDayCache.add(key.slice(2));
-            }
-        }
+        // Solde global : tous les jours pointés (store)
         const days = {};
-        window._cegidDayCache.forEach(dp => {
-            const h = parseInt(localStorage.getItem('h_' + dp)) || 0;
-            const m = parseInt(localStorage.getItem('m_' + dp)) || 0;
-            if (h > 0 || m > 0) days[dp] = h * 60 + m;
-        });
+        Object.entries(TWStore.getDays()).forEach(([iso, d]) => { const min = d.h * 60 + d.m; if (min > 0) days[iso] = min; });
         const delta = computeBalance(days, getCegidLocalISODate(new Date()));
         const deltaDiv = document.getElementById('week-delta');
         if (Object.keys(days).length === 0) { deltaDiv.innerHTML = ""; }
@@ -3056,12 +2780,7 @@
         cont.classList.add('destruction-effect');
         setTimeout(() => {
             if (type === 'hebdo') {
-                getCegidWeekDates(cegidCurrentOffset).forEach(d => {
-                    localStorage.removeItem('h_'+d.key);
-                    localStorage.removeItem('m_'+d.key);
-                    localStorage.removeItem('r_'+d.key);
-                    if (window._cegidDayCache) window._cegidDayCache.delete(d.key);
-                });
+                getCegidWeekDates(cegidCurrentOffset).forEach(d => TWStore.setDay(d.key, null));
                 renderCegidGrid();
             } else {
                 document.querySelectorAll('#cegid-tab-calc .time-input').forEach(i => i.value = ""); runCegidCalc();
@@ -3069,6 +2788,14 @@
             cont.classList.remove('destruction-effect');
         }, 600);
     }
+</script>
+<script type="module">
+    // Couche cloud (SDK Firebase modulaire) : js/cloud.js → js/store.js, js/migrate.js, js/firebase.js
+    import('./js/cloud.js').catch(err => {
+        console.error('[cloud] chargement impossible', err);
+        document.getElementById('tw-login-msg').textContent = '';
+        document.getElementById('tw-login-err').textContent = 'Impossible de charger Firebase (réseau bloqué ?). Vérifie la connexion puis recharge la page.';
+    });
 </script>
 
 </body>

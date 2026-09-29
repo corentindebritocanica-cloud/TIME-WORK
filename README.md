@@ -5,21 +5,42 @@ heures de travail.
 
 ## Contenu
 
-- **Heure CEGID** : saisie hebdomadaire des heures, calculateur de sessions,
-  calcul de solde cumulé (base 35h30).
+- **Pointage CEGID** : saisie hebdomadaire des heures, motifs Férié / Congé,
+  calculateur de sessions, solde cumulé (7h06 par jour ouvré, 35h30 / semaine).
 - **Suivi Projet** : gestion des affaires, saisies horaires par type
   (DE, ECA, CD, Réunion, Formation, MEP, Loads CD…), budgets par type,
-  répartition graphique (camemberts), chronologie hebdomadaire, vue CEGID
-  intégrée.
+  répartition graphique (camemberts), chronologie hebdomadaire, vue
+  « Heures imputées (semaine) » avec l'écart pointé − imputé.
 
 ## Utilisation
 
 App en ligne : **https://corentindebritocanica-cloud.github.io/TIME-WORK/**
 
-Connexion avec un compte Google. Les données (affaires, saisies, heures CEGID)
-sont stockées dans **Firebase Firestore** (`users/{uid}`) et donc accessibles
-depuis n'importe quel poste. Le `localStorage` du navigateur ne sert plus que
-de cache ; la pastille en bas à gauche indique l'état de synchronisation.
+Connexion avec un compte Google. Les données sont stockées dans **Firebase
+Firestore** et synchronisées **en temps réel** entre postes et onglets. Hors
+ligne, les saisies sont enregistrées sur le poste (cache IndexedDB du SDK) puis
+envoyées à la reconnexion. La pastille en bas à gauche indique l'état :
+*Synchronisé*, *Enregistrement…*, *Hors ligne — enregistré sur ce poste*,
+*Erreur de synchronisation*.
+
+### Modèle de données Firestore
+
+```
+users/{uid}
+  affaires   : { [id]: { client, num, machine, loads[], budgets{}, productive, unbilled, createdAt } }
+  settings   : { dashFilter }
+  migratedAt : date de conversion depuis l'ancien format (champ kv supprimé)
+users/{uid}/months/{AAAA-MM}
+  entries    : { [id]: { affaireId, date, type, minutes, createdAt } }
+  days       : { "AAAA-MM-JJ": { h, m, reason: null | "ferie" | "conge" } }
+```
+
+- Écritures **ciblées par champ** (`entries.<id>`, `affaires.<id>`, `days.<date>`) :
+  deux postes qui saisissent en même temps ne s'écrasent plus.
+- Coût : ~1 document lu par mois de données au démarrage (≈ 12 / an), puis
+  uniquement les documents modifiés.
+- Identifiants : `crypto.randomUUID()` (les anciens identifiants numériques
+  sont conservés tels quels, en chaîne).
 
 ### Mise en place Firebase (une seule fois)
 
@@ -35,6 +56,37 @@ de cache ; la pastille en bas à gauche indique l'état de synchronisation.
    l'ajouter à la liste puis republier.
 4. Renseigner `FIREBASE_CONFIG` dans `index.html` (Paramètres du projet →
    Vos applications → app Web → Config).
+5. *(Recommandé, coût/perf)* Firestore → **Index** → onglet *Exemptions* :
+   désactiver l'indexation des champs `affaires`, `settings`, `kv` (collection
+   `users`) et `entries`, `days` (collection `months`). Ces champs ne sont jamais
+   requêtés. Détail dans [`firestore.indexes.json`](./firestore.indexes.json)
+   (utilisable tel quel avec `firebase deploy --only firestore:indexes`).
+
+### Passage au nouveau stockage (lot 2, une seule fois)
+
+1. **Publier la nouvelle version de `firestore.rules`** (étape 3 ci-dessus).
+   Sans cela, la conversion est refusée et l'app l'indique ; aucune donnée
+   n'est modifiée.
+2. Ouvrir l'app (**Ctrl+F5**). Une fenêtre « Mise à jour du stockage »
+   s'affiche → *Lancer la mise à jour*.
+3. Une sauvegarde `backup_avant_migration_AAAA-MM-JJ.json` est téléchargée,
+   puis les données sont converties, **relues depuis le serveur et comparées**
+   (nombre d'affaires, de saisies, minutes totales, jours pointés, motifs).
+   L'ancien champ `kv` n'est supprimé que si tout concorde.
+4. Fermer les fenêtres de l'ancienne version encore ouvertes : après la
+   conversion, les règles refusent l'ancien format.
+
+### Tests locaux (émulateur Firebase)
+
+```bash
+firebase emulators:start --only firestore,auth --project demo-lisa   # firestore.rules chargé au démarrage
+python3 -m http.server 8765                                           # depuis le dossier du repo
+# puis ouvrir http://localhost:8765/?emu
+```
+
+Le paramètre `?emu` (uniquement sur `localhost`) branche l'app sur les
+émulateurs Auth (9099) et Firestore (8080) du projet `demo-lisa` et expose
+`__twTestSignIn(email)` pour se connecter sans popup Google.
 
 ## Sauvegarde & restauration
 
@@ -42,8 +94,9 @@ Depuis la page d'accueil, section **⚙ Administrateur** :
 
 - **💾 Sauvegarder** — télécharge un fichier JSON contenant toutes les
   affaires, saisies et heures CEGID.
-- **📂 Importer** — restaure une sauvegarde JSON (ou un dump brut du
-  `localStorage`) et l'envoie dans Firestore.
+- **📂 Importer** — restaure une sauvegarde JSON (ou un dump brut de
+  l'ancienne version) : l'état actuel est d'abord téléchargé, puis **toutes**
+  les données sont remplacées, sur tous les postes.
 - **📊 Historique CSV** — importe un historique au format
   `CLIENT ; DATE ; HEURES ; CODE_AFFAIRE ; TYPE` (séparateur `;` ou `,`,
   dates `dd/mm/yyyy` ou `yyyy-mm-dd`, heures décimales).
@@ -83,6 +136,7 @@ bash auto-push.sh
 | 2026-09-29 | Correctif A10 | Vue CEGID : grille fluide 5 colonnes (3 puis 2 en container query), plus de scroll interne ; les 5 jours et le total restent visibles de 1200×800 à 560×500. |
 | 2026-09-29 | Correctif A11 | Écrans renommés « Pointage CEGID » (portail) et « Heures imputées (semaine) » (Suivi) ; écart pointé − imputé affiché par jour et sur la semaine ; motif Férié / Congé enregistré (`r_AAAA-MM-JJ`) et affiché sur la carte du jour. |
 | 2026-09-29 | Correctif A16 | Contrastes : tous les textes des 7 vues ≥ 4,5:1 (3:1 pour les grands titres), aucun texte < 11 px ; couleurs d'accent et de types éclaircies pour le texte, boutons pleins sur un bleu plus foncé. |
+| 2026-09-29 | Lot 2 A13 + A14 | SDK Firebase modulaire 12.19 (ESM, cache IndexedDB multi-onglets), store unique `js/store.js` (mémoire + écritures ciblées + écoute temps réel), amorçage `js/cloud.js`, migration `js/migrate.js` ; suppression des scripts « compat » et du monkey-patch `localStorage` ; mode émulateur `?emu` pour les tests locaux. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 
@@ -93,9 +147,14 @@ bash auto-push.sh
 ## Structure
 
 ```
-index.html        Application complète (HTML + CSS + JS + synchro Firestore)
+index.html          Application (HTML + CSS + JS des vues)
+js/firebase.js      Initialisation Firebase (SDK modulaire 12.19, cache IndexedDB, mode émulateur)
+js/store.js         Store : état en mémoire, écritures ciblées, écoute temps réel
+js/cloud.js         Connexion, migration, démarrage du store, pastille de synchro
+js/migrate.js       Conversion de l'ancien format (kv / cache local) avec contrôle des totaux
 AUDIT-2026-09-29.md Cahier de correction issu de l'audit
-firestore.rules   Règles de sécurité Firestore
+firestore.rules     Règles de sécurité Firestore (à publier dans la console)
+firestore.indexes.json Exemptions d'indexation (champs map jamais requêtés)
 auto-push.sh      Script de commit & push manuel
 .vscode/tasks.json Tâches VS Code (push, pull)
 DTO/              Données locales (ignoré par git)

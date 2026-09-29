@@ -125,6 +125,8 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 #### A11. Deux écrans « Heure CEGID » aux chiffres différents
 - **Constat** : l'un additionne les heures saisies à la main (`h_`/`m_`), l'autre les saisies projet. Les boutons Férié et Congé font exactement la même chose (7h06) sans garder le motif.
 - **Solution** : renommer (« Pointage CEGID » vs « Heures imputées »), afficher l'écart entre les deux, stocker le motif d'absence.
+- **Statut** : corrigé le 2026-09-29
+- **Correction appliquée** : Renommage (carte portail, titre de fenêtre, onglet du Suivi). `svRenderCegid()` lit le pointage `h_/m_` et affiche « Pointé … · écart ±… » (vert si 0, or sinon) par jour et sur la tuile Total semaine. Boutons Férié / Congé distincts : `setCegidAutoTime(idx, reason)` pointe 7h06 et stocke `r_AAAA-MM-JJ = ferie | conge` ; second clic retire le motif ; saisie manuelle des heures ou « Effacer cette semaine » le retirent aussi. Préfixe `r_` ajouté à `SYNC_RE` (synchro Firestore), à la sauvegarde JSON et à la restauration (valeurs limitées à `ferie`/`conge`). Valeurs h/m réinjectées dans les champs désormais échappées. Vérifié en headless (motif stocké localement et dans le cloud, retiré après saisie manuelle, écarts corrects).
 
 ### Architecture / code
 

@@ -1152,12 +1152,20 @@
                 }
             }
 
-            // 4. Le cloud fait foi : on remplace le cache local
-            localKeys.forEach(k => _rem.call(ls, k));
-            Object.keys(cloud).forEach(k => { if (SYNC_RE.test(k)) _set.call(ls, k, cloud[k]); });
+            // 4. Le cloud fait foi, SAUF pour les clés encore en attente d'envoi (A2) :
+            //    leur valeur locale est conservée puis renvoyée.
+            const keep = new Set(pending);
+            localKeys.forEach(k => { if (!keep.has(k)) _rem.call(ls, k); });
+            Object.keys(cloud).forEach(k => { if (SYNC_RE.test(k) && !keep.has(k)) _set.call(ls, k, cloud[k]); });
             _set.call(ls, '__tw_uid', user.uid);
-            ready = true; hideLogin(); setStatus('ok');
+            ready = true; hideLogin();
             el('tw-status-user').textContent = user.email || '';
+            if (pending.size) {
+                savePendingList(); setStatus('pending');
+                clearTimeout(timer); timer = setTimeout(flush, 800);
+            } else {
+                setStatus('ok');
+            }
         }
 
         function boot() {

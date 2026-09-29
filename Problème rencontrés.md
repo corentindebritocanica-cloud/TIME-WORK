@@ -67,6 +67,8 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 - **Symptôme** : deux fenêtres ouvertes (bureau + portable, ou 2 onglets) → les saisies de l'une disparaissent.
 - **Cause** : toutes les saisies tiennent dans une seule chaîne JSON `kv.sp_entries` réécrite en entier ; aucune écoute temps réel (`onSnapshot`) ; dernière écriture gagnante. Même effet si l'écriture échoue mais la lecture réussit au démarrage (l'étape 4 écrase les modifs en attente).
 - **Solution** : modèle par mois avec écritures par champ (`entries.{id}`) + `onSnapshot` (voir Lot 2 du README).
+- **Statut** : corrigé le 2026-09-29 (partiel — suite au lot 2)
+- **Correction appliquée** : Étape 4 de `onUser()` : les clés présentes dans `pending` ne sont ni supprimées ni remplacées par la valeur cloud ; un `flush()` est replanifié. Vérifié en headless avec une écriture Firestore simulée en échec : la valeur locale survit au rechargement puis part dans le cloud dès que l'écriture réussit. La concurrence entre postes reste à traiter au lot 2.
 
 #### A3. XSS stockée (confirmée)
 - **Symptôme** : un nom de machine `<img src=x onerror=…>` exécute du JS à l'ouverture du Dashboard (test headless positif).

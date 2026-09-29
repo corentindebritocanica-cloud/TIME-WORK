@@ -27,7 +27,7 @@ Le JavaScript ne pose **aucun style** : il ne fait que poser des classes et des 
 | 3 | **La page défile elle-même** (pas d'« écran fixe » avec défilement interne), barres en `position: fixed`. | Sinon bande vide de ~62 pt en bas sur iPhone (GUIDE-PWA-IOS §0, bug n°1). |
 | 4 | **Fond de `<html>` = couleur du bas de la plaque** (`--v-plaque-bas`, `#121214`), fond de page `#08080a` posé en dégradé 100 % × 100 %. | Sur iPhone, iOS peint la zone hors page avec la couleur **unie** de `<html>`. |
 | 5 | **Contraste ≥ 4,5:1** pour tout texte (3:1 pour les grands titres), mesuré **sur les pixels réels**, halos compris (méthode §4). | Exigence de l'audit A16, conservée. Les halos éclaircissent le fond par endroits. |
-| 6 | **N'animer que `transform` et `opacity`**, jamais `transition: all` ; actions répétées sans animation ; bloc `prefers-reduced-motion` (halos coupés). | Charte §11. |
+| 6 | **N'animer que `transform` et `opacity`**, jamais `transition: all` ; actions répétées sans animation ; bloc `prefers-reduced-motion` (halos et animations d'onglets coupés). | Charte §11. |
 | 7 | **Champs en 16 px minimum sur écran tactile** (règle dans la couche `utilities`). | Sinon Safari zoome à chaque saisie (Problème D3). |
 | 8 | **À chaque livraison, changer `VERSION` dans `sw.js`.** | Sinon le service worker continue de servir l'ancienne version (GUIDE-PWA-IOS §5). |
 
@@ -43,6 +43,9 @@ Le JavaScript ne pose **aucun style** : il ne fait que poser des classes et des 
 | **Windows Window Controls Overlay** : l'en-tête passe dans la barre de titre, **fixe**, en verre dense, titre 14 px. | Seul cas où l'en-tête est fixe (le contenu défile dessous) ; spécifique à la PWA Windows. |
 | **Police du corps** : `-apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto…` | SF sur iPhone (comme la charte), Segoe UI Variable sous Windows (comme avant la refonte). |
 | **Couleurs des types de saisie** (DE, ECA, CD, Loads…) conservées. | « Couleurs de catégories » à sens métier : exception tolérée par la charte §9. Jamais utilisées en décoration. |
+| **Animations de changement d'onglet** (demande de Corentin, 29/09/2026) : la section entre en glissant de 28 px depuis le côté de l'onglet choisi + fondu, 280 ms, `ease-out` ; le titre fond en 240 ms. | La charte (§11.2) réduit au minimum les animations des navigations fréquentes : d'où une entrée **courte, sans rebond, sans sortie**, en `transform` / `opacity` seulement, **désactivable** dans Paramètres et coupée par « Réduire les animations ». Pas d'indicateur qui glisse dans la pilule (§5.5b / §11.8). |
+| **Curseur d'intensité du flou** (Paramètres → Apparence, par appareil) : `--v-flou` de 0 (sans flou) à `blur(60px) saturate(260%)`, **50 = référence** `blur(30px) saturate(180%)`. | Demande de Corentin. PORTAIL-DUO a retiré son curseur « Effet verre » le 28/09 ; TIME-WORK le garde, par appareil (le flou coûte plus cher sur iPhone). Le voile de lisibilité ne dépend pas du curseur : le contraste reste AA à tous les niveaux. |
+| **6 onglets** ; libellé court **« Réglages »** dans la pilule, titre « Paramètres ». | « Paramètres » ne tient pas sur un iPhone de 375–390 pt (Problème F2) ; « Réglages » est le libellé de l'onglet équivalent de Budget. |
 | **Pas de `commun.js` / `verre.css` partagés, pas de View Transitions.** | TIME-WORK est un dépôt séparé (autre hébergement) : le design est recopié dans `css/app.css`, le calage des halos sur l'horloge est un mini-script dans le `<head>` d'`index.html`. |
 
 ---
@@ -69,12 +72,34 @@ Le JavaScript ne pose **aucun style** : il ne fait que poser des classes et des 
 | Jauges : piste en verre, remplissage lumineux | `svg.bar` (halo `drop-shadow` de la couleur `--bc`) | `css/app.css`, `js/views/shared.js` |
 | Grands chiffres Unbounded 300 | `.tile-value`, `.total-value`, `.prod-value`, `.calc-total-value`, `.day-dec`, `.acc-total`, `.aff-total`, centre des anneaux | `css/app.css` |
 | Camembert | **anneau évidé** (secteurs d'anneau, pas de disque central opaque) | `js/ui/pie.js` |
+| — (TIME-WORK) Paramètres : liste réordonnable | **lignes à filets** sur le panneau (pas une carte par ligne), poignée ⋮⋮ (`touch-action: none`), la ligne tenue suit le doigt 1:1 (charte §11.7) avec liseré d'accent, les voisines glissent en 150 ms (FLIP, Web Animations) | `js/views/parametres.js`, `css/app.css` |
+| — (TIME-WORK) Changement d'onglet | `.entre-d` / `.entre-g` sur l'hôte de section, `.titre-entre` sur le titre ; `html[data-animations="off"]` | `js/views/suivi.js`, `js/app.js`, `css/app.css` |
+| — (TIME-WORK) Préférences d'affichage | `localStorage['tw-apparence']` = `{ flou, animations }`, appliqué avant le premier affichage | `js/ui/prefs.js`, `index.html` |
 
 ### Icônes (sprite SVG dans `index.html`, trait 2 px comme Budget/Course)
 
 `#i-pie` Tableau de bord · `#i-folder` Par affaire · `#i-calendar` Chronologie · `#i-bars` Heures imputées ·
-`#i-clock` Pointage CEGID · `#i-plus` saisie rapide · `#i-data` menu Données · `#i-logout` déconnexion ·
-`#icon-clock` logo. Utilisation : `<svg class="ico" aria-hidden="true"><use href="#i-pie"/></svg>`.
+`#i-clock` Pointage CEGID · `#i-gear` Paramètres · `#i-plus` saisie rapide · `#i-data` menu Données ·
+`#i-logout` déconnexion · `#i-grip` poignée de déplacement · `#i-eye` / `#i-eye-off` afficher / masquer ·
+`#icon-clock` logo.
+
+### Icône de l'application (29/09/2026)
+
+Style Verre : fond `#08080a`, halo bleu Corentin en haut à gauche, halo violet TIME-WORK en bas à droite,
+**disque de verre** (voile blanc, arête, reflet du haut), **anneau du temps** aux ¾ (dégradé bleu → violet,
+avec sa lueur) et **aiguilles** claires. Sources SVG écrites à la main, PNG produits par Chromium.
+
+| Fichier | Usage |
+|---|---|
+| `icons/tw-verre.svg` | source (coins arrondis transparents) : favicon, icône « any » du manifeste |
+| `icons/tw-verre-192.png`, `-512.png` | icônes « any » (Windows : barre des tâches, menu Démarrer) |
+| `icons/tw-verre-plein.svg` | source plein cadre (pas de transparence) |
+| `icons/tw-verre-maskable-512.png` | icône « maskable » (contenu dans la zone sûre : rayon 162 px < 205 px) |
+| `icons/tw-verre-apple-180.png` | iPhone (`apple-touch-icon`, iOS arrondit lui-même les coins) |
+
+**Changer l'icône** : modifier les SVG, régénérer les PNG, **changer les noms de fichiers** (sinon Windows,
+iOS et les caches gardent l'ancienne), mettre à jour `manifest.webmanifest`, `index.html`, `sw.js` (`SHELL`
+et `VERSION`). Sur iPhone, l'icône n'est relue qu'à l'ajout à l'écran d'accueil (GUIDE-PWA-IOS §1.9). Utilisation : `<svg class="ico" aria-hidden="true"><use href="#i-pie"/></svg>`.
 
 ---
 
@@ -92,7 +117,7 @@ Le JavaScript ne pose **aucun style** : il ne fait que poser des classes et des 
 --v-soft-on: rgba(255,255,255,.16);    /* segment actif */
 --v-edge: rgba(255,255,255,.16);       /* arête */   --v-hi: rgba(255,255,255,.30); /* reflet */
 --v-hair: rgba(255,255,255,.08);       /* filet */    --v-ombre: rgba(0,0,0,.55);
---v-halo-op: .60;  --v-flou: blur(30px) saturate(180%);
+--v-halo-op: .60;  --v-flou: blur(30px) saturate(180%);   /* réglable : Paramètres → Apparence (flouCSS, js/ui/prefs.js) */
 --v-haut: calc(env(safe-area-inset-top, 0px) + 18px);
 
 /* Identité */
@@ -131,6 +156,9 @@ Le JavaScript ne pose **aucun style** : il ne fait que poser des classes et des 
 - **Accordéons** : `<details class="acc"><summary class="acc-head">…</summary><div class="acc-body">…</div></details>` (contenu construit à l'ouverture).
 - **Badges** : `.badge.t-<TYPE>` ; **pastille** `.dot` ; **jauge** `svg.bar(.is-warn|.is-over)`.
 - **Dialogue** : `ask()` / `confirmAction()` / `inform()` (`js/ui/dialog.js`) ; **toast** : `toast(msg, {kind, action})`.
+- **Liste réordonnable** : `ol.type-list > li.type-row` (poignée `.drag-handle`, `.dot`, `.type-name`, `.type-actions`) ; état `.is-dragging` (variable `--dy`) ; `.is-hidden`.
+- **Étiquette** : `.tag` (ex. « ☁ Synchronisé », « Cet appareil »). **Pastilles de couleur** : `.swatch.pal-N`. **Curseur** : `.range-row` + `output.range-val`.
+- **Selon le pointeur** : `.only-fine` (souris / clavier) et `.only-coarse` (tactile).
 
 ---
 
@@ -149,7 +177,11 @@ Le JavaScript ne pose **aucun style** : il ne fait que poser des classes et des 
    3. pour chaque texte, calculer le contraste avec les pixels de fond de sa boîte et garder le **10ᵉ centile** (quasi pire cas, sans les artefacts de bordure) ;
    4. seuil 4,5:1 (3:1 si ≥ 24 px ou ≥ 18,66 px gras) ; éléments désactivés exclus (WCAG).
    5. répéter à **3 instants** de l'animation des halos (on décale `--v-delai-*`) et en haut / milieu / bas de page.
-   Résultat au 29/09/2026 : **0 défaut sur 5 024 textes** (94 mesures).
+   6. quand un dialogue est ouvert, ne mesurer **que son contenu** (le reste est derrière, invisible).
+   Résultats au 29/09/2026 : **0 défaut sur 5 024 textes** (refonte Verre, 5 onglets) puis **0 sur 4 101** (6 onglets, Paramètres compris).
+6. **Tests fonctionnels** (Playwright + émulateurs, base vidée au début : `DELETE http://127.0.0.1:8080/emulator/v1/projects/demo-lisa/databases/(default)/documents`) :
+   glisser à la souris (avec défilement automatique) et **au doigt** (événements tactiles CDP `Input.dispatchTouchEvent`),
+   clavier, synchro entre **deux appareils** ouverts en même temps, réglages conservés au rechargement.
 5. **Limites connues du navigateur headless** (ne pas les prendre pour des bugs, Problèmes E5 à E9) :
    - le **flou `backdrop-filter` n'est pas rendu** (rendu logiciel) : le texte sous la barre paraît net sur les captures → juger le flou sur l'appareil ;
    - la **capture « pleine page »** réinitialise l'émulation tactile (`pointer: coarse` devient faux) → mesurer les champs 16 px sans capture pleine page ;
@@ -183,6 +215,7 @@ Le JavaScript ne pose **aucun style** : il ne fait que poser des classes et des 
 | 29/09/2026 | Lot 3 : thème clair retiré (sombre uniquement, décision de Corentin) ; raccourcis réduits à `Ctrl+K`. |
 | 29/09/2026 | Version iPhone : barre d'onglets en bas sur téléphone, zones sûres, champs 16 px. |
 | 29/09/2026 | **Refonte « Verre »** : aspect identique aux apps PORTAIL-DUO (halos animés bleu + violet, plaque de verre, panneaux sans flou, pilules, Unbounded, barre flottante + « + », pastille de connexion à côté du titre, dialogues en feuille du bas sur téléphone, anneaux évidés). Écarts assumés : voile de lisibilité et textes éclaircis (contraste AA), couleur d'app violette, « + » à côté de la pilule sur PC, en-tête WCO. |
+| 29/09/2026 | **Onglet Paramètres** : types de travail personnalisés (ajout, couleur de la palette, glisser-déposer, masquage, suppression si inutilisé), curseur d'intensité du flou et interrupteur des animations (par appareil) ; **animations de changement d'onglet** (entrée directionnelle 280 ms) ; **nouvelle icône** style Verre ; 6ᵉ onglet « Réglages ». |
 
 *Mettre à jour ce tableau à chaque évolution de l'interface.*
 

@@ -14,7 +14,7 @@ export function downloadJSON(obj, prefix) {
 /**
  * Construit la sauvegarde complète.
  * @param {typeof import('../store.js')} store
- * @returns {{exportedAt: string, affaires: object[], entries: object[], cegid: Object<string,string>}}
+ * @returns {{exportedAt: string, affaires: object[], entries: object[], cegid: Object<string,string>, types?: object[]}}
  */
 export function buildBackup(store) {
     const cegid = {};
@@ -23,13 +23,15 @@ export function buildBackup(store) {
         cegid['m_' + iso] = String(d.m).padStart(2, '0');
         if (d.reason) cegid['r_' + iso] = d.reason;
     });
-    return { exportedAt: new Date().toISOString(), affaires: store.getAffaires(), entries: store.getEntries(), cegid };
+    const types = store.getSettings().types;          // types de travail (Paramètres), s'ils ont été personnalisés
+    return { exportedAt: new Date().toISOString(), affaires: store.getAffaires(), entries: store.getEntries(), cegid,
+             ...(Array.isArray(types) ? { types } : {}) };
 }
 
 /**
  * Lit un fichier de sauvegarde (format actuel ou dump brut de l'ancienne version).
  * @param {string} text
- * @returns {{affaires: any[], entries: any[], cegid: Object<string,string>} | null}
+ * @returns {{affaires: any[], entries: any[], cegid: Object<string,string>, types: any[]|null} | null}
  */
 export function parseBackup(text) {
     let p;
@@ -41,5 +43,5 @@ export function parseBackup(text) {
         catch { return null; }
     }
     if (!p || !Array.isArray(p.affaires) || !Array.isArray(p.entries)) return null;
-    return { affaires: p.affaires, entries: p.entries, cegid: p.cegid || {} };
+    return { affaires: p.affaires, entries: p.entries, cegid: p.cegid || {}, types: Array.isArray(p.types) ? p.types : null };
 }

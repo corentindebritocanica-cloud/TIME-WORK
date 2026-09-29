@@ -3,7 +3,8 @@
  * Format : CLIENT ; DATE ; HEURES ; CODE_AFFAIRE ; TYPE  (séparateur « ; » ou « , »)
  * Dates : jj/mm/aaaa, jj-mm-aaaa, aaaa-mm-jj — Heures : décimales (0,5 = 30 min).
  */
-import { TYPE_CODES } from './types.js';
+import { findTypeByName, normLabel } from './types.js';
+export { normLabel };
 
 const ALIASES = {
     VERIF: 'VERIFICATION', VERIFS: 'VERIFICATION',
@@ -17,16 +18,11 @@ const ALIASES = {
     REUNIONS: 'REUNION', MEETING: 'REUNION', FORMATIONS: 'FORMATION'
 };
 
-/** Normalise un libellé (majuscules, sans accents, séparateurs → « _ »). */
-export const normLabel = s => String(s ?? '').trim().toUpperCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[\s\-.]+/g, '_');
-
-/** Type CSV → code interne ; '' → AUTRE ; inconnu → null. */
+/** Type CSV → code interne (code ou libellé, types personnalisés compris) ; '' → AUTRE ; inconnu → null. */
 export function mapType(raw) {
     const n = normLabel(raw);
     if (!n) return 'AUTRE';
-    if (TYPE_CODES.includes(n)) return n;
-    return ALIASES[n] || null;
+    return findTypeByName(n) || ALIASES[n] || null;
 }
 
 /** Date CSV → « AAAA-MM-JJ » ou null. */

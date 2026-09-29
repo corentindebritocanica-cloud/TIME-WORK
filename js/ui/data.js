@@ -7,7 +7,7 @@ import { buildBackup, downloadJSON, parseBackup } from '../domain/backup.js';
 import { analyzeCSV } from '../domain/csv.js';
 import { fromLegacy, summarize } from '../migrate.js';
 import { minsToHM, minsToDec, fmtNum } from '../domain/time.js';
-import { typeLabel } from '../domain/types.js';
+import { typeLabel, applyTypeConfig, normalizeTypeConfig, serializeTypeConfig } from '../domain/types.js';
 
 /**
  * Télécharge une sauvegarde JSON complète.
@@ -38,6 +38,11 @@ export async function importJSON(text, ctx) {
     ctx.toast('Restauration en cours…', { kind: 'info' });
     try {
         await ctx.store.replaceAll(data);
+        if (src.types) {                        // types de travail personnalisés de la sauvegarde
+            const types = serializeTypeConfig(normalizeTypeConfig(src.types));
+            ctx.store.setSettings({ types });
+            applyTypeConfig(types);
+        }
         ctx.toast(`Restauré : ${s.affaires} affaire(s), ${s.entries} saisie(s), ${s.days} jour(s).`);
     } catch (e) {
         ctx.toast('Restauration incomplète : ' + (e.message || e), { kind: 'error' });

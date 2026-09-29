@@ -19,19 +19,32 @@ L'app ne détecte pas le système : la mise en page suit la largeur d'écran
 |---|---|
 | [`UX-UI.md`](./UX-UI.md) | Design « Verre » (aspect identique aux apps PORTAIL-DUO) : règles à ne pas casser, écarts assumés, jetons, composants, méthode de vérification (contraste au pixel), checklist, historique + charte de référence en annexe. **À lire avant toute modification visuelle.** |
 | [`GUIDE-PWA-IOS.md`](./GUIDE-PWA-IOS.md) | iPhone / Safari : deux adresses, connexion, installation iOS 26, bande du bas, zones sûres, service worker, tests sans iPhone + guide de référence en annexe. |
-| [`Problème rencontrés.md`](./Problème%20rencontrés.md) | Journal de tous les problèmes rencontrés et de leur solution (audit A, lot 2 B, lot 3 C, iPhone D, refonte Verre E). |
+| [`Problème rencontrés.md`](./Problème%20rencontrés.md) | Journal de tous les problèmes rencontrés et de leur solution (audit A, lot 2 B, lot 3 C, iPhone D, refonte Verre E, Paramètres F). |
 | [`AUDIT-2026-09-29.md`](./AUDIT-2026-09-29.md) | Cahier de correction de l'audit (lots 1 à 3, terminés). |
 
 ## Contenu
 
 Pas de page d'accueil : l'app s'ouvre directement sur le **Tableau de bord**.
 Tout est dans une seule barre d'onglets flottante (en bas de l'écran) : **Tableau ·
-Affaires · Chrono · Imputées · Pointage** ; le titre de la section s'affiche en
-haut à gauche. Le bouton rond **Données** de l'en-tête regroupe sauvegarde,
+Affaires · Chrono · Imputées · Pointage · Réglages** ; le titre de la section
+s'affiche en haut à gauche (« Paramètres » pour Réglages). Passer d'un onglet à
+l'autre fait glisser la section depuis le côté de l'onglet choisi. Le bouton rond **Données** de l'en-tête regroupe sauvegarde,
 restauration et import CSV ; le bouton rond voisin déconnecte.
 
-- **Pointage CEGID** (dernier onglet) : saisie hebdomadaire des heures, motifs Férié / Congé,
+- **Pointage CEGID** : saisie hebdomadaire des heures, motifs Férié / Congé,
   calculateur de sessions, solde cumulé (7h06 par jour ouvré, 35h30 / semaine).
+- **Paramètres** (onglet « Réglages ») :
+  - **Types de travail** : ajouter ses propres types (nom + couleur), les
+    **réordonner par glisser-déposer** (poignée ⋮⋮, au doigt ou à la souris ;
+    flèches ↑ ↓ au clavier), masquer un type (il n'est plus proposé à la saisie,
+    ses heures restent comptées), supprimer un type personnalisé inutilisé,
+    revenir à l'ordre par défaut. Enregistré **dans Firestore** et synchronisé en
+    direct entre PC et iPhone ; l'ordre est utilisé partout (listes, légendes,
+    budgets). Les types personnalisés sont reconnus à l'import CSV (par nom ou
+    code) et inclus dans la sauvegarde JSON.
+  - **Apparence** (propre à chaque appareil) : curseur **Effet de verre** pour
+    réduire ou accentuer le flou (0 à 60 px, 30 px par défaut) et interrupteur
+    **Animations entre les onglets**.
 - **Suivi Projet** : gestion des affaires, saisies horaires par type
   (DE, ECA, CD, Réunion, Formation, MEP, Loads CD…), budgets par type,
   répartition graphique (camemberts), chronologie hebdomadaire, vue
@@ -67,7 +80,7 @@ survol de la pastille.
 Dans Edge ou Chrome, ouvrir l'URL ci-dessus puis **menu ⋯ → Applications →
 Installer TIME-WORK** (ou l'icône d'installation dans la barre d'adresse).
 L'app s'ouvre alors dans sa propre fenêtre, épinglable à la barre des tâches,
-avec des raccourcis « Pointage CEGID » et « Suivi projet » sur l'icône.
+avec des raccourcis « Pointage CEGID », « Tableau de bord » et « Paramètres » sur l'icône (clic droit).
 Le mode **Window Controls Overlay** (bouton ⌃ dans la barre de titre) place
 l'en-tête de l'app dans la barre de titre Windows. L'application démarre aussi
 hors ligne (service worker `sw.js`).
@@ -86,6 +99,14 @@ Sur téléphone (≤ 600 px) : onglets dans une **pilule flottante en bas** (sou
 pouce) avec le bouton **« + »** juste au-dessus, jours du pointage en liste,
 zones sûres respectées (Dynamic Island, barre d'accueil), champs en 16 px (pas
 de zoom automatique de Safari), dialogues en **feuille du bas**.
+
+**Nouvelle icône (29/09/2026)** : iOS mémorise l'icône au moment de l'ajout à
+l'écran d'accueil. Pour voir la nouvelle : **supprimer l'app de l'écran
+d'accueil** (appui long → Supprimer l'app → Supprimer de l'écran d'accueil ; les
+données sont dans Firestore, rien n'est perdu) puis la **rajouter** depuis
+Safari. Sur Windows, Edge met l'icône à jour au lancement suivant de l'app
+(avec parfois une demande de confirmation) ; sinon, la désinstaller puis la
+réinstaller.
 
 **Pourquoi une seconde adresse ?** Safari bloque le stockage « tiers » : la
 connexion Google de Firebase ne fonctionne pas quand la page de connexion
@@ -127,7 +148,7 @@ Si Firestore ne répond pas au bout de 15 s, un bouton **Recharger** apparaît.
 ```
 users/{uid}
   affaires   : { [id]: { client, num, machine, loads[], budgets{}, productive, unbilled, createdAt } }
-  settings   : { dashFilter }
+  settings   : { dashFilter, types: [ { code, hidden? } | { code, label, color, custom: true, hidden? } ] }
   migratedAt : date de conversion depuis l'ancien format (champ kv supprimé)
 users/{uid}/months/{AAAA-MM}
   entries    : { [id]: { affaireId, date, type, minutes, createdAt } }
@@ -179,7 +200,7 @@ users/{uid}/months/{AAAA-MM}
 
 - **Fonctions pures** (durées, semaines ISO, solde, CSV, validation,
   échappement) : ouvrir `tests/domain.test.html` via un serveur local
-  (42 tests, résultat dans la page et la console).
+  (52 tests, résultat dans la page et la console).
 - **Application complète** : émulateur Firebase ci-dessous.
 
 ```bash
@@ -299,6 +320,7 @@ service cloud.firestore {
 | 2026-09-29 | iPhone | **App utilisable en PWA sur iPhone** : seconde adresse **https://lisa-cmpt.web.app** (Firebase Hosting, même code, mêmes données) avec connexion Google par redirection sur le même domaine (contourne le blocage du stockage tiers de Safari) ; l'adresse PC ne change pas. Mise en page téléphone (barre d'onglets en bas, pointage en liste, zones sûres, champs 16 px, dialogues pleine largeur), icône iPhone, balises `apple-mobile-web-app-*`. Corrigé : plantage Safari au démarrage (`requestIdleCallback`). Ajout de `firebase.json`, `.firebaserc`, workflow de publication. Tests WebKit iPhone 11/11. Service worker `ios1`. Problèmes D1 à D7 consignés. |
 | 2026-09-29 | UX/UI Verre | **Refonte de l'interface, aspect identique aux apps PORTAIL-DUO** (charte UX/UI v2.0, `verre.css`) : fond `#08080a` + deux halos animés calés sur l'horloge (bleu Corentin, violet TIME-WORK), une seule plaque de verre pour le contenu, panneaux sans flou (rayons 22–34 px), boutons / puces / onglets en pilule, Unbounded pour le titre de section et les grands chiffres, en-tête posé sur les halos (titre + pastille de connexion verte / or / rouge, boutons ronds Données et Déconnexion), **barre d'onglets flottante** en pilule avec icônes + **bouton rond « + »** (saisie rapide), dialogues en verre (feuille du bas sur téléphone), toasts en pilule, camemberts en anneau évidé. Contraste AA conservé (voile de lisibilité dans la plaque, textes éclaircis) : **0 défaut sur 5 024 textes mesurés au pixel**. Service worker `verre1` (police mise en cache). Problèmes E1 à E10 consignés. |
 | 2026-09-29 | Doc | Ajout de [`UX-UI.md`](./UX-UI.md) (design, règles, méthode, historique + charte de référence) et [`GUIDE-PWA-IOS.md`](./GUIDE-PWA-IOS.md) (iPhone : règles, tests, corrections du guide de référence + guide en annexe). README : section Documentation. |
+| 2026-09-29 | Paramètres | **Nouvel onglet Paramètres** (« Réglages » dans la pilule). **Types de travail personnalisés** : ajout (nom + couleur), ordre par **glisser-déposer** (doigt ou souris, défilement automatique) ou clavier, masquage, suppression d'un type inutilisé (avec Annuler), ordre par défaut — enregistré dans Firestore (`settings.types`, règles inchangées), synchronisé en direct, utilisé partout, compris par l'import CSV et la sauvegarde JSON. **Apparence** (par appareil) : curseur d'intensité du flou du verre, interrupteur des animations. **Animations de changement d'onglet** (glissé directionnel 280 ms + fondu du titre). **Nouvelle icône** style Verre (Windows, iPhone, favicon). Vérifié : 35 contrôles fonctionnels (dont glisser au doigt et à la souris, synchro entre 2 appareils), 52 tests unitaires, contraste 0 défaut sur 4 101 textes. Service worker `params1`. Problèmes F1 à F7 consignés. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 
@@ -316,15 +338,15 @@ firebase.json           Firebase Hosting (adresse iPhone) : fichiers publiés, e
 .firebaserc             Projet Firebase par défaut (lisa-cmpt)
 .github/workflows/      firebase-hosting.yml : publication automatique sur lisa-cmpt.web.app à chaque push
 sw.js                   Service worker : démarrage hors ligne (⚠ incrémenter VERSION et tenir SHELL à jour à chaque livraison)
-icons/                  Icônes de l'application (SVG, PNG 192/512, maskable, apple-touch-icon 180 pour iPhone)
+icons/                  Icônes « Verre » : tw-verre.svg (source, favicon), tw-verre-plein.svg (source plein cadre), PNG 192/512, maskable 512, iPhone 180
 js/app.js               Point d'entrée : routage #/suivi/<onglet>, sections chargées à la demande, Ctrl+K, menu Données, rafraîchissement temps réel
 js/firebase.js          Initialisation Firebase (SDK modulaire 12.19, cache IndexedDB, mode émulateur, authDomain selon l'adresse)
 js/store.js             Store : état en mémoire, écritures ciblées, écoute temps réel, restauration (Annuler)
 js/cloud.js             Connexion, migration, démarrage du store, état de synchro
 js/migrate.js           Conversion de l'ancien format (kv / cache local) avec contrôle des totaux
-js/domain/              Fonctions pures : time (durées, semaines), balance (solde), types (table unique), csv, validate, backup
-js/ui/                  dom (gabarit html`` échappé par défaut, délégation), dialog, toast, pie, quick (saisie rapide), data (sauvegarde / restauration / import CSV)
-js/views/               suivi (hôte des sections + barre d'onglets flottante) + dashboard, affaires, chrono, imputees, pointage, shared
+js/domain/              Fonctions pures : time (durées, semaines), balance (solde), types (types intégrés + réglages de l'utilisateur), csv, validate, backup
+js/ui/                  dom (gabarit html`` échappé par défaut, délégation), dialog, toast, pie, quick (saisie rapide), data (sauvegarde / restauration / import CSV), prefs (flou, animations — par appareil)
+js/views/               suivi (hôte des sections + barre d'onglets flottante + animations) + dashboard, affaires, chrono, imputees, pointage, parametres, shared
 tests/domain.test.html  Tests unitaires des fonctions pures
 UX-UI.md                Design « Verre » : règles, jetons, composants, méthode de vérification, historique (+ charte PORTAIL-DUO)
 GUIDE-PWA-IOS.md        iPhone / Safari : règles, pièges, tests (+ guide PWA iOS PORTAIL-DUO)

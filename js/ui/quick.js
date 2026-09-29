@@ -2,10 +2,10 @@
  * Saisie rapide (Ctrl+K) : affaire → type → date → durée → Entrée.
  */
 import { html, mount as render, $ } from './dom.js';
-import { TYPES, typeLabel, loadType } from '../domain/types.js';
+import { TYPES, typeLabel, loadType, defaultType } from '../domain/types.js';
 import { parseDuration, todayISO, fmtNum, minsToHM, minsToDec } from '../domain/time.js';
 
-let last = { affaireId: null, type: 'DE' };
+let last = { affaireId: null, type: null };
 
 const affLabel = a => [a.num || '(sans N°)', a.client, a.machine].filter(Boolean).join(' — ');
 
@@ -56,7 +56,7 @@ export async function quickEntry(ctx) {
                     <small class="field-hint" aria-live="polite"></small></label>
                 <datalist id="qe-affs">${affaires.map(a => html`<option value="${affLabel(a)}"></option>`)}</datalist>
                 <div class="field-row">
-                    <label class="field"><span>Type</span><select class="control" name="type">${typeOpts(prev, last.type)}</select></label>
+                    <label class="field"><span>Type</span><select class="control" name="type">${typeOpts(prev, last.type || defaultType())}</select></label>
                     <label class="field"><span>Date</span><input type="date" class="control" name="date" value="${todayISO()}"></label>
                     <label class="field"><span>Durée</span><input class="control num w-sm" name="time" placeholder="ex : 2:30" maxlength="6" autocomplete="off" ${prev ? 'autofocus' : ''}>
                         <small class="field-hint" aria-live="polite"></small></label>
@@ -84,7 +84,7 @@ export async function quickEntry(ctx) {
             if ('error' in p) { hint(time, p.error, true); time.focus(); return false; }
             if (!date.value) { date.classList.add('is-invalid'); date.focus(); return false; }
             const validTypes = [...TYPES.map(t => t.code), ...res.aff.loads.map(loadType)];
-            const t = validTypes.includes(type.value) ? type.value : 'DE';
+            const t = validTypes.includes(type.value) ? type.value : defaultType();
             added = store.addEntry({ affaireId: res.aff.id, date: date.value, type: t, minutes: p.minutes });
             last = { affaireId: res.aff.id, type: t };
             added.aff = res.aff;

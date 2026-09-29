@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- TIME-WORK — icône « Verre » (29/09/2026) : fond #08080a, halos bleu Corentin + violet TIME-WORK,
+       disque de verre, anneau de temps (dégradé bleu → violet) et aiguilles. Voir UX-UI.md. -->
+  <defs>
+    <clipPath id="c"><rect width="512" height="512" rx="112"/></clipPath>
+    <radialGradient id="hb" cx="0.27" cy="0.25" r="0.62"><stop offset="0" stop-color="#1f8fff" stop-opacity=".85"/><stop offset="1" stop-color="#1f8fff" stop-opacity="0"/></radialGradient>
+    <radialGradient id="hv" cx="0.78" cy="0.8" r="0.6"><stop offset="0" stop-color="#9b7bff" stop-opacity=".8"/><stop offset="1" stop-color="#9b7bff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="verre" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset="1" stop-color="#fff" stop-opacity=".05"/></linearGradient>
+    <linearGradient id="temps" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#5eb2ff"/><stop offset="1" stop-color="#b59dff"/></linearGradient>
+    <filter id="lueur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
+  </defs>
+  <g clip-path="url(#c)">
+    <rect width="512" height="512" rx="112" fill="#08080a"/>
+    <rect width="512" height="512" fill="url(#hb)"/>
+    <rect width="512" height="512" fill="url(#hv)"/>
+  </g>
+  <!-- disque de verre : voile clair, arête, reflet du haut -->
+  <circle cx="256" cy="256" r="150" fill="url(#verre)" stroke="#fff" stroke-opacity=".26" stroke-width="3"/>
+  <path d="M127.0 181.5 A149 149 0 0 1 385.0 181.5" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="3" stroke-linecap="round"/>
+  <!-- anneau du temps : piste + progression (¾) avec sa lueur -->
+  <circle cx="256" cy="256" r="116" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="22"/>
+  <path d="M256.0 140.0 A116 116 0 1 1 140.0 256.0" fill="none" stroke="url(#temps)" stroke-width="22" stroke-linecap="round" filter="url(#lueur)" opacity=".9"/>
+  <path d="M256.0 140.0 A116 116 0 1 1 140.0 256.0" fill="none" stroke="url(#temps)" stroke-width="22" stroke-linecap="round"/>
+  <!-- aiguilles -->
+  <path d="M256 256V186M256 256l44 30" fill="none" stroke="#f5f2ec" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="256" cy="256" r="14" fill="#f5f2ec"/>
+</svg>

@@ -380,6 +380,49 @@ règles iPhone : [`GUIDE-PWA-IOS.md`](./GUIDE-PWA-IOS.md).
 
 ---
 
+## 2026-09-29 — Onglet Paramètres (types de travail, glisser-déposer, flou, animations, icône) : problèmes rencontrés
+
+#### F1. Glisser-déposer : le geste s'arrêtait après un cran en REMONTANT
+- **Symptôme** (test souris) : en tirant un type vers le haut, il ne remontait que d'une ligne puis la ligne « lâchait » ; vers le bas, tout fonctionnait.
+- **Cause** : pour remonter, le code déplaçait **la ligne tenue elle-même** dans le DOM (`insertBefore(row, prev)`). Or retirer puis réinsérer l'élément qui a **capturé le pointeur** (`setPointerCapture`) annule la capture : le navigateur envoie `lostpointercapture`, qui terminait le geste. Vers le bas, c'est la voisine qui bougeait, d'où l'asymétrie.
+- **Solution** : ne jamais déplacer la ligne tenue ; toujours déplacer la **voisine** (`insertBefore(prev, row.nextSibling)` pour remonter). Vérifié : souris jusqu'en 1ʳᵉ position avec défilement automatique ; doigt (événements tactiles) vers le haut et vers le bas.
+- **Leçon** : avec la capture de pointeur, l'élément capturant doit rester dans le document pendant tout le geste.
+- **Statut** : corrigé le 2026-09-29
+
+#### F2. Six onglets : libellés coupés sur les iPhone de 375 et 390 pt
+- **Symptôme** : « Imputées », « Pointage » et « Paramètres » tronqués (points de suspension) dans la pilule ; correct à 430 pt.
+- **Solution** : libellé court **« Réglages »** dans la pilule (comme l'onglet de Budget), le titre de l'en-tête reste « Paramètres » ; sous 400 pt, pilule un peu plus large (marges 10 px), espacement 2 px, texte 10,5 px. Vérifié : aucun libellé coupé à 375, 390 et 430 pt (seul un iPhone SE 1ʳᵉ génération, 320 pt, garde des points de suspension).
+- **Statut** : corrigé le 2026-09-29
+
+#### F3. Types stockés en LISTE, pas en map (anticipé)
+- **Risque** : `setSettings()` écrit avec `setDoc(…, { merge: true })`, qui **fusionne** les maps imbriquées sans jamais en supprimer une clé (problème B3) : un type supprimé serait resté dans Firestore.
+- **Solution** : `settings.types` est un **tableau** ordonné (Firestore remplace un tableau en entier lors d'une fusion) ; il porte aussi l'ordre. Format minimal : `{ code, hidden? }` pour un type intégré, `{ code, label, color, custom: true, hidden? }` pour un type personnalisé. Relecture défensive (`normalizeTypeConfig`) : codes invalides, doublons, préfixe de Load et libellés vides ignorés ; types intégrés absents rajoutés.
+- **Limite connue** : deux postes qui réordonnent au même instant → la dernière écriture gagne pour la liste entière (sans perte de saisies).
+- **Statut** : corrigé le 2026-09-29
+
+#### F4. Changement venu d'un autre poste pendant un glisser
+- **Risque** : l'instantané Firestore déclenche un nouveau rendu de l'écran, qui aurait détruit la ligne tenue en plein geste.
+- **Solution** : pendant un glisser, le rendu est **différé** jusqu'au lâcher (`refreshWanted`) ; le lâcher enregistre l'ordre vu à l'écran.
+- **Statut** : corrigé le 2026-09-29
+
+#### F5. Flou réglable : éclair au démarrage
+- **Risque** : les modules ES s'exécutent après le premier affichage ; appliquer le réglage de flou depuis `js/ui/prefs.js` aurait affiché le flou par défaut une fraction de seconde.
+- **Solution** : mini-script dans le `<head>` d'`index.html` qui lit `localStorage['tw-apparence']` et pose `--v-flou` / `data-animations` avant le premier affichage (même formule que `prefs.js`, testée : `flouCSS`). Valeur invalide → valeur par défaut. Vérifié : réglage conservé au rechargement.
+- **Statut** : corrigé le 2026-09-29
+
+#### F6. Nouvelle icône : mise en cache par Windows et iOS
+- **Constat** : iOS enregistre l'`apple-touch-icon` **au moment de l'ajout** à l'écran d'accueil ; Edge et le service worker gardent les icônes en cache (et Firebase Hosting les sert avec `max-age=86400`).
+- **Solution** : **nouveaux noms de fichiers** (`icons/tw-verre-*`), anciens fichiers supprimés, `VERSION` du service worker changée. Sur iPhone : supprimer l'app de l'écran d'accueil puis la rajouter (aucune donnée perdue : tout est dans Firestore). Sur Windows : mise à jour au lancement suivant (ou désinstaller / réinstaller).
+- **Fabrication** : SVG écrit à la main (`tw-verre.svg` coins arrondis transparents pour Windows et le favicon ; `tw-verre-plein.svg` plein cadre pour iPhone et « maskable »), converti en PNG par Chromium (Playwright) ; contenu dans la zone sûre des icônes maskable (rayon 162 px < 205 px).
+- **Statut** : corrigé le 2026-09-29 (à vérifier sur les appareils)
+
+#### F7. Outils de test : faux positifs et données résiduelles
+- **Contraste** : un texte **derrière un dialogue ouvert** (ici « TOTAL » d'un camembert sous la feuille « Saisie rapide ») était mesuré alors qu'il est invisible → le script ne mesure plus que le contenu du dialogue quand il est ouvert. Résultat : 0 défaut sur 4 101 textes (6 onglets).
+- **Émulateur Firestore** : il garde les données d'un passage à l'autre (un test « suppression d'un type inutilisé » échouait car un passage précédent l'avait utilisé) → base vidée au début de chaque test (`DELETE /emulator/v1/projects/demo-lisa/databases/(default)/documents`).
+- **Statut** : corrigé le 2026-09-29
+
+---
+
 ## Lancement en mode application (Edge)
 
 Raccourci Windows utilisé (champ *Cible*) :

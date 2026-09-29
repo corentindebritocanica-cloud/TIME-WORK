@@ -83,8 +83,9 @@ connexion Google de Firebase ne fonctionne pas quand la page de connexion
    `redirect_uri_mismatch`).
 2. GitHub → Settings → Secrets and variables → Actions → secret
    `FIREBASE_SERVICE_ACCOUNT_LISA_CMPT` = contenu JSON du compte de service
-   Firebase. Sans lui, le workflow ignore la publication (avertissement) : l'adresse
-   iPhone ne suit plus les mises à jour. Publication manuelle possible :
+   Firebase (**en place depuis le 2026-09-29** : chaque push sur `main` republie
+   l'adresse iPhone en ~40 s, onglet *Actions* du dépôt). Sans lui, le workflow
+   ignore la publication (avertissement). Publication manuelle possible :
    `firebase deploy --only hosting --project lisa-cmpt` (fichiers exclus : voir
    `firebase.json`, dont `.git/**`).
 

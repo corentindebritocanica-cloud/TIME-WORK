@@ -301,7 +301,12 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 #### D7. Secret GitHub Actions non créable depuis l'environnement de Claude
 - **Constat** : le proxy de l'environnement refuse l'API GitHub Actions (« Access to this GitHub Actions path is not permitted through this proxy »).
 - **Solution** : le workflow `firebase-hosting.yml` est livré et ignore proprement la publication tant que le secret `FIREBASE_SERVICE_ACCOUNT_LISA_CMPT` n'existe pas ; il est à ajouter une fois dans GitHub (Settings → Secrets and variables → Actions). En attendant, publication manuelle `firebase deploy --only hosting --project lisa-cmpt`.
-- **Statut** : contourné le 2026-09-29 (secret à ajouter par l'utilisateur)
+- **Statut** : résolu le 2026-09-29 — secret ajouté par l'utilisateur ; exécution manuelle du workflow réussie (38 s) et publication automatique au push vérifiée côté Firebase (releases de 13:14 et 13:15).
+
+#### D8. Avertissement GitHub Actions : Node.js 20 obsolète
+- **Constat** : annotation « Node.js 20 is deprecated … actions/checkout@v4 » lors de la première exécution du workflow.
+- **Solution** : passage à `actions/checkout@v5` (Node.js 24).
+- **Statut** : corrigé le 2026-09-29
 
 ---
 

@@ -71,10 +71,10 @@ export function mount(root, ctx) {
         const label = weekOffset === 0 ? 'Semaine actuelle' : (weekOffset > 0 ? '+' : '') + weekOffset + ' sem.';
         render(panelHebdo, html`
             <div class="week-nav">
-                <button type="button" class="btn-icon" data-action="week" data-dir="-1" aria-label="Semaine précédente" aria-keyshortcuts="ArrowLeft">❮</button>
-                <button type="button" class="btn btn-ghost btn-sm" data-action="week" data-dir="0" aria-keyshortcuts="T" ${weekOffset === 0 ? 'disabled' : ''}>Aujourd'hui</button>
+                <button type="button" class="btn-icon" data-action="week" data-dir="-1" aria-label="Semaine précédente">❮</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-action="week" data-dir="0" ${weekOffset === 0 ? 'disabled' : ''}>Aujourd'hui</button>
                 <h2>Semaine ${isoWeek(mon)} <span class="muted">· ${label} · ${fmtShort(days[0])} → ${fmtShort(days[4])}</span></h2>
-                <button type="button" class="btn-icon" data-action="week" data-dir="1" aria-label="Semaine suivante" aria-keyshortcuts="ArrowRight">❯</button>
+                <button type="button" class="btn-icon" data-action="week" data-dir="1" aria-label="Semaine suivante">❯</button>
             </div>
             <div class="days">${days.map(dayCard)}</div>
             <div class="week-total">
@@ -245,16 +245,6 @@ export function mount(root, ctx) {
 
     return {
         destroy: () => ac.abort(),
-        refresh: () => renderHebdo(),
-        /** ← / → / T : navigation de semaine (onglet hebdo). */
-        onKey(e) {
-            if (activeTab !== 'hebdo' || e.ctrlKey || e.altKey || e.metaKey || e.target.matches?.('input, select, textarea, [role="tab"]')) return false;
-            if (e.key === 'ArrowLeft') weekOffset--;
-            else if (e.key === 'ArrowRight') weekOffset++;
-            else if (e.key.toLowerCase() === 't') weekOffset = 0;
-            else return false;
-            renderHebdo();
-            return true;
-        }
+        refresh: () => renderHebdo()
     };
 }

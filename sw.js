@@ -5,7 +5,7 @@
  *  - SDK Firebase (URL versionnée sur gstatic) : cache d'abord ;
  *  - Firestore / Auth : jamais interceptés (le SDK gère son propre cache IndexedDB).
  */
-const VERSION = 'tw-2026-09-29-lot3';
+const VERSION = 'tw-2026-09-29-lot3b';
 const SHELL = [
     './', './index.html', './css/app.css', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png',
     './js/app.js', './js/cloud.js', './js/firebase.js', './js/store.js', './js/migrate.js',
@@ -48,7 +48,7 @@ async function networkFirst(req) {
     const cache = await caches.open(VERSION);
     try {
         const res = await Promise.race([
-            fetch(req),
+            fetch(req, { cache: 'no-cache' }),     // revalide auprès du serveur (pas de version périmée)
             new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), NETWORK_TIMEOUT_MS))
         ]);
         if (res.ok) cache.put(req, res.clone());

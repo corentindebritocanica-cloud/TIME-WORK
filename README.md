@@ -16,8 +16,8 @@ dépendance ni étape de build : GitHub Pages sert le dépôt tel quel.
   (autocomplétion code / client / machine), type, date, durée → `Entrée`.
 - **Annuler** pendant 5 s après la suppression d'une saisie, d'une affaire ou
   l'effacement d'une semaine.
-- Thèmes **clair / sombre** automatiques (réglage Windows), police Segoe UI
-  Variable, contraste WCAG AA vérifié dans les deux thèmes.
+- Thème **sombre** unique (le thème clair a été retiré à la demande), police
+  Segoe UI Variable, contraste WCAG AA vérifié.
 
 ## Utilisation
 
@@ -42,17 +42,19 @@ hors ligne (service worker `sw.js`).
 
 L'ancien raccourci `msedge.exe --app=…` fonctionne toujours.
 
-### Raccourcis clavier
+### Raccourci clavier
 
-| Touches | Action |
-|---|---|
-| `Ctrl+K` | Saisie rapide |
-| `Alt+H` / `Alt+P` / `Alt+S` | Accueil / Pointage CEGID / Suivi projet |
-| `1` `2` `3` `4` | Suivi : tableau de bord / par affaire / chronologie / heures imputées |
-| `←` / `→` / `T` | Semaine précédente / suivante / aujourd'hui (pointage, heures imputées, temps productif) |
-| `Ctrl+F` | Suivi par affaire : rechercher |
-| `Ctrl+S` | Forcer la synchronisation |
-| `?` | Aide des raccourcis |
+Un seul raccourci global : **`Ctrl+K`** ouvre la saisie rapide. Tout le reste
+se fait à la souris / au Tab (liens de l'en-tête, onglets du Suivi, boutons ❮ ❯
+des semaines, champ de recherche).
+
+### Si l'app reste bloquée au démarrage
+
+GitHub Pages met les fichiers en cache 10 min : juste après une mise à jour, le
+navigateur peut mélanger ancienne et nouvelle version. Depuis le 2026-09-29 l'app
+se répare seule (rechargement forcé des fichiers, une fois). Si un message
+« L'application n'a pas pu démarrer » s'affiche malgré tout : **Ctrl+F5**.
+Si Firestore ne répond pas au bout de 15 s, un bouton **Recharger** apparaît.
 
 ### Modèle de données Firestore
 
@@ -216,22 +218,23 @@ service cloud.firestore {
 | 2026-09-29 | Nettoyage | Suppression des fichiers inutiles du repo : `firestore.rules` (règles désormais dans la section « Règles Firestore » du README), `firestore.indexes.json`, `auto-push.sh`, `.vscode/tasks.json`. Section « Git — commit & push » retirée. |
 | 2026-09-29 | Lot 3 A12 + A15 | Application réécrite en modules ES : `index.html` réduit à une coquille sémantique, `js/app.js` (routage `#/…`, vues chargées à la demande), `js/domain/` (fonctions pures testées), `js/ui/` (gabarit `html`` échappé par défaut, dialogues, toasts, camemberts, saisie rapide), `js/views/` (une vue par écran). Plus aucun `onclick` ni `style` inline, aucune variable globale, une seule table des types. Tests unitaires `tests/domain.test.html` (42). |
 | 2026-09-29 | Lot 3 A16 | Design system en couches (`@layer`) et tokens, thèmes clair/sombre, Segoe UI Variable, PWA installable (manifeste, service worker hors ligne, Window Controls Overlay), `<dialog>` à la place de ~20 `alert`/`confirm`, toasts avec **Annuler** (5 s), raccourcis clavier + aide `?`, **saisie rapide Ctrl+K**, sémantique et navigation clavier complètes. 6 problèmes rencontrés consignés (C1 à C6). |
+| 2026-09-29 | Lot 3 retours | **Blocage sur « Chargement… »** corrigé : chargeur protégé dans `index.html` (en cas d'échec, rechargement forcé de tous les fichiers de l'app une fois, puis message clair « Ctrl+F5 »), service worker qui revalide chaque fichier (`cache: 'no-cache'`, VERSION `lot3b`), bouton **Recharger** si Firestore ne répond pas en 15 s. **Thème clair supprimé** (sombre uniquement, comme avant). **Raccourcis supprimés** (`Alt+H/P/S`, `1`–`4`, `←`/`→`/`T`, `Ctrl+F`, `Ctrl+S`, aide `?`) — seul `Ctrl+K` est conservé. Problèmes C7 à C9 consignés. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 
 1. **Lot 1 — Correctifs critiques** : perte de données au login, XSS (échappement systématique), accordéons tronqués, solde CEGID de la semaine en cours, règles Firestore (liste blanche + validation), contrastes.
 2. **Lot 2 — Données** : SDK Firebase modulaire, modèle `users/{uid}/months/{YYYY-MM}` avec écritures par champ, `onSnapshot` temps réel, cache IndexedDB natif, suppression du monkey-patch `localStorage`, script de migration.
-3. **Lot 3 — Front** : découpage en modules ES, CSS `@layer` + tokens uniquement, thème clair, PWA (manifest, service worker, Window Controls Overlay), `<dialog>`, raccourcis clavier, saisie rapide.
+3. **Lot 3 — Front** : découpage en modules ES, CSS `@layer` + tokens uniquement, thème sombre, PWA (manifest, service worker, Window Controls Overlay), `<dialog>`, raccourcis clavier, saisie rapide.
 
 ## Structure
 
 ```
 index.html              Coquille : en-tête, <main>, écran de connexion, <dialog>, zone de toasts
-css/app.css             Styles en couches (@layer reset, tokens, base, components, views, utilities), thèmes clair/sombre
+css/app.css             Styles en couches (@layer reset, tokens, base, components, views, utilities), thème sombre
 manifest.webmanifest    Manifeste PWA (Window Controls Overlay, raccourcis)
 sw.js                   Service worker : démarrage hors ligne (⚠ incrémenter VERSION et tenir SHELL à jour à chaque livraison)
 icons/                  Icônes de l'application (SVG, PNG 192/512, maskable)
-js/app.js               Point d'entrée : routage #/…, vues chargées à la demande, raccourcis, rafraîchissement temps réel
+js/app.js               Point d'entrée : routage #/…, vues chargées à la demande, Ctrl+K, rafraîchissement temps réel
 js/firebase.js          Initialisation Firebase (SDK modulaire 12.19, cache IndexedDB, mode émulateur)
 js/store.js             Store : état en mémoire, écritures ciblées, écoute temps réel, restauration (Annuler)
 js/cloud.js             Connexion, migration, démarrage du store, état de synchro

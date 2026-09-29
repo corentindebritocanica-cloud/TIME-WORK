@@ -3,9 +3,9 @@
  *  - routage par l'URL : #/  ·  #/pointage  ·  #/suivi/<dashboard|affaires|chrono|imputees>
  *  - vues chargées à la demande (import() dynamique), montées/démontées proprement
  *  - rafraîchissement quand un autre poste/onglet modifie les données (sans casser une saisie)
- *  - raccourcis clavier globaux, saisie rapide, aide
+ *  - saisie rapide (Ctrl+K)
  */
-import { startCloud, logout, syncNow, store } from './cloud.js';
+import { startCloud, logout, store } from './cloud.js';
 import { EMULATOR } from './firebase.js';
 import { ask, confirmAction, inform } from './ui/dialog.js';
 import { toast } from './ui/toast.js';
@@ -81,44 +81,15 @@ function refreshCurrent() {
 }
 
 /* ───────────────────────── Raccourcis ───────────────────────── */
-const typing = el => el && (el.isContentEditable || el.matches?.('input, select, textarea'));
-
 async function openQuickEntry() {
     if (!ready || document.getElementById('dlg').open) return;
     const { quickEntry } = await import('./ui/quick.js');
     if (await quickEntry(ctx)) refreshCurrent();
 }
 
-function openHelp() {
-    const k = (keys, what) => ({ keys, what });
-    const rows = [
-        k(['Ctrl', 'K'], 'Saisie rapide (affaire, type, durée)'),
-        k(['Alt', 'H'], 'Accueil'), k(['Alt', 'P'], 'Pointage CEGID'), k(['Alt', 'S'], 'Suivi projet'),
-        k(['1'], 'Suivi : tableau de bord'), k(['2'], 'Suivi : par affaire'), k(['3'], 'Suivi : chronologie'), k(['4'], 'Suivi : heures imputées'),
-        k(['←'], 'Semaine précédente'), k(['→'], 'Semaine suivante'), k(['T'], 'Revenir à aujourd\'hui'),
-        k(['Ctrl', 'F'], 'Suivi par affaire : rechercher'),
-        k(['Ctrl', 'S'], 'Forcer la synchronisation'), k(['?'], 'Cette aide')
-    ];
-    import('./ui/dom.js').then(({ html }) => ask({
-        title: 'Raccourcis clavier', size: 'm',
-        body: html`<table class="table"><tbody>${rows.map(r => html`<tr><td class="nowrap">${r.keys.map((x, i) => html`${i ? ' + ' : ''}<span class="kbd">${x}</span>`)}</td><td>${r.what}</td></tr>`)}</tbody></table>`,
-        buttons: [{ id: 'ok', label: 'Fermer', kind: 'primary' }]
-    }));
-}
-
 function onKey(e) {
     if (!ready || document.getElementById('dlg').open) return;
-    const k = e.key;
-    if ((e.ctrlKey || e.metaKey) && k.toLowerCase() === 'k') { e.preventDefault(); openQuickEntry(); return; }
-    if ((e.ctrlKey || e.metaKey) && k.toLowerCase() === 's') { e.preventDefault(); syncNow(); return; }
-    if (e.altKey && !e.ctrlKey) {
-        const to = { h: '#/', p: '#/pointage', s: '#/suivi/dashboard' }[k.toLowerCase()];
-        if (to) { e.preventDefault(); location.hash = to; return; }
-    }
-    if (current?.api.onKey?.(e)) { e.preventDefault(); return; }
-    if (typing(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (k === '?') { e.preventDefault(); openHelp(); return; }
-    if (current?.name === 'suivi' && /^[1-4]$/.test(k)) { e.preventDefault(); location.hash = '#/suivi/' + SUIVI_TABS[+k - 1]; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openQuickEntry(); }
 }
 
 /** Précharge les modules des vues en tâche de fond (navigation possible même si la connexion tombe). */
@@ -133,7 +104,6 @@ function preload() {
 /* ───────────────────────── Démarrage ───────────────────────── */
 function init() {
     document.getElementById('quick-btn').addEventListener('click', openQuickEntry);
-    document.getElementById('help-btn').addEventListener('click', openHelp);
     document.getElementById('logout-btn').addEventListener('click', logout);
     addEventListener('hashchange', route);
     addEventListener('keydown', onKey);

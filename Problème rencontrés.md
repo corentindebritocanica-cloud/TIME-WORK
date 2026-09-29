@@ -235,6 +235,26 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 - **Solution** : nav de l'Accueil renommée « Ouvrir une application ».
 - **Statut** : corrigé le 2026-09-29
 
+#### C7. Application bloquée sur « Chargement… » après la mise en ligne du lot 3
+- **Symptôme** : écran de chargement figé, aucun message, aucun bouton de connexion.
+- **Cause** : GitHub Pages sert les fichiers avec `cache-control: max-age=600`. Le navigateur a pris le **nouveau** `js/app.js` mais gardé l'**ancien** `js/cloud.js` en cache (sans les exports `startCloud` / `logout`). L'édition de liens des modules ES a échoué (`does not provide an export named 'logout'`) : aucune ligne de code ne s'exécute, donc aucun message. Reproduit en local (test `t_stale.py`).
+- **Solution** :
+  1. `index.html` : démarrage par un chargeur protégé `import('./js/app.js')`. En cas d'échec, rechargement forcé (`fetch(…, {cache:'reload'})`) de tous les fichiers de l'app **une seule fois** (drapeau `sessionStorage`) puis `location.reload()` ; si ça échoue encore, message explicite « L'application n'a pas pu démarrer (…) — Ctrl+F5 ».
+  2. `sw.js` : les fichiers de l'app sont revalidés auprès du serveur (`cache: 'no-cache'`) au lieu d'accepter la copie HTTP du navigateur ; VERSION `tw-2026-09-29-lot3b`.
+  3. `js/cloud.js` : si Firestore ne répond pas en 15 s, message + bouton **Recharger** au lieu d'un écran figé.
+- **Vérifié** : cache périmé une fois → réparation automatique jusqu'à l'écran de connexion ; cache périmé en permanence → message clair.
+- **Statut** : corrigé le 2026-09-29
+
+#### C8. Thème clair non souhaité
+- **Constat** : retour utilisateur — le thème clair automatique (suivant le réglage Windows) ne convient pas, l'ancien thème sombre était préféré.
+- **Solution** : bloc `prefers-color-scheme: light` supprimé de `css/app.css`, `color-scheme: dark` et une seule `theme-color` (`#0b1628`) dans `index.html`. Contrastes revérifiés (0 erreur).
+- **Statut** : corrigé le 2026-09-29
+
+#### C9. Raccourcis clavier jugés inutiles
+- **Constat** : retour utilisateur — `Alt+H/P/S`, `1`–`4`, `←`/`→`/`T`, `Ctrl+F`, `Ctrl+S` et l'aide `?` ne servent pas (et `←`/`→`, chiffres pouvaient surprendre).
+- **Solution** : gestionnaires `onKey` retirés des vues, aide `?` et badges de touches supprimés, attributs `aria-keyshortcuts` retirés. Seul `Ctrl+K` (saisie rapide) est conservé. Tests e2e adaptés (46/46).
+- **Statut** : corrigé le 2026-09-29
+
 ---
 
 ## Lancement en mode application (Edge)

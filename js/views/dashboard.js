@@ -149,14 +149,6 @@ export function create(el, ctx) {
     draw();
     return {
         refresh: draw,
-        destroy: () => ac.abort(),
-        onKey(e) {
-            if (e.ctrlKey || e.altKey || e.metaKey || e.target.matches?.('input, select, textarea')) return false;
-            if (e.key === 'ArrowLeft') prodOffset--;
-            else if (e.key === 'ArrowRight') prodOffset = Math.min(0, prodOffset + 1);
-            else if (e.key.toLowerCase() === 't') prodOffset = 0;
-            else return false;
-            draw(); return true;
-        }
+        destroy: () => ac.abort()
     };
 }

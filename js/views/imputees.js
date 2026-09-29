@@ -1,6 +1,6 @@
 /**
  * Suivi — heures imputées de la semaine : total par jour, écart avec le pointage CEGID,
- * détail des saisies de chaque jour. Navigation ← / → / T.
+ * détail des saisies de chaque jour. Navigation par les boutons de semaine.
  */
 import { html, mount as render, on, $ } from '../ui/dom.js';
 import {
@@ -37,9 +37,9 @@ export function create(el, ctx) {
                 <div class="panel-head">
                     <h2 id="h-wk" class="panel-title">Semaine ${isoWeek(mon)} · ${fmtShort(days[0])} → ${fmtShort(days[4])}</h2>
                     <div class="toolbar">
-                        <button type="button" class="btn-icon" data-action="week" data-dir="-1" aria-label="Semaine précédente" aria-keyshortcuts="ArrowLeft">❮</button>
-                        <button type="button" class="btn btn-ghost btn-sm" data-action="week" data-dir="0" aria-keyshortcuts="T" ${weekOffset === 0 ? 'disabled' : ''}>Cette semaine</button>
-                        <button type="button" class="btn-icon" data-action="week" data-dir="1" aria-label="Semaine suivante" aria-keyshortcuts="ArrowRight">❯</button>
+                        <button type="button" class="btn-icon" data-action="week" data-dir="-1" aria-label="Semaine précédente">❮</button>
+                        <button type="button" class="btn btn-ghost btn-sm" data-action="week" data-dir="0" ${weekOffset === 0 ? 'disabled' : ''}>Cette semaine</button>
+                        <button type="button" class="btn-icon" data-action="week" data-dir="1" aria-label="Semaine suivante">❯</button>
                     </div>
                 </div>
                 <div class="grid-kpi">
@@ -98,14 +98,6 @@ export function create(el, ctx) {
     draw();
     return {
         refresh: draw,
-        destroy: () => ac.abort(),
-        onKey(e) {
-            if (e.ctrlKey || e.altKey || e.metaKey || e.target.matches?.('input, select, textarea')) return false;
-            if (e.key === 'ArrowLeft') weekOffset--;
-            else if (e.key === 'ArrowRight') weekOffset++;
-            else if (e.key.toLowerCase() === 't') weekOffset = 0;
-            else return false;
-            draw(); return true;
-        }
+        destroy: () => ac.abort()
     };
 }

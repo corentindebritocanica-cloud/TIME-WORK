@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════════════
    TIME-WORK — feuille de styles unique
    Couches : reset → tokens → base → components → views → utilities
-   Thèmes : sombre (défaut) / clair via prefers-color-scheme
+   Thème : sombre (unique)
    Cible : Edge / Chrome (Chromium) sous Windows, fenêtre --app ou PWA (WCO)
    ════════════════════════════════════════════════════════════════════ */
 @layer reset, tokens, base, components, views, utilities;
@@ -20,7 +20,7 @@
 /* ───────────────────────────── tokens ───────────────────────────── */
 @layer tokens {
     :root {
-        color-scheme: dark light;
+        color-scheme: dark;
         interpolate-size: allow-keywords;
 
         /* Typographie — police système Windows */
@@ -90,50 +90,6 @@
         --pal-5: #ffa85c; --pal-6: #f98fbe; --pal-7: #62cbf9; --pal-8: #ffd700; --pal-9: #9ccc65;
     }
 
-    /* ── Thème clair ── */
-    @media (prefers-color-scheme: light) {
-        :root {
-            --bg: #eef2f7;
-            --bg-image: linear-gradient(160deg, #f4f7fb 0%, #e9eef6 100%);
-            --surface: #ffffff;
-            --surface-2: #f5f7fb;
-            --surface-3: #e8edf5;
-            --surface-solid: #ffffff;
-            --header-bg: rgba(255,255,255,.92);
-            --border: #d5dce7;
-            --border-strong: #b6c1d1;
-            --text: #0f1b2d;
-            --text-2: #34445a;
-            --text-3: #56657a;
-            --accent: #1559b8;
-            --accent-strong: #1a66d0;
-            --accent-strong-hover: #1557b4;
-            --accent-soft: rgba(26,102,208,.09);
-            --accent-border: rgba(26,102,208,.4);
-            --ok: #066646;       --ok-soft: rgba(10,122,85,.09);
-            --warn: #765200;     --warn-soft: rgba(181,138,0,.1);
-            --danger: #c02626;   --danger-soft: rgba(192,38,38,.08);
-            --danger-strong: #b42323;
-            --focus: #1559b8;
-            --shadow-sm: 0 1px 3px rgba(15,27,45,.08);
-            --shadow-md: 0 6px 20px rgba(15,27,45,.1);
-            --shadow-lg: 0 18px 50px rgba(15,27,45,.18);
-            --glass: none;
-            --backdrop: rgba(15,27,45,.4);
-
-            --type-DE: #1961c6; --type-DE_NP: #466991; --type-DE_COMP: #1967a4; --type-VERIFICATION: #7e6000;
-            --type-ECA: #007355; --type-ECA_NP: #2f6f59; --type-ECA_REP: #137154; --type-CD: #c32525;
-            --type-CD_REP: #ad3b3b; --type-REVIEW_CD: #a84527; --type-REUNION: #9c520e; --type-FORMATION: #337433;
-            --type-CONCEPTION3D: #0b6f80; --type-CODE: #a93987; --type-MEP: #a64b0a; --type-REVIEW_ECA: #197445;
-            --type-AUTRE: #7343d3; --type-SIGN_OFF: #b81d64; --type-PREP_MISSION: #965218;
-            --type-MISSION_RELEVE: #6046d3; --type-CONCEP3D_REL: #096d99;
-            --load-0: #c32525; --load-1: #ab471b; --load-2: #965600; --load-3: #5e6b00; --load-4: #087081;
-            --load-5: #6046d3; --load-6: #b83069; --load-7: #1c64b5; --load-8: #287632; --load-9: #7d5e00;
-            --pal-0: #1961c6; --pal-1: #7d5e00; --pal-2: #007052; --pal-3: #bc2d2d; --pal-4: #7343d3;
-            --pal-5: #a64b0a; --pal-6: #b83069; --pal-7: #096d99; --pal-8: #7d6200; --pal-9: #45731c;
-        }
-    }
-
     /* Classes de couleur → variable --tc (utilisée par badges, pastilles, tranches…) */
     .t-DE { --tc: var(--type-DE); } .t-DE_NP { --tc: var(--type-DE_NP); } .t-DE_COMP { --tc: var(--type-DE_COMP); }
     .t-VERIFICATION { --tc: var(--type-VERIFICATION); } .t-ECA { --tc: var(--type-ECA); } .t-ECA_NP { --tc: var(--type-ECA_NP); }
@@ -170,8 +126,7 @@
     ::placeholder { color: var(--text-3); opacity: 1; }
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: var(--r-pill); }
-    input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .6; }
-    @media (prefers-color-scheme: dark) { input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); } }
+    input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .6; filter: invert(1); }
 }
 
 /* ───────────────────────────── components ───────────────────────────── */

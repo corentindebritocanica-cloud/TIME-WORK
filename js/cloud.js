@@ -19,19 +19,28 @@ let hooks = {};
 
 /* ───────────────────────── Écran de connexion ───────────────────────── */
 function showLogin(msg, err) {
+    clearTimeout(slowTimer); el('login-reload').hidden = true;
     el('login').hidden = false;
     el('login-msg').textContent = msg || 'Connecte-toi pour accéder à tes heures et tes affaires.';
     el('login-err').textContent = err || '';
     el('login-btn').hidden = false;
     renderStatus();
 }
+let slowTimer = null;
 function busy(msg) {
     el('login').hidden = false;
     el('login-msg').textContent = msg;
     el('login-err').textContent = '';
     el('login-btn').hidden = true;
+    // Firestore qui ne répond pas (réseau filtré, connexion instable) : le dire au lieu de rester figé
+    clearTimeout(slowTimer);
+    slowTimer = setTimeout(() => {
+        if (el('login').hidden) return;
+        el('login-err').textContent = 'Firestore ne répond toujours pas après 15 s (connexion lente ou réseau filtré ?).';
+        el('login-reload').hidden = false;
+    }, 15000);
 }
-const hideLogin = () => { el('login').hidden = true; };
+const hideLogin = () => { clearTimeout(slowTimer); el('login-reload').hidden = true; el('login').hidden = true; };
 
 /* ───────────────────────── État de synchronisation ───────────────────────── */
 function renderStatus() {
@@ -228,6 +237,7 @@ export function startCloud(h) {
     addEventListener('pagehide', () => store.flushDays());
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') store.flushDays(); });
     el('login-btn').addEventListener('click', login);
+    el('login-reload').addEventListener('click', () => location.reload());
     if (EMULATOR) {
         // Hooks de test (émulateur uniquement)
         window.__twTestSignIn = email => signInWithCredential(auth, GoogleAuthProvider.credential(

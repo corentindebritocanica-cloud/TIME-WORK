@@ -157,7 +157,7 @@ export function create(el, ctx) {
             </section>
             <div class="toolbar mt-4">
                 <label class="sr-only" for="aff-search">Filtrer les affaires</label>
-                <input id="aff-search" type="search" class="control search" data-action="search" placeholder="Filtrer les affaires (code, client, machine)…  Ctrl F" value="${query}" aria-keyshortcuts="Control+F">
+                <input id="aff-search" type="search" class="control search" data-action="search" placeholder="Filtrer les affaires (code, client, machine)…" value="${query}">
             </div>
             <div class="mt-4" data-role="list">
                 ${affaires.length ? affaires.map(item) : html`<p class="empty">Aucune affaire — crée-en une ci-dessus.</p>`}
@@ -322,10 +322,6 @@ export function create(el, ctx) {
     draw();
     return {
         refresh: draw,
-        destroy: () => ac.abort(),
-        onKey(e) {
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') { const s = $('#aff-search', el); s.focus(); s.select(); return true; }
-            return false;
-        }
+        destroy: () => ac.abort()
     };
 }

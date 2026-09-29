@@ -27,7 +27,7 @@ export function mount(root, ctx, route) {
                 <h1>Suivi projet</h1>
                 <nav class="tabs" aria-label="Sections du suivi">
                     ${Object.entries(SECTIONS).map(([k, s], i) => html`
-                        <a class="tab" href="#/suivi/${k}" data-tab="${k}" aria-keyshortcuts="${String(i + 1)}"><span aria-hidden="true">${s.icon}</span> ${s.label}<span class="kbd" aria-hidden="true">${String(i + 1)}</span></a>`)}
+                        <a class="tab" href="#/suivi/${k}" data-tab="${k}"><span aria-hidden="true">${s.icon}</span> ${s.label}</a>`)}
                 </nav>
             </div>
             <div data-role="section" class="stack"></div>
@@ -55,7 +55,6 @@ export function mount(root, ctx, route) {
     return {
         update: r => show(r.tab),
         refresh: () => section?.refresh?.(),
-        destroy: () => { token++; section?.destroy?.(); },
-        onKey: e => section?.onKey?.(e) || false
+        destroy: () => { token++; section?.destroy?.(); }
     };
 }

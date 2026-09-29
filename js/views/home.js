@@ -28,13 +28,11 @@ export function mount(root, ctx) {
                     <span class="app-card-icon" aria-hidden="true">⏱️</span>
                     <strong>Pointage CEGID</strong>
                     <span>Heures de la semaine, solde, calculateur</span>
-                    <span class="kbd">Alt P</span>
                 </a>
                 <a class="app-card" href="#/suivi/dashboard">
                     <span class="app-card-icon" aria-hidden="true">📋</span>
                     <strong>Suivi projet</strong>
                     <span>Affaires, saisies par type, budgets, chronologie</span>
-                    <span class="kbd">Alt S</span>
                 </a>
             </nav>
             <section class="admin" aria-labelledby="h-admin">

@@ -5,7 +5,7 @@
  */
 import { html, mount as render, on, $, $$, toElement } from '../ui/dom.js';
 import { pie, bindPieHover } from '../ui/pie.js';
-import { TYPES, typeLabel, typeClass, typesFor, sortTypes, isLoadType, loadType } from '../domain/types.js';
+import { TYPES, typeLabel, typeClass, typesFor, sortTypes, loadType, defaultType } from '../domain/types.js';
 import { parseDuration, todayISO, fmtNum, minsToHM, minsToDec } from '../domain/time.js';
 import { LOAD_RE, cleanLoadName } from '../domain/validate.js';
 import { budgetBar, minutesByType } from './shared.js';
@@ -14,8 +14,10 @@ import { focus } from './suivi.js';
 const openIds = new Set();     // affaires ouvertes (conservé entre deux rendus)
 let query = '';
 
+/** Options de type : types visibles (ordre de Paramètres) + Loads ; un type masqué déjà utilisé reste affiché. */
 const typeOptions = (aff, selected) => html`
     ${TYPES.map(t => html`<option value="${t.code}" ${t.code === selected ? 'selected' : ''}>${t.label}</option>`)}
+    ${selected && !TYPES.some(t => t.code === selected) && !aff.loads.some(l => loadType(l) === selected) ? html`<option value="${selected}" selected>${typeLabel(selected)}</option>` : ''}
     ${aff.loads.length ? html`<optgroup label="Loads CD">${aff.loads.map(l => html`<option value="${loadType(l)}" ${loadType(l) === selected ? 'selected' : ''}>CD Load ${l}</option>`)}</optgroup>` : ''}`;
 
 /**
@@ -67,7 +69,7 @@ export function create(el, ctx) {
                 <form class="entry-form" data-role="entry-form" novalidate>
                     <div class="field-row">
                         <label class="field"><span>Date</span><input type="date" class="control" name="date" value="${todayISO()}" required></label>
-                        <label class="field"><span>Type</span><select class="control" name="type">${typeOptions(a, 'DE')}</select></label>
+                        <label class="field"><span>Type</span><select class="control" name="type">${typeOptions(a, defaultType())}</select></label>
                         <label class="field"><span>Durée</span>
                             <input class="control num w-sm" name="time" placeholder="ex : 2:30" maxlength="6" autocomplete="off" data-action="hint" aria-describedby="hint-${a.id}">
                             <small class="field-hint" id="hint-${a.id}" aria-live="polite"></small></label>

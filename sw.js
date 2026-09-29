@@ -6,14 +6,14 @@
  *  - police Unbounded (Google Fonts, design Verre) : cache d'abord (titre et chiffres identiques hors ligne) ;
  *  - Firestore / Auth : jamais interceptés (le SDK gère son propre cache IndexedDB).
  */
-const VERSION = 'tw-2026-09-29-verre1';   // ⚠ à changer à CHAQUE livraison (voir GUIDE-PWA-IOS.md §5)
+const VERSION = 'tw-2026-09-29-params1';   // ⚠ à changer à CHAQUE livraison (voir GUIDE-PWA-IOS.md §5)
 const SHELL = [
-    './', './index.html', './css/app.css', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/apple-touch-icon.png',
+    './', './index.html', './css/app.css', './manifest.webmanifest', './icons/tw-verre.svg', './icons/tw-verre-192.png', './icons/tw-verre-apple-180.png',
     './js/app.js', './js/cloud.js', './js/firebase.js', './js/store.js', './js/migrate.js',
     './js/domain/time.js', './js/domain/balance.js', './js/domain/types.js', './js/domain/validate.js',
     './js/domain/csv.js', './js/domain/backup.js',
-    './js/ui/dom.js', './js/ui/dialog.js', './js/ui/toast.js', './js/ui/pie.js', './js/ui/quick.js', './js/ui/data.js',
-    './js/views/pointage.js', './js/views/suivi.js', './js/views/shared.js',
+    './js/ui/dom.js', './js/ui/dialog.js', './js/ui/toast.js', './js/ui/pie.js', './js/ui/quick.js', './js/ui/data.js', './js/ui/prefs.js',
+    './js/views/pointage.js', './js/views/suivi.js', './js/views/shared.js', './js/views/parametres.js',
     './js/views/dashboard.js', './js/views/affaires.js', './js/views/chrono.js', './js/views/imputees.js'
 ];
 const SDK_PREFIX = 'https://www.gstatic.com/firebasejs/';

@@ -1,10 +1,19 @@
 /**
- * Table UNIQUE des types de saisie : code, libellé, classe de couleur.
- * Les couleurs sont des tokens CSS `--type-<CODE>` (css/app.css), déclinés par thème.
+ * Types de saisie (« types de travail ») : table INTÉGRÉE + réglages de l'utilisateur.
+ *
+ * Les réglages vivent dans Firestore, `users/{uid}.settings.types` : liste ORDONNÉE
+ *   [{ code, hidden? }                              ← type intégré (ordre, masquage)
+ *    { code, label, color, custom: true, hidden? }] ← type ajouté dans Paramètres
+ * `applyTypeConfig()` est appelé au démarrage et à chaque changement (autre poste compris) :
+ * TYPES / TYPE_CODES sont des liaisons « vivantes » (export let), relues par tous les modules.
+ *
+ * Couleurs : types intégrés → tokens CSS `--type-<CODE>` (classe `t-<CODE>`) ;
+ * types personnalisés → palette `pal-0` … `pal-9` (css/app.css), contrastes déjà vérifiés.
+ * Fonctions pures, sauf l'état courant de la configuration.
  */
 
-/** Ordre d'affichage (listes, légendes, budgets). */
-export const TYPES = [
+/** Types intégrés, dans l'ordre par défaut. */
+export const BUILTIN_TYPES = [
     { code: 'DE',             label: 'DE' },
     { code: 'DE_NP',          label: 'DE - Tps non prod.' },
     { code: 'DE_COMP',        label: 'DE - complément' },
@@ -27,27 +36,119 @@ export const TYPES = [
     { code: 'REUNION',        label: 'Réunion' },
     { code: 'FORMATION',      label: 'Formation' }
 ];
-export const TYPE_CODES = TYPES.map(t => t.code);
-const LABELS = Object.fromEntries(TYPES.map(t => [t.code, t.label]));
+const BUILTIN = new Map(BUILTIN_TYPES.map(t => [t.code, t.label]));
 
 export const LOAD_PREFIX = 'CD_LOAD_';
 const LOAD_PALETTE_SIZE = 10;
+/** Nombre de couleurs proposées pour un type personnalisé (classes pal-0 … pal-9). */
+export const CUSTOM_COLORS = 10;
+export const TYPE_LABEL_MAX = 40;
+const CODE_RE = /^[A-Z0-9_]{1,40}$/;
 
 /** Type « Load CD » ? */
 export const isLoadType = code => typeof code === 'string' && code.startsWith(LOAD_PREFIX);
 /** Code de type d'un Load. */
 export const loadType = load => LOAD_PREFIX + load;
 
+/** Normalise un libellé (majuscules, sans accents, séparateurs → « _ ») — aussi utilisé par l'import CSV. */
+export const normLabel = s => String(s ?? '').trim().toUpperCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[\s\-.]+/g, '_');
+
+/* ─────────────────────────── Configuration ─────────────────────────── */
+
+/**
+ * Réglages bruts (Firestore) → liste ordonnée COMPLÈTE et sûre.
+ * Éléments invalides ignorés, doublons ignorés, types intégrés absents ajoutés à la fin.
+ * @param {any} raw settings.types
+ * @returns {{code:string, label:string, custom:boolean, hidden:boolean, color:number|null}[]}
+ */
+export function normalizeTypeConfig(raw) {
+    const out = [], seen = new Set();
+    (Array.isArray(raw) ? raw : []).forEach(t => {
+        const code = typeof t?.code === 'string' ? t.code : '';
+        if (!CODE_RE.test(code) || isLoadType(code) || seen.has(code)) return;
+        if (BUILTIN.has(code)) {
+            out.push({ code, label: BUILTIN.get(code), custom: false, hidden: !!t.hidden, color: null });
+        } else {
+            const label = typeof t.label === 'string' ? t.label.trim().slice(0, TYPE_LABEL_MAX) : '';
+            if (!label) return;
+            const c = Number(t.color);
+            out.push({ code, label, custom: true, hidden: !!t.hidden, color: Number.isInteger(c) && c >= 0 && c < CUSTOM_COLORS ? c : 0 });
+        }
+        seen.add(code);
+    });
+    BUILTIN_TYPES.forEach(t => { if (!seen.has(t.code)) out.push({ code: t.code, label: t.label, custom: false, hidden: false, color: null }); });
+    return out;
+}
+
+/**
+ * Liste ordonnée → format enregistré dans Firestore (le plus court possible).
+ * @param {{code:string, label:string, custom:boolean, hidden:boolean, color:number|null}[]} list
+ */
+export function serializeTypeConfig(list) {
+    return list.map(t => t.custom
+        ? { code: t.code, label: t.label, color: t.color ?? 0, custom: true, ...(t.hidden ? { hidden: true } : {}) }
+        : { code: t.code, ...(t.hidden ? { hidden: true } : {}) });
+}
+
+/**
+ * Code interne d'un nouveau type à partir de son libellé : « Essai terrain » → « ESSAI_TERRAIN ».
+ * Jamais vide, jamais un préfixe de Load, jamais un code déjà pris (suffixe _2, _3…).
+ * @param {string} label
+ * @param {Iterable<string>} taken codes existants
+ */
+export function makeTypeCode(label, taken) {
+    const used = new Set([...taken, ...BUILTIN.keys()]);
+    let base = normLabel(label).replace(/[^A-Z0-9_]/g, '').replace(/_+/g, '_').replace(/^_|_$/g, '').slice(0, 30) || 'TYPE';
+    if (isLoadType(base)) base = 'T_' + base.slice(0, 28);
+    let code = base, n = 2;
+    while (used.has(code)) code = base + '_' + n++;
+    return code;
+}
+
+let all = normalizeTypeConfig(null);
+let byCode = new Map(all.map(t => [t.code, t]));
+
+/** Types VISIBLES, dans l'ordre choisi (listes déroulantes, budgets). Liaison vivante. */
+export let TYPES = all.filter(t => !t.hidden).map(({ code, label }) => ({ code, label }));
+/** Tous les codes connus (masqués compris). Liaison vivante. */
+export let TYPE_CODES = all.map(t => t.code);
+
+/** Applique les réglages de l'utilisateur (settings.types). */
+export function applyTypeConfig(raw) {
+    all = normalizeTypeConfig(raw);
+    byCode = new Map(all.map(t => [t.code, t]));
+    TYPES = all.filter(t => !t.hidden).map(({ code, label }) => ({ code, label }));
+    TYPE_CODES = all.map(t => t.code);
+}
+
+/** Liste ordonnée complète (copie) : écran Paramètres. */
+export const allTypes = () => all.map(t => ({ ...t }));
+
+/** Type proposé par défaut pour une nouvelle saisie : DE s'il est visible, sinon le premier visible. */
+export const defaultType = () => (TYPES.some(t => t.code === 'DE') ? 'DE' : TYPES[0]?.code || 'AUTRE');
+
+/** Code d'un type d'après son nom normalisé (code ou libellé) — import CSV. */
+export function findTypeByName(normalized) {
+    if (byCode.has(normalized)) return normalized;
+    const hit = all.find(t => normLabel(t.label) === normalized);
+    return hit ? hit.code : null;
+}
+
+/* ─────────────────────────── Affichage ─────────────────────────── */
+
 /** Libellé lisible (texte brut, à échapper par l'appelant — fait par ui/dom.html). */
 export function typeLabel(code) {
-    if (LABELS[code]) return LABELS[code];
+    const t = byCode.get(code);
+    if (t) return t.label;
     if (isLoadType(code)) return 'CD ' + code.slice(LOAD_PREFIX.length);
     return code || '?';
 }
 
 /** Classe CSS portant la couleur du type (`--tc`). */
 export function typeClass(code) {
-    if (LABELS[code]) return 't-' + code;
+    const t = byCode.get(code);
+    if (t) return t.custom ? 'pal-' + t.color : 't-' + code;
     if (isLoadType(code)) {
         const c = code.charCodeAt(LOAD_PREFIX.length) || 65;
         return 'load-' + (((c - 65) % LOAD_PALETTE_SIZE) + LOAD_PALETTE_SIZE) % LOAD_PALETTE_SIZE;
@@ -55,14 +156,19 @@ export function typeClass(code) {
     return 't-AUTRE';
 }
 
-/** Types proposés pour une affaire (types fixes + ses Loads). */
-export const typesFor = aff => [...TYPE_CODES, ...((aff && aff.loads) || []).map(loadType)];
+/** Types proposés pour une affaire : types visibles + ses Loads + tout type ayant déjà un budget. */
+export function typesFor(aff) {
+    const list = [...TYPES.map(t => t.code), ...((aff && aff.loads) || []).map(loadType)];
+    Object.keys((aff && aff.budgets) || {}).forEach(k => { if (!list.includes(k)) list.push(k); });
+    return list;
+}
 
 /** Regroupe les Loads sous « CD » (vues globales). */
 export const globalType = code => isLoadType(code) ? 'CD' : code;
 
-/** Trie une liste de codes selon l'ordre de TYPES (codes inconnus à la fin). */
+/** Trie une liste de codes selon l'ordre choisi (codes inconnus à la fin). */
 export function sortTypes(codes) {
-    const rank = c => { const i = TYPE_CODES.indexOf(c); return i < 0 ? 1000 : i; };
+    const order = new Map(all.map((t, i) => [t.code, i]));
+    const rank = c => order.has(c) ? order.get(c) : 1000;
     return [...codes].sort((a, b) => rank(a) - rank(b) || String(a).localeCompare(String(b)));
 }

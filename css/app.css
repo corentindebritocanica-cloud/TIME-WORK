@@ -719,6 +719,64 @@
     .gap-ok { color: var(--ok); } .gap-warn { color: var(--warn); }
     .dec { color: var(--ok); font-weight: var(--fw-bold); }
 
+    /* ── Changement d'onglet : la section entre en glissant depuis le côté de l'onglet choisi ──
+       Navigation fréquente (charte §11.2) → court (280 ms), petit déplacement (28 px), entrée seulement,
+       `transform` + `opacity` uniquement. Désactivable (Paramètres) et coupé par prefers-reduced-motion. */
+    .entre-d { animation: section-d .28s var(--ease-out) backwards; }
+    .entre-g { animation: section-g .28s var(--ease-out) backwards; }
+    @keyframes section-d { from { opacity: 0; transform: translateX(28px); } }
+    @keyframes section-g { from { opacity: 0; transform: translateX(-28px); } }
+    .page-title.titre-entre { animation: titre-in .24s var(--ease-out) backwards; }
+    @keyframes titre-in { from { opacity: 0; transform: translateY(6px); } }
+    :root[data-animations="off"] :is(.entre-d, .entre-g, .titre-entre) { animation: none; }
+
+    /* ── Paramètres : types de travail (lignes à filets sur le panneau) ── */
+    .settings-help { color: var(--text-2); font-size: var(--fs-md); margin-bottom: var(--sp-4); max-inline-size: 72ch; }
+    .tag {
+        display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: var(--r-pill);
+        font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--text-2);
+        background: var(--v-soft); border: 1px solid var(--v-edge);
+    }
+    .type-list { list-style: none; border-top: 1px solid var(--v-hair); }
+    .type-list.is-sorting { -webkit-user-select: none; user-select: none; cursor: grabbing; }
+    .type-row {
+        position: relative; display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: var(--sp-3);
+        padding: 6px 4px; border-bottom: 1px solid var(--v-hair); border-radius: var(--r-sm);
+        &.is-hidden .type-name strong { color: var(--text-3); font-weight: var(--fw-semi); }
+        /* La ligne tenue suit le doigt 1:1 (pas de transition), au-dessus des autres, fond opaque */
+        &.is-dragging {
+            z-index: 3; transform: translateY(var(--dy, 0px)); cursor: grabbing;
+            background: #26262b; border-bottom-color: transparent;
+            box-shadow: var(--v-reflet), 0 0 0 1px var(--accent-border), 0 16px 34px var(--v-ombre);
+        }
+    }
+    .drag-handle {
+        display: inline-grid; place-items: center; inline-size: var(--control-h); block-size: var(--control-h); border-radius: 50%;
+        color: var(--text-3); cursor: grab; touch-action: none;            /* le doigt déplace la ligne au lieu de faire défiler */
+        transition: background var(--t-fast) ease, color var(--t-fast) ease;
+        & .ico { inline-size: 20px; block-size: 20px; stroke-width: 3; }
+        &:hover { background: var(--v-soft-on); color: var(--text); }
+    }
+    .is-dragging .drag-handle { background: var(--accent-tint); color: var(--v-text); cursor: grabbing; }
+    .type-name { min-width: 0; display: grid; }
+    .type-name strong { font-weight: var(--fw-bold); overflow-wrap: anywhere; }
+    .type-name small { font-size: var(--fs-xs); color: var(--text-3); & b { color: var(--warn); font-weight: var(--fw-bold); } }
+    .type-actions { display: flex; align-items: center; gap: 6px; & .ico { inline-size: 16px; block-size: 16px; } }
+    .type-actions .btn-icon[aria-pressed="false"] { color: var(--text-3); }
+    .type-add { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-4); margin-top: var(--sp-5); padding-top: var(--sp-5); border-top: 1px solid var(--v-hair); }
+    .type-add .field { min-inline-size: min(260px, 100%); }
+    .swatches { border: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; & legend { margin-bottom: 6px; } }
+    .swatch {
+        position: relative; display: inline-grid; cursor: pointer;
+        & input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+        & span { inline-size: 28px; block-size: 28px; border-radius: 50%; background: var(--tc); box-shadow: var(--v-reflet), 0 0 10px color-mix(in srgb, var(--tc) 45%, transparent); }
+        & input:checked + span { outline: 2px solid var(--v-text); outline-offset: 3px; }
+        & input:focus-visible + span { outline: var(--focus-w) solid var(--focus); outline-offset: 3px; }
+    }
+    .range-row { display: flex; align-items: center; gap: var(--sp-3); font-size: var(--fs-sm); max-inline-size: 520px; }
+    .range-row input[type="range"] { flex: 1; min-inline-size: 0; accent-color: var(--accent); block-size: var(--control-h); cursor: pointer; }
+    .range-val { font-family: var(--font-chiffres); font-weight: 400; font-size: var(--fs-base); letter-spacing: -.2px; color: var(--v-text); }
+
     /* ── Téléphone (iPhone, ≤ 600 px) ───────────────────────────────── */
     @media (max-width: 600px) {
         /* « + » posé AU-DESSUS de la pilule, à droite (Course) ; réserve du bas en conséquence */
@@ -726,6 +784,12 @@
         .tabbar-flottante { inset-inline: max(14px, var(--safe-l)) max(14px, var(--safe-r)); }
         .nav-add { position: absolute; right: 0; bottom: calc(100% + var(--add-gap)); inline-size: var(--add-size); block-size: var(--add-size); }
         #toasts { inset-block-end: calc(var(--tabbar-total) + var(--add-gap) + var(--add-size) + var(--sp-3)); }
+        /* 6 onglets : sur les iPhone étroits (375–400 pt) la pilule gagne un peu de place pour ne pas couper les libellés */
+        @media (max-width: 400px) {
+            .tabbar-flottante { inset-inline: max(10px, var(--safe-l)) max(10px, var(--safe-r)); }
+            .tabbar { gap: 2px; padding: 4px; }
+            .tabbar-btn { font-size: 10.5px; letter-spacing: -.15px; }
+        }
 
         .app-header { padding-inline: max(var(--sp-5), var(--safe-l)) max(var(--sp-4), var(--safe-r)); }
         .app-main { border-inline: none; }
@@ -785,6 +849,9 @@
     .stack > * + * { margin-top: var(--sp-4); }
     .stack > details.acc + details.acc { margin-top: var(--sp-2); }
     .w-sm { inline-size: 9rem; } .w-md { inline-size: 12rem; } .w-lg { inline-size: 16rem; }
+    /* Selon le pointeur : souris / tactile (ex. boutons ↑ ↓ réservés à la souris et au clavier) */
+    .only-coarse { display: none; }
+    @media (pointer: coarse) { .only-fine { display: none; } .only-coarse { display: revert; } .swatch span { inline-size: 36px; block-size: 36px; } }
     /* Tactile (iPhone) : champs en 16 px minimum, sinon Safari zoome à chaque saisie.
        Dans la couche utilities pour passer devant la taille des composants (problème D3). */
     @media (pointer: coarse) { :is(input, select, textarea, .control) { font-size: max(16px, 1em); } }

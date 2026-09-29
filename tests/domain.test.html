@@ -20,7 +20,9 @@ import { parseDuration, minsToHM, minsToDec, isoWeek, mondayOf, addDays, workWee
 import { computeBalance } from '../js/domain/balance.js';
 import { analyzeCSV, parseDate, mapType } from '../js/domain/csv.js';
 import { normalizeData, cleanLoadName, LOAD_RE } from '../js/domain/validate.js';
-import { typeLabel, typeClass, globalType } from '../js/domain/types.js';
+import { typeLabel, typeClass, globalType, normalizeTypeConfig, serializeTypeConfig, makeTypeCode, applyTypeConfig,
+         sortTypes, typesFor, defaultType, TYPES, TYPE_CODES } from '../js/domain/types.js';
+import { flouCSS } from '../js/ui/prefs.js';
 import { esc, html } from '../js/ui/dom.js';
 
 const results = [];
@@ -88,6 +90,27 @@ eq('cleanLoadName', [cleanLoadName(' a b '), LOAD_RE.test('AB_1'), LOAD_RE.test(
 eq('typeLabel', [typeLabel('DE_NP'), typeLabel('CD_LOAD_B'), typeLabel('XYZ')], ['DE - Tps non prod.', 'CD B', 'XYZ']);
 eq('typeClass', [typeClass('DE'), typeClass('CD_LOAD_A'), typeClass('CD_LOAD_K'), typeClass('???')], ['t-DE', 'load-0', 'load-0', 't-AUTRE']);
 eq('globalType', [globalType('CD_LOAD_A'), globalType('ECA')], ['CD', 'ECA']);
+
+// Types de travail personnalisés (Paramètres → Firestore settings.types)
+const cfg = normalizeTypeConfig([{ code: 'ECA' }, { code: 'DE', hidden: true }, { code: 'ESSAI', label: ' Essai terrain ', color: 3, custom: true },
+    { code: 'ECA' }, { code: 'bad code' }, { code: 'CD_LOAD_X', label: 'x', custom: true }, { code: 'VIDE', label: '  ', custom: true }, { code: 'C9', label: 'Coul', color: 42, custom: true }]);
+eq('types : ordre gardé, doublons / invalides ignorés, intégrés manquants ajoutés', [cfg.slice(0, 4).map(t => t.code), cfg.length], [['ECA', 'DE', 'ESSAI', 'C9'], 4 + 19]);
+eq('types : libellé nettoyé, couleur hors palette → 0, masquage', [cfg[2].label, cfg[2].color, cfg[3].color, cfg[1].hidden], ['Essai terrain', 3, 0, true]);
+eq('types : format enregistré minimal', serializeTypeConfig(cfg.slice(0, 3)), [{ code: 'ECA' }, { code: 'DE', hidden: true }, { code: 'ESSAI', label: 'Essai terrain', color: 3, custom: true }]);
+eq('makeTypeCode : accents, espaces, collisions', [makeTypeCode('Essai terrain', []), makeTypeCode('Réunion client', []), makeTypeCode('Essai terrain', ['ESSAI_TERRAIN']), makeTypeCode('Code', []), makeTypeCode('!!!', []), makeTypeCode('cd load x', [])],
+   ['ESSAI_TERRAIN', 'REUNION_CLIENT', 'ESSAI_TERRAIN_2', 'CODE_2', 'TYPE', 'T_CD_LOAD_X']);
+applyTypeConfig(serializeTypeConfig(cfg));
+eq('types appliqués : visibles, ordre, défaut, couleur', [TYPES[0].code, TYPES.some(t => t.code === 'DE'), TYPE_CODES.includes('DE'), defaultType(), typeLabel('ESSAI'), typeClass('ESSAI')],
+   ['ECA', false, true, 'ECA', 'Essai terrain', 'pal-3']);
+eq('types appliqués : tri selon l\'ordre choisi', sortTypes(['CD', 'ESSAI', 'ECA', 'ZZZ']), ['ECA', 'ESSAI', 'CD', 'ZZZ']);
+eq('types appliqués : budget d\'un type masqué conservé', typesFor({ loads: ['A'], budgets: { DE: 4 } }).slice(-2), ['CD_LOAD_A', 'DE']);
+eq('CSV : type personnalisé reconnu par libellé et par code', [mapType('essai terrain'), mapType('ESSAI'), mapType('Essai-terrain')], ['ESSAI', 'ESSAI', 'ESSAI']);
+applyTypeConfig(null);
+eq('types : retour à la table intégrée', [TYPES.length, TYPES[0].code, typeLabel('ESSAI'), mapType('essai terrain')], [21, 'DE', 'ESSAI', null]);
+
+// Apparence : intensité du flou (même formule que le <head> d'index.html)
+eq('flouCSS', [flouCSS(0), flouCSS(50), flouCSS(100), flouCSS(-5), flouCSS(25)],
+   ['none', 'blur(30.0px) saturate(180%)', 'blur(60.0px) saturate(260%)', 'none', 'blur(15.0px) saturate(140%)']);
 
 // Échappement
 eq('esc', esc('<img onerror=x>"\''), '&lt;img onerror=x&gt;&quot;&#39;');

@@ -1,6 +1,6 @@
 /**
  * Point d'entrée de l'application.
- *  - routage par l'URL : #/suivi/<dashboard|affaires|chrono|imputees|pointage>
+ *  - routage par l'URL : #/suivi/<dashboard|affaires|chrono|imputees|pointage|parametres>
  *    (toute autre adresse, dont les anciennes #/ et #/pointage, est redirigée)
  *  - sections chargées à la demande (import() dynamique), montées/démontées proprement
  *  - rafraîchissement quand un autre poste/onglet modifie les données (sans casser une saisie)
@@ -11,13 +11,15 @@ import { EMULATOR } from './firebase.js';
 import { ask, confirmAction, inform } from './ui/dialog.js';
 import { toast } from './ui/toast.js';
 import { isEditing, on } from './ui/dom.js';
+import { applyTypeConfig } from './domain/types.js';
+import { animationsOn } from './ui/prefs.js';
 
 const loadSuivi = () => import('./views/suivi.js');
-const TABS = ['dashboard', 'affaires', 'chrono', 'imputees', 'pointage'];
+const TABS = ['dashboard', 'affaires', 'chrono', 'imputees', 'pointage', 'parametres'];
 const DEFAULT_TAB = 'dashboard';
 const TITLES = {
     dashboard: 'Tableau de bord', affaires: 'Par affaire', chrono: 'Chronologie',
-    imputees: 'Heures imputées', pointage: 'Pointage CEGID'
+    imputees: 'Heures imputées', pointage: 'Pointage CEGID', parametres: 'Paramètres'
 };
 
 let ready = false;
@@ -45,7 +47,7 @@ async function route() {
     if (!ready) return;
     const r = parseRoute();
     document.title = TITLES[r.tab] + ' — TIME-WORK';
-    document.getElementById('page-title').textContent = TITLES[r.tab];     // titre de l'en-tête (Unbounded 22 px)
+    setTitle(TITLES[r.tab]);
     if (current) { current.api.update?.(r); return; }
     let mod;
     try { mod = await loadSuivi(); }
@@ -55,6 +57,18 @@ async function route() {
     current = { name: 'suivi', api: mod.mount(root, ctx, r) };
     document.getElementById('main').focus({ preventScroll: true });
 }
+
+/** Titre de l'en-tête (Unbounded 22 px) ; fondu court quand il change (animations activées). */
+function setTitle(text) {
+    const t = document.getElementById('page-title');
+    if (t.textContent === text) return;
+    t.textContent = text;
+    if (!ready || !animationsOn()) return;
+    t.classList.remove('titre-entre'); void t.offsetWidth; t.classList.add('titre-entre');
+}
+
+/** Types de travail de l'utilisateur (Firestore settings.types) → listes, couleurs, ordre. */
+const applyTypes = () => applyTypeConfig(store.getSettings().types);
 
 /** Réaffiche la vue courante ; si l'utilisateur est en train de saisir, attend la fin de la saisie. */
 function refreshCurrent() {
@@ -116,6 +130,7 @@ function preload() {
     idle(() => {
         [loadSuivi, () => import('./views/dashboard.js'), () => import('./views/affaires.js'),
          () => import('./views/chrono.js'), () => import('./views/imputees.js'), () => import('./views/pointage.js'),
+         () => import('./views/parametres.js'),
          () => import('./ui/quick.js'), () => import('./ui/data.js')]
             .forEach(load => load().catch(() => {}));
     }, { timeout: 3000 });
@@ -129,8 +144,8 @@ function init() {
     addEventListener('keydown', onKey);
 
     startCloud({
-        onReady: () => { ready = true; current = null; route(); preload(); },
-        onData: () => refreshCurrent(),
+        onReady: () => { applyTypes(); ready = true; current = null; route(); preload(); },
+        onData: () => { applyTypes(); refreshCurrent(); },
         onSignedOut: () => { ready = false; current?.api.destroy?.(); current = null; }
     });
 

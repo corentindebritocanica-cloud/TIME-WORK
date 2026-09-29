@@ -102,6 +102,8 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 #### A7. Saisie « 2,30 » interprétée comme 2h18
 - **Cause** : `parseTime()` traite la virgule comme un décimal. Pas de contrôle des minutes > 59 ni des heures > 24 dans la saisie CEGID.
 - **Solution** : n'accepter que `2:30`, `2h30`, `2.5` ; refuser l'ambiguïté avec un message ; bornes sur h/m.
+- **Statut** : corrigé le 2026-09-29
+- **Correction appliquée** : Nouvelle fonction `parseDuration()` (renvoie `{minutes}` ou `{error}`) : accepte `2:30`, `2h30`, `2h`, `2`, `2.5`, `2,5` ; refuse `2,30`, `0`, minutes > 59, durées > 24 h, avec un message précis. `parseTime()` devient un raccourci. Aperçu en direct sous le champ Durée (`svTimeHint`, `aria-live`) ; message d'erreur exact à l'ajout. CEGID : `cegidFieldValue()` borne h ∈ [0,23] et m ∈ [0,59] ; valeur hors bornes affichée en erreur, non enregistrée et ignorée dans les totaux. Constante inutilisée `CEGID_TARGET_WEEK_MIN` supprimée. Vérifié : 13 cas unitaires OK.
 
 #### A8. Réimport CSV = doublons
 - **Solution** : clé de dédoublonnage (date + affaire + type + minutes) et avertissement dans l'aperçu.

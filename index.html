@@ -406,6 +406,9 @@
         .entry-select:focus { outline: none; border-color: var(--blue-b); }
         .entry-time-edit { background: rgba(255,255,255,0.08); border: 1px solid var(--c-border-2); color: #fff; border-radius: var(--r-xs); padding: 5px 8px; font-size: 13px; font-family: inherit; font-weight: 700; width: 88px; text-align: center; }
         .entry-time-edit:focus { outline: none; border-color: var(--blue-b); }
+        .is-invalid, .is-invalid:focus { border-color: var(--red) !important; box-shadow: 0 0 0 3px rgba(255,82,82,0.25) !important; }
+        .time-hint { position: absolute; top: 100%; left: 0; margin-top: 3px; font-size: 11px; white-space: nowrap; color: var(--green); }
+        .time-hint.err { color: #ff8a8a; white-space: normal; width: 220px; z-index: 2; }
 
         /* ── TUILES TOTAUX ── */
         .totals-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 10px; }
@@ -1716,15 +1719,54 @@
     }
 
 
+    const DURATION_HELP = 'Exemples : 2:30 · 2h30 · 2h · 2 · 2.5';
+
+    /**
+     * Analyse une durée saisie (A7). Formats acceptés : « 2:30 », « 2h30 », « 2h », « 2 »,
+     * décimal « 2.5 » / « 2,5 ». « 2,30 » est refusé (ambigu : 2h30 ou 2,30 h ?).
+     * @param {string} raw
+     * @returns {{minutes: number} | {error: string}}
+     */
+    function parseDuration(raw) {
+        const s = String(raw || '').trim().toLowerCase();
+        if (!s) return { error: 'Durée vide. ' + DURATION_HELP };
+        let minutes = null, m;
+        if ((m = s.match(/^(\d{1,2})\s*[h:]\s*(\d{1,2})?$/))) {
+            const mm = m[2] === undefined ? 0 : parseInt(m[2], 10);
+            if (mm > 59) return { error: 'Minutes supérieures à 59. ' + DURATION_HELP };
+            minutes = parseInt(m[1], 10) * 60 + mm;
+        } else if (/^\d{1,2}$/.test(s)) {
+            minutes = parseInt(s, 10) * 60;
+        } else if (/^\d{1,2},\d{2}$/.test(s)) {
+            return { error: 'Ambigu : écris 2:30 (heures:minutes) ou 2.5 (décimal).' };
+        } else if (/^\d{1,2}[.,]\d{1,2}$/.test(s)) {
+            minutes = Math.round(parseFloat(s.replace(',', '.')) * 60);
+        } else {
+            return { error: 'Format non reconnu. ' + DURATION_HELP };
+        }
+        if (minutes <= 0) return { error: 'La durée doit être supérieure à 0.' };
+        if (minutes > 24 * 60) return { error: 'Durée supérieure à 24 h.' };
+        return { minutes };
+    }
+
+    /** Raccourci : minutes ou null si la saisie est invalide. */
     function parseTime(raw) {
-        raw = raw.trim().replace(',', '.');
-        let m = raw.match(/^(\d+)[h:](\d{0,2})$/i);
-        if (m) return parseInt(m[1]) * 60 + (parseInt(m[2]) || 0);
-        m = raw.match(/^(\d+)\.(\d+)$/);
-        if (m) return Math.round(parseFloat(raw) * 60);
-        m = raw.match(/^(\d+)$/);
-        if (m) return parseInt(raw) * 60;
-        return null;
+        const r = parseDuration(raw);
+        return 'minutes' in r ? r.minutes : null;
+    }
+
+    /** Aperçu en direct de l'interprétation d'une durée sous le champ. */
+    function svTimeHint(input, hintId) {
+        const hint = document.getElementById(hintId);
+        if (!hint) return;
+        const v = input.value.trim();
+        if (!v) { hint.textContent = ''; hint.classList.remove('err'); input.classList.remove('is-invalid'); input.removeAttribute('aria-invalid'); return; }
+        const r = parseDuration(v);
+        const bad = 'error' in r;
+        hint.textContent = bad ? r.error : '= ' + minsToHM(r.minutes) + ' (' + minsToDec(r.minutes) + ' déc.)';
+        hint.classList.toggle('err', bad);
+        input.classList.toggle('is-invalid', bad);
+        if (bad) input.setAttribute('aria-invalid', 'true'); else input.removeAttribute('aria-invalid');
     }
 
     function minsToHM(min)  { return Math.floor(min/60) + 'h' + String(min%60).padStart(2,'0'); }
@@ -2236,7 +2278,7 @@
             '<div class="form-row">' +
             '<div class="form-group"><label>Date</label><input type="date" id="ed-date-' + a.id + '" value="' + todayISO() + '" style="width:150px;"></div>' +
             '<div class="form-group"><label>Type</label><select id="ed-type-' + a.id + '" style="min-width:130px;">' + svGetTypeOptsHTML(a) + '</select></div>' +
-            '<div class="form-group"><label>Durée</label><input type="text" id="ed-time-' + a.id + '" placeholder="ex : 2:30" maxlength="5" style="width:80px;text-align:center;" onkeydown="if(event.key===\'Enter\')svAddEntry(' + a.id + ')"></div>' +
+            '<div class="form-group" style="position:relative;"><label for="ed-time-' + a.id + '">Durée</label><input type="text" id="ed-time-' + a.id + '" placeholder="ex : 2:30" maxlength="6" style="width:80px;text-align:center;" aria-describedby="ed-hint-' + a.id + '" oninput="svTimeHint(this,\'ed-hint-' + a.id + '\')" onkeydown="if(event.key===\'Enter\')svAddEntry(' + a.id + ')"><small class="time-hint" id="ed-hint-' + a.id + '" aria-live="polite"></small></div>' +
             '<button class="btn-primary" onclick="svAddEntry(' + a.id + ')" style="align-self:flex-end;">+ Ajouter</button>' +
             '</div></div>' +
             totBlock +
@@ -2337,8 +2379,9 @@
         const timeRaw = timeEl.value.trim();
         if (!date) { alert('Sélectionnez une date.'); return; }
         if (!timeRaw) { alert('Saisissez une durée (ex : 2:30).'); return; }
-        const minutes = parseTime(timeRaw);
-        if (!minutes || minutes <= 0) { alert('Format invalide. Exemples : 2:30  1h45  2.5'); return; }
+        const parsed = parseDuration(timeRaw);
+        if ('error' in parsed) { svTimeHint(timeEl, 'ed-hint-' + affaireId); alert(parsed.error); timeEl.focus(); return; }
+        const minutes = parsed.minutes;
         entries.push({ id: Date.now(), affaireId, date, type, minutes });
         save();
         timeEl.value = '';
@@ -2671,7 +2714,6 @@
     // HEURE CEGID
     // ════════════════════════════════════════════════════════
     let cegidCurrentOffset = 0;
-    const CEGID_TARGET_WEEK_MIN = 2130;
     const CEGID_TARGET_DAY_MIN  = 426;   // 7h06 × 5 = 35h30
 
     /**
@@ -2777,8 +2819,24 @@
         calculateCegidHebdo();
     }
 
+    /** Valeur d'un champ heure/minute CEGID, ou null si hors bornes (h ∈ [0,23], m ∈ [0,59]). */
+    function cegidFieldValue(input, type) {
+        if (input.value === '') return 0;
+        const n = parseInt(input.value, 10);
+        return n <= (type === 'h' ? 23 : 59) ? n : null;
+    }
+
     function handleCegidHebdoInput(el, idx, type) {
         el.value = el.value.replace(/[^0-9]/g, '');
+        const bad = cegidFieldValue(el, type) === null;
+        el.classList.toggle('is-invalid', bad);
+        if (bad) {
+            el.setAttribute('aria-invalid', 'true');
+            el.title = type === 'h' ? 'Heures : 0 à 23' : 'Minutes : 0 à 59';
+            calculateCegidHebdo();
+            return;                     // valeur hors bornes : non enregistrée
+        }
+        el.removeAttribute('aria-invalid'); el.title = '';
         if (type === 'h' && el.value.length >= 2) document.getElementById('m_' + idx).focus();
         const dates = getCegidWeekDates(cegidCurrentOffset);
         localStorage.setItem('h_' + dates[idx].key, document.getElementById('h_' + idx).value);
@@ -2790,8 +2848,8 @@
     function calculateCegidHebdo() {
         let decTotal = 0, minTotal = 0;
         for (let i = 0; i < 5; i++) {
-            let h = parseInt(document.getElementById('h_' + i).value) || 0;
-            let m = parseInt(document.getElementById('m_' + i).value) || 0;
+            let h = cegidFieldValue(document.getElementById('h_' + i), 'h') ?? 0;
+            let m = cegidFieldValue(document.getElementById('m_' + i), 'm') ?? 0;
             let dec = h + (m / 60);
             minTotal += (h * 60) + m;
             document.getElementById('res_j' + i).innerText = dec.toFixed(2);

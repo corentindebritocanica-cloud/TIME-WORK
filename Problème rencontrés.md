@@ -60,6 +60,8 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 - **Symptôme** : cloud vide + données locales → la question « Les envoyer vers Firestore ? » ; si on répond *Annuler*, toutes les clés locales sont effacées.
 - **Cause** : `onUser()` enchaîne sur l'étape 4 (« le cloud fait foi ») qui supprime les clés locales puis recopie un cloud vide.
 - **Solution** : sur refus, ne rien effacer (sortir en mode lecture seule ou reposer la question), ou exporter automatiquement un JSON avant écrasement.
+- **Statut** : corrigé le 2026-09-29
+- **Correction appliquée** : `confirm()` remplacé par `askChoice()` (`<dialog>` natif, Échap = annuler). « Annuler » → `signOut()` sans toucher au `localStorage` ; « Repartir de zéro » → téléchargement automatique de `backup_local_AAAA-MM-JJ.json` (format accepté par « Importer ») avant effacement. Vérifié en headless : Annuler, Échap, Repartir de zéro, Envoyer.
 
 #### A2. Écrasement des saisies entre deux postes / deux onglets
 - **Symptôme** : deux fenêtres ouvertes (bureau + portable, ou 2 onglets) → les saisies de l'une disparaissent.

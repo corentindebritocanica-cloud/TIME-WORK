@@ -906,6 +906,23 @@
         font: inherit; padding: 0 0 0 6px; border-left: 1px solid rgba(255,255,255,0.15);
     }
     #tw-status button:hover { color: #fff; }
+    #tw-choice {
+        margin: auto; max-width: 460px; width: calc(100% - 32px);
+        background: #0f1e36; color: rgba(255,255,255,0.97);
+        border: 1px solid rgba(255,255,255,0.18); border-radius: 18px; padding: 28px 30px;
+        font-family: 'Inter', 'Segoe UI', sans-serif; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    #tw-choice::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+    #tw-choice h2 { font-size: 17px; font-weight: 800; margin: 0 0 8px; }
+    #tw-choice p  { font-size: 13px; line-height: 1.5; color: rgba(255,255,255,0.75); margin: 0 0 20px; }
+    #tw-choice-actions { display: flex; flex-direction: column; gap: 8px; }
+    #tw-choice-actions button {
+        font-family: inherit; font-size: 13px; font-weight: 600; padding: 11px 16px; border-radius: 10px; cursor: pointer;
+        background: rgba(255,255,255,0.06); color: #fff; border: 1px solid rgba(255,255,255,0.18); text-align: left;
+    }
+    #tw-choice-actions button.primary { background: #1a66d0; border-color: #1a66d0; }
+    #tw-choice-actions button:hover { filter: brightness(1.15); }
+    #tw-choice-actions button:focus-visible { outline: 2px solid #6bbdff; outline-offset: 2px; }
 </style>
 <script>
     // ── CONFIG FIREBASE ─────────────────────────────────────────────
@@ -1022,6 +1039,45 @@
         }
 
         // ── Chargement des données du cloud dans le cache local ──
+        let nextLoginMsg = '';
+
+        /**
+         * Affiche un choix modal (<dialog> natif) et renvoie l'id du bouton choisi.
+         * Échap = dernier bouton (annulation).
+         * @param {string} title
+         * @param {string} text
+         * @param {{id:string,label:string,primary?:boolean}[]} buttons
+         * @returns {Promise<string>}
+         */
+        function askChoice(title, text, buttons) {
+            const dlg = el('tw-choice');
+            el('tw-choice-title').textContent = title;
+            el('tw-choice-text').textContent = text;
+            const box = el('tw-choice-actions');
+            box.replaceChildren(...buttons.map(b => {
+                const btn = document.createElement('button');
+                btn.type = 'submit'; btn.value = b.id; btn.textContent = b.label;
+                if (b.primary) btn.className = 'primary';
+                return btn;
+            }));
+            return new Promise(resolve => {
+                dlg.addEventListener('close', () => resolve(dlg.returnValue || buttons[buttons.length - 1].id), { once: true });
+                dlg.returnValue = '';
+                dlg.showModal();
+                box.querySelector('.primary')?.focus();
+            });
+        }
+
+        /** Télécharge un dump brut des clés synchronisées (format accepté par « Importer »). */
+        function downloadLocalBackup() {
+            const dump = {};
+            localSyncedKeys().forEach(k => { dump[k] = ls.getItem(k); });
+            const url = URL.createObjectURL(new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' }));
+            const a = document.createElement('a');
+            a.href = url; a.download = 'backup_local_' + new Date().toISOString().slice(0, 10) + '.json';
+            document.body.append(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
         function localSyncedKeys() {
             const out = [];
             for (let i = 0; i < ls.length; i++) { const k = ls.key(i); if (k && SYNC_RE.test(k)) out.push(k); }
@@ -1029,7 +1085,11 @@
         }
 
         async function onUser(user) {
-            if (!user) { ready = false; docRef = null; showLogin(); return; }
+            if (!user) {
+                ready = false; docRef = null;
+                showLogin(nextLoginMsg); nextLoginMsg = '';
+                return;
+            }
             el('tw-login-msg').textContent = 'Chargement des données…';
             el('tw-login-btn').style.display = 'none';
             docRef = firebase.firestore().collection('users').doc(user.uid);
@@ -1064,15 +1124,32 @@
             const cloud = (snap.exists && snap.data().kv) || {};
             const localKeys = localSyncedKeys();
 
-            // 3. Premier lancement sur un cloud vide avec des données locales → proposer l'envoi
-            if (!snap.exists && localKeys.length &&
-                confirm('Ton espace cloud est vide mais ce navigateur contient des données locales (' +
-                        localKeys.length + ' clés).\nLes envoyer vers Firestore ?')) {
-                _set.call(ls, '__tw_uid', user.uid);
-                ready = true; hideLogin();
-                localKeys.forEach(k => pending.add(k));
-                setStatus('pending'); await flush();
-                return;
+            // 3. Cloud vide + données locales → choix explicite (A1 : ne jamais effacer sans accord)
+            if (!snap.exists && localKeys.length) {
+                const choice = await askChoice(
+                    'Espace cloud vide',
+                    'Ce navigateur contient des données locales (' + localKeys.length + ' clés). Que veux-tu en faire ?',
+                    [
+                        { id: 'upload', label: 'Envoyer vers le cloud', primary: true },
+                        { id: 'reset',  label: 'Télécharger une sauvegarde puis repartir de zéro' },
+                        { id: 'cancel', label: 'Annuler (se déconnecter)' }
+                    ]);
+                if (choice === 'upload') {
+                    _set.call(ls, '__tw_uid', user.uid);
+                    ready = true; hideLogin();
+                    localKeys.forEach(k => pending.add(k));
+                    setStatus('pending'); await flush();
+                    return;
+                }
+                if (choice === 'reset') {
+                    downloadLocalBackup();      // sauvegarde AVANT tout effacement
+                } else {
+                    // Annuler : rien n'est effacé, on se déconnecte
+                    docRef = null;
+                    nextLoginMsg = 'Déconnecté — aucune donnée locale n\'a été modifiée.';
+                    await firebase.auth().signOut();
+                    return;
+                }
             }
 
             // 4. Le cloud fait foi : on remplace le cache local
@@ -1111,6 +1188,13 @@
         <div class="tw-err" id="tw-login-err"></div>
     </div>
 </div>
+<dialog id="tw-choice" aria-labelledby="tw-choice-title">
+    <form method="dialog">
+        <h2 id="tw-choice-title"></h2>
+        <p id="tw-choice-text"></p>
+        <div id="tw-choice-actions"></div>
+    </form>
+</dialog>
 <div id="tw-status" data-s="ok">
     <span class="tw-dot"></span>
     <span id="tw-status-txt">Synchronisé</span>

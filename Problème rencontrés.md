@@ -310,6 +310,76 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 
 ---
 
+## 2026-09-29 — Refonte UX/UI « Verre » (aspect PORTAIL-DUO) : problèmes rencontrés
+
+Référence : charte UX/UI v2.0 et `verre.css` du dépôt PORTAIL-DUO. Détail du design : [`UX-UI.md`](./UX-UI.md) ;
+règles iPhone : [`GUIDE-PWA-IOS.md`](./GUIDE-PWA-IOS.md).
+
+#### E1. Barre d'onglets fixe « prisonnière » de la plaque de verre (anticipé à la lecture, avant tout rendu)
+- **Risque** : dans la version iPhone, la barre d'onglets était rendue par `js/views/suivi.js` **dans** `<main>`. Or la plaque de verre = `<main>` avec `backdrop-filter`, et un élément qui porte `backdrop-filter` (comme `filter` / `transform`) devient le **bloc conteneur** de ses descendants en `position: fixed` : la barre se serait collée au bas du **document** (sous tout le contenu), plus au bas de l'écran.
+- **Solution** : conteneur `#tabbar` placé **après** `</main>` dans `index.html` ; `suivi.js` y rend la pilule et le bouton « + », et le vide au démontage. Même principe que Course et Budget (« barre hors de `<main>` »).
+- **Règle** : aucun élément fixe dans une surface floutée (UX-UI.md, règle 2).
+- **Statut** : corrigé le 2026-09-29
+
+#### E2. Contraste AA non tenu avec l'aspect de référence tel quel
+- **Symptôme** : mesure au pixel (texte masqué → vrai fond sous chaque texte, halos compris) : **521 textes** sous 4,5:1 (jusqu'à 2,4:1) là où les halos sont les plus lumineux : labels atténués (`--v-dim` 0,64), accent `#5eadff`, badges de type, bouton « Supprimer l'affaire… » en rouge.
+- **Cause** : le verre de référence (7 % de blanc) laisse passer les halos à pleine intensité (opacité 0,60). Les apps PORTAIL-DUO affichent surtout du texte blanc assez gros ; TIME-WORK affiche beaucoup de petits textes colorés (tableaux, légendes, badges), et l'audit A16 impose l'AA.
+- **Fausses pistes écartées** : baisser l'opacité des halos ou les déplacer (l'aspect n'aurait plus été identique).
+- **Solution** : (1) **voile de lisibilité** dans la plaque (`--v-voile: rgba(8,8,10,.42)` par-dessus le verre) → 521 → 19 défauts ; (2) textes atténués éclaircis (`--text-3` 0,72, `--text-2` 0,82), accent en texte `#7cbcff`, `--ok #52e0a6`, `--danger #ffa3a3` ; (3) couleur de catégorie employée en texte = `--tc` + 20 % de blanc (`--tc-text`) ; (4) tuiles « accent » et ligne de total en texte clair ; en-têtes de tableau en `--text-2`. → **0 défaut sur 5 024 textes**, 3 positions des halos, PC et téléphone.
+- **Conséquence** : fond de `<html>` (bande iOS) passé de `#171719` (Course) à `#121214` = bas de la plaque avec voile.
+- **Statut** : corrigé le 2026-09-29
+
+#### E3. Camembert : disque central opaque sur le verre
+- **Cause** : l'ancien camembert dessinait des secteurs pleins puis un disque « trou » de la couleur du fond. Sur une plaque translucide, ce disque ferait une tache sombre qui ne suit pas les halos.
+- **Solution** : `js/ui/pie.js` dessine des **secteurs d'anneau** (arc extérieur → arc intérieur), et un anneau complet en `fill-rule: evenodd` pour une seule catégorie. Plus de disque central.
+- **Statut** : corrigé le 2026-09-29
+
+#### E4. Pointage : total collé aux jours, badge « Solde global » par-dessus la carte du mercredi
+- **Cause** : la ligne de navigation, la grille des jours et le total sont les enfants du panneau d'onglet (`#panel-hebdo`), qui n'avait aucun espacement ; les nouvelles cartes (plus hautes, rayon 22 px) ont rendu le chevauchement visible.
+- **Solution** : `.pointage > [role="tabpanel"] { display: grid; gap: 20px; }`.
+- **Statut** : corrigé le 2026-09-29
+
+#### E5. Tests : le navigateur headless refuse le certificat du proxy (`ERR_CERT_AUTHORITY_INVALID`)
+- **Symptôme** : l'app reste sur « Chargement… » dans Chromium (Playwright) : SDK Firebase (`gstatic.com`) et police (Google Fonts) bloqués, alors que `curl` y accède.
+- **Cause** : l'environnement de Claude passe par un proxy à certificat propre, reconnu par `curl` mais pas par le Chromium de Playwright.
+- **Solution** (sans jamais désactiver la vérification TLS) : SDK 12.19 et police téléchargés avec `curl` dans un dossier de travail, puis servis au navigateur par `page.route()` (même méthode que B5 : « SDK 12.19 mis en cache local »).
+- **Statut** : contourné le 2026-09-29 (sans impact sur l'app en production)
+
+#### E6. Tests : le flou `backdrop-filter` n'apparaît pas sur les captures
+- **Symptôme** : sur les captures, le texte qui passe sous la barre d'onglets reste net (seulement assombri).
+- **Cause** : rendu logiciel de Chromium headless — confirmé sur une page minimale de 6 lignes : le flou n'est pas appliqué au contenu, quel que soit le code.
+- **Règle** : ne pas juger le flou sur une capture headless ; vérifier sur l'iPhone et sur le PC.
+- **Statut** : limite de l'outil, documentée (UX-UI.md §4)
+
+#### E7. Tests : la capture « pleine page » fausse le contrôle des champs 16 px
+- **Symptôme** : le script de captures comptait 63 champs < 16 px sur téléphone, le test ciblé 0.
+- **Cause** : la capture pleine page de Playwright redimensionne temporairement la page et réinitialise l'émulation tactile (`pointer: coarse` devient faux) ; la règle « 16 px en tactile » ne s'applique plus pendant la mesure.
+- **Solution** : mesurer les champs dans un contexte sans capture pleine page → **0 champ < 16 px** (`pointer: coarse` vrai).
+- **Statut** : limite de l'outil, documentée
+
+#### E8. Tests : `color-mix()` renvoie une couleur au format `color(srgb 0.2 0.9 0.7)`
+- **Symptôme** : après le passage des couleurs de catégories en `color-mix()`, le script de contraste annonçait des rapports de 1,5:1.
+- **Cause** : `getComputedStyle().color` renvoie alors des composantes entre 0 et 1 (et non 0–255) ; le script les lisait comme du noir.
+- **Solution** : analyseur adapté (×255 pour `color(…)`).
+- **Statut** : corrigé le 2026-09-29
+
+#### E9. Tests : mode Window Controls Overlay non émulable
+- **Constat** : `display-mode: window-controls-overlay` ne peut pas être simulé dans Chromium headless (émulation CDP acceptée mais sans effet).
+- **Conséquence** : l'en-tête en barre de titre (fixe, verre dense, titre 14 px) n'a pas pu être vérifié automatiquement.
+- **À faire** : vérifier sur la PWA Windows (bouton ⌃ de la barre de titre).
+- **Statut** : ouvert (vérification manuelle)
+
+#### E10. Police Unbounded chargée depuis Google Fonts
+- **Risque** : hors ligne, titre et chiffres retombaient sur la police système ; l'audit A16 avait retiré l'`@import` Google Fonts (performance).
+- **Solution** : `<link rel="preconnect">` + feuille en `display=swap` (le texte s'affiche tout de suite en police système), et le service worker met la feuille et les fichiers de police en **cache d'abord** (réponse « opaque » acceptée pour la feuille). Unbounded reste réservée au titre et aux grands chiffres (charte §12).
+- **Statut** : corrigé le 2026-09-29
+
+#### À vérifier sur les appareils (non vérifiable hors iPhone / Windows)
+- iPhone : fluidité du défilement avec la plaque floutée et les halos animés (si saccades : couper d'abord l'animation des halos) ; absence de bande en bas ; boutons de la barre hors zone Siri.
+- Windows : en-tête en mode Window Controls Overlay (E9).
+
+---
+
 ## Lancement en mode application (Edge)
 
 Raccourci Windows utilisé (champ *Cible*) :

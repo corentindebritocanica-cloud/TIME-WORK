@@ -65,6 +65,7 @@ bash auto-push.sh
 |------|------|--------|
 | 2026-09-29 | Migration | Stockage déplacé du `localStorage` vers Firebase Firestore (`users/{uid}`), connexion Google, publication GitHub Pages. |
 | 2026-09-29 | Audit | Audit complet design / architecture / code / sécurité / Firestore. Aucun code modifié. 16 problèmes consignés dans [`Problème rencontrés.md`](./Problème%20rencontrés.md) (section « Audit complet »), dont 4 critiques : perte de données au premier login, écrasement multi-poste, XSS stockée, règles Firestore sans liste blanche. |
+| 2026-09-29 | Doc | Ajout de [`AUDIT-2026-09-29.md`](./AUDIT-2026-09-29.md) : cahier de correction détaillé (lots 1 à 3, critères de validation, tests, prompt de démarrage pour Claude Code). |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 
@@ -76,6 +77,7 @@ bash auto-push.sh
 
 ```
 index.html        Application complète (HTML + CSS + JS + synchro Firestore)
+AUDIT-2026-09-29.md Cahier de correction issu de l'audit
 firestore.rules   Règles de sécurité Firestore
 auto-push.sh      Script de commit & push manuel
 .vscode/tasks.json Tâches VS Code (push, pull)

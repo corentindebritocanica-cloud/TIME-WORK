@@ -263,6 +263,48 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 
 ---
 
+## 2026-09-29 — Version iPhone (PWA Safari) : problèmes rencontrés
+
+#### D1. Plantage au démarrage dans Safari : `requestIdleCallback` inexistant
+- **Symptôme** (test WebKit au format iPhone) : après la connexion, retour à l'écran de connexion avec « Erreur : Can't find variable: requestIdleCallback ».
+- **Cause** : le préchargement des vues utilisait `requestIdleCallback`, absent de Safari.
+- **Solution** : repli `window.requestIdleCallback ?? (cb => setTimeout(cb, 1500))` dans `js/app.js`.
+- **Statut** : corrigé le 2026-09-29
+
+#### D2. Connexion Google impossible dans Safari / PWA iOS depuis GitHub Pages
+- **Cause** : Safari bloque le stockage tiers. La connexion Firebase (popup ou redirection) passe par `lisa-cmpt.firebaseapp.com`, un autre domaine que `github.io` : le résultat de connexion n'est pas relu. La popup est en plus peu fiable en PWA iOS (documentation Firebase « Redirect best practices »).
+- **Solution** : seconde adresse **https://lisa-cmpt.web.app** (Firebase Hosting) servant le même code. Sur cette adresse, `authDomain = location.hostname` (page `/__/auth/handler` sur le même domaine) et connexion par redirection. L'adresse PC (GitHub Pages) garde la popup, rien ne change sur Windows.
+- **Prérequis** : ajouter `https://lisa-cmpt.web.app/__/auth/handler` aux URI de redirection du client OAuth « Web client (auto created by Google Service) » dans Google Cloud. Sans cela, Google répond `Error 400: redirect_uri_mismatch` (constaté lors du premier test).
+- **Statut** : corrigé le 2026-09-29 (URI de redirection à ajouter par l'utilisateur)
+
+#### D3. Champs en 13 px : Safari zoome à chaque saisie
+- **Cause** : la règle « 16 px minimum sur écran tactile » était dans la couche `base`, qui passe **après** la couche `components` (`.control` en 13 px) : elle n'avait aucun effet.
+- **Solution** : règle `@media (pointer: coarse)` déplacée dans la couche `utilities`. Vérifié : 0 champ visible < 16 px.
+- **Statut** : corrigé le 2026-09-29
+
+#### D4. Pages Chronologie / Heures imputées plus larges que l'écran
+- **Cause** : la grille `.suivi` avait une colonne `auto` : la largeur minimale des tableaux et des lignes « Pointé · écart » (`nowrap`) élargissait toute la page.
+- **Solution** : `grid-template-columns: minmax(0, 1fr)` sur `.suivi`, retour à la ligne des lignes d'écart sur téléphone, cellules de budget contraintes (`min-width: 0`).
+- **Statut** : corrigé le 2026-09-29
+
+#### D5. Débordement de 80 px sur « Par affaire » causé par un texte invisible
+- **Cause** : les libellés `.sr-only` (positionnés en absolu) dans les en-têtes de tableau se plaçaient par rapport à la page et non au conteneur défilant `.table-wrap`.
+- **Solution** : `.table-wrap { position: relative; }`. Corrige aussi le cas sur PC.
+- **Statut** : corrigé le 2026-09-29
+
+#### D6. Premier déploiement Firebase : dossier `.git` publié
+- **Constat** : le motif d'exclusion `**/.*` de `firebase.json` exclut les fichiers cachés, **pas le contenu** du dossier `.git` : 240 fichiers de l'historique git ont été publiés sur `lisa-cmpt.web.app` pendant quelques minutes.
+- **Impact** : aucun secret (pas d'identifiant dans `.git/config`) ; l'historique est identique à celui du dépôt GitHub, déjà public.
+- **Solution** : exclusions explicites `.git/**`, `.github/**`, `**/.*/**` puis republication immédiate (33 fichiers, uniquement l'app). `/.git/config` répond désormais 404. Contrôle de la liste des fichiers publiés via l'API Firebase Hosting.
+- **Statut** : corrigé le 2026-09-29
+
+#### D7. Secret GitHub Actions non créable depuis l'environnement de Claude
+- **Constat** : le proxy de l'environnement refuse l'API GitHub Actions (« Access to this GitHub Actions path is not permitted through this proxy »).
+- **Solution** : le workflow `firebase-hosting.yml` est livré et ignore proprement la publication tant que le secret `FIREBASE_SERVICE_ACCOUNT_LISA_CMPT` n'existe pas ; il est à ajouter une fois dans GitHub (Settings → Secrets and variables → Actions). En attendant, publication manuelle `firebase deploy --only hosting --project lisa-cmpt`.
+- **Statut** : contourné le 2026-09-29 (secret à ajouter par l'utilisateur)
+
+---
+
 ## Lancement en mode application (Edge)
 
 Raccourci Windows utilisé (champ *Cible*) :

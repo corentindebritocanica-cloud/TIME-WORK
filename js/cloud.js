@@ -2,7 +2,7 @@
  * Amorçage cloud : connexion Google, migration éventuelle, démarrage du store,
  * état de synchronisation (en-tête). Aucune variable globale (hors hooks de test en mode émulateur).
  */
-import { auth, authMod, db, fsMod, EMULATOR } from './firebase.js';
+import { auth, authMod, db, fsMod, EMULATOR, SAME_ORIGIN_AUTH } from './firebase.js';
 import * as store from './store.js';
 import { migrate, legacyFromKv, fromLegacy, summarize } from './migrate.js';
 import { ask } from './ui/dialog.js';
@@ -88,11 +88,21 @@ function clearLegacyLocal() {
 }
 
 /* ───────────────────────── Connexion ───────────────────────── */
-/** Connexion Google (popup, repli en redirection). */
+/**
+ * Connexion Google.
+ *  - adresse iPhone (Firebase Hosting, même domaine) : redirection — fiable dans Safari et en PWA iOS ;
+ *  - adresse PC (GitHub Pages) : fenêtre popup, repli en redirection si elle est bloquée.
+ */
 export async function login() {
     el('login-err').textContent = '';
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
+    if (SAME_ORIGIN_AUTH) {
+        busy('Redirection vers Google…');
+        try { await signInWithRedirect(auth, provider); }
+        catch (e) { showLogin('', 'Connexion impossible : ' + (e.message || e.code)); }
+        return;
+    }
     try {
         await signInWithPopup(auth, provider);
     } catch (e) {

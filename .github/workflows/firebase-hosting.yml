@@ -1,0 +1,43 @@
+# Publication automatique de l'app sur Firebase Hosting (adresse iPhone : https://lisa-cmpt.web.app)
+# à chaque push sur main. L'adresse PC (GitHub Pages) est publiée par GitHub, sans ce fichier.
+# Prérequis (une seule fois) : secret de dépôt FIREBASE_SERVICE_ACCOUNT_LISA_CMPT = contenu JSON
+# du compte de service Firebase (Settings → Secrets and variables → Actions). Sans lui, l'étape est ignorée.
+name: Publication Firebase Hosting (iPhone)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-hosting
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vérifier la présence du secret
+        id: check
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LISA_CMPT }}
+        run: |
+          if [ -z "$SA" ]; then
+            echo "::warning::Secret FIREBASE_SERVICE_ACCOUNT_LISA_CMPT absent : publication Firebase ignorée (voir README, section iPhone)."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publier sur lisa-cmpt.web.app
+        if: steps.check.outputs.ok == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LISA_CMPT }}
+          projectId: lisa-cmpt
+          channelId: live

@@ -109,7 +109,9 @@ function bindDataMenu() {
 
 /** Précharge les modules des sections en tâche de fond (navigation possible même si la connexion tombe). */
 function preload() {
-    requestIdleCallback(() => {
+    // requestIdleCallback n'existe pas dans Safari (iPhone) : repli sur un délai
+    const idle = window.requestIdleCallback ?? (cb => setTimeout(cb, 1500));
+    idle(() => {
         [loadSuivi, () => import('./views/dashboard.js'), () => import('./views/affaires.js'),
          () => import('./views/chrono.js'), () => import('./views/imputees.js'), () => import('./views/pointage.js'),
          () => import('./ui/quick.js'), () => import('./ui/data.js')]

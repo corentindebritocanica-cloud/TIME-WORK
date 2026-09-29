@@ -17,3 +17,6 @@ Thumbs.db
 *~
 .idea/
 
+
+# Cache local de firebase-tools
+.firebase/

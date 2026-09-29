@@ -5,9 +5,9 @@
  *  - SDK Firebase (URL versionnée sur gstatic) : cache d'abord ;
  *  - Firestore / Auth : jamais interceptés (le SDK gère son propre cache IndexedDB).
  */
-const VERSION = 'tw-2026-09-29-lot3c';
+const VERSION = 'tw-2026-09-29-ios1';
 const SHELL = [
-    './', './index.html', './css/app.css', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png',
+    './', './index.html', './css/app.css', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/apple-touch-icon.png',
     './js/app.js', './js/cloud.js', './js/firebase.js', './js/store.js', './js/migrate.js',
     './js/domain/time.js', './js/domain/balance.js', './js/domain/types.js', './js/domain/validate.js',
     './js/domain/csv.js', './js/domain/backup.js',
@@ -33,6 +33,7 @@ self.addEventListener('fetch', event => {
     if (req.method !== 'GET') return;
     const url = new URL(req.url);
     if (url.href.startsWith(SDK_PREFIX)) { event.respondWith(cacheFirst(req)); return; }
+    if (url.pathname.startsWith('/__/')) return;          // pages de connexion Firebase Hosting : jamais en cache
     if (url.origin === self.location.origin) event.respondWith(networkFirst(req));
 });
 

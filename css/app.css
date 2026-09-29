@@ -2,7 +2,8 @@
    TIME-WORK — feuille de styles unique
    Couches : reset → tokens → base → components → views → utilities
    Thème : sombre (unique)
-   Cible : Edge / Chrome (Chromium) sous Windows, fenêtre --app ou PWA (WCO)
+   Cibles : Edge / Chrome sous Windows (fenêtre --app ou PWA, WCO)
+            + Safari iPhone (PWA « Sur l'écran d'accueil ») — mise en page téléphone ≤ 600 px
    ════════════════════════════════════════════════════════════════════ */
 @layer reset, tokens, base, components, views, utilities;
 
@@ -24,8 +25,8 @@
         interpolate-size: allow-keywords;
 
         /* Typographie — police système Windows */
-        --font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-        --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+        --font: "Segoe UI Variable Text", "Segoe UI", -apple-system, system-ui, sans-serif;
+        --font-display: "Segoe UI Variable Display", "Segoe UI", -apple-system, system-ui, sans-serif;
         --fs-xs: 11px; --fs-sm: 12px; --fs-md: 13px; --fs-base: 14px; --fs-lg: 16px;
         --fs-xl: 20px; --fs-2xl: 26px; --fs-3xl: 34px; --fs-4xl: 44px;
         --fw-regular: 400; --fw-semi: 600; --fw-bold: 700; --fw-heavy: 800;
@@ -40,6 +41,9 @@
         --control-h: 34px; --control-h-sm: 28px; --header-h: 52px;
         --container: 1280px; --dialog-s: 460px; --dialog-m: 640px; --dialog-l: 1000px;
         --hm-input: 3.2em; --focus-w: 2px;
+        --tabbar-h: 58px;                 /* barre d'onglets du bas (téléphone) */
+        --safe-t: env(safe-area-inset-top, 0px); --safe-b: env(safe-area-inset-bottom, 0px);
+        --safe-l: env(safe-area-inset-left, 0px); --safe-r: env(safe-area-inset-right, 0px);
 
         /* Mouvement */
         --dur-fast: 120ms; --dur: 220ms; --dur-slow: 380ms;
@@ -110,11 +114,17 @@
 
 /* ───────────────────────────── base ───────────────────────────── */
 @layer base {
-    html { background: var(--bg); }
+    html { background: var(--bg); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
     body {
         min-height: 100dvh; font-family: var(--font); font-size: var(--fs-base); line-height: var(--lh);
         color: var(--text); background: var(--bg-image) fixed;
         -webkit-font-smoothing: antialiased;
+    }
+    /* Écrans tactiles (iPhone) : pas de fond « fixed » (non géré par iOS), cibles ≥ 36 px,
+       champs en 16 px minimum sinon Safari zoome à chaque saisie */
+    @media (pointer: coarse) {
+        :root { --control-h: 40px; --control-h-sm: 36px; }
+        body { background-attachment: scroll; }
     }
     h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; }
     h1 { font-size: var(--fs-xl); font-weight: var(--fw-bold); }
@@ -136,8 +146,8 @@
     .app-header {
         position: sticky; top: 0; z-index: 50;
         display: flex; align-items: center; gap: var(--sp-4);
-        height: var(--header-h); padding: 0 var(--sp-5);
-        background: var(--header-bg); backdrop-filter: var(--glass);
+        height: calc(var(--header-h) + var(--safe-t)); padding: var(--safe-t) max(var(--sp-5), var(--safe-r)) 0 max(var(--sp-5), var(--safe-l));
+        background: var(--header-bg); backdrop-filter: var(--glass); -webkit-backdrop-filter: var(--glass);
         border-bottom: 1px solid var(--border);
         app-region: drag;
         & :is(a, button, input, select) { app-region: no-drag; }
@@ -152,7 +162,8 @@
     .brand { display: flex; align-items: center; gap: var(--sp-2); font-weight: var(--fw-heavy); letter-spacing: var(--tracking-caps); color: var(--text); text-decoration: none; }
     .brand svg { width: 22px; height: 22px; color: var(--accent); }
     .menu {
-        inset: auto; margin: 0; position-area: bottom span-left; margin-block-start: var(--sp-1);
+        position: fixed; inset: calc(var(--header-h) + var(--safe-t)) max(var(--sp-3), var(--safe-r)) auto auto; margin: 0;
+        @supports (position-area: bottom) { inset: auto; position-area: bottom span-left; margin-block-start: var(--sp-1); }
         min-inline-size: 16rem; padding: var(--sp-1); display: none; flex-direction: column; gap: 2px;
         background: var(--surface-solid); color: var(--text); border: 1px solid var(--border);
         border-radius: var(--r-md); box-shadow: var(--shadow-md); app-region: no-drag;
@@ -172,8 +183,8 @@
         &[data-s="error"] { color: var(--danger); border-color: var(--danger); }
     }
 
-    .app-main { padding-bottom: var(--sp-12); &:focus { outline: none; } }
-    .container { max-width: var(--container); margin-inline: auto; padding: var(--sp-6) var(--sp-5); }
+    .app-main { padding-bottom: calc(var(--sp-12) + var(--safe-b)); &:focus { outline: none; } }
+    .container { max-width: var(--container); margin-inline: auto; padding: var(--sp-6) max(var(--sp-5), var(--safe-r)) var(--sp-6) max(var(--sp-5), var(--safe-l)); }
     .page-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-3); margin-bottom: var(--sp-5); }
     .page-head h1 { margin-right: auto; }
     .toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2); }
@@ -262,6 +273,8 @@
         &:is([aria-selected="true"], [aria-current="page"]) { background: var(--accent-strong); color: var(--on-accent); & .kbd { color: var(--on-accent); border-color: currentColor; background: transparent; } }
     }
 
+    .tab-short { display: none; }
+
     /* ── Puces ── */
     .chip {
         min-height: var(--control-h-sm); padding: 0 var(--sp-3); border-radius: var(--r-pill);
@@ -298,7 +311,7 @@
     .table .num { text-align: right; }
     .table .group td { background: var(--surface-2); font-weight: var(--fw-semi); color: var(--text-2); }
     .table .total td { font-weight: var(--fw-bold); color: var(--accent); }
-    .table-wrap { overflow-x: auto; }
+    .table-wrap { overflow-x: auto; position: relative; }   /* relative : les .sr-only des en-têtes restent dans la zone défilante */
 
     /* ── Accordéons natifs (<details>) ── */
     details.acc {
@@ -356,7 +369,7 @@
     .dlg-foot { display: flex; flex-wrap: wrap-reverse; justify-content: flex-end; gap: var(--sp-2); padding: var(--sp-4) var(--sp-6); border-top: 1px solid var(--border); }
 
     /* ── Toasts ── */
-    #toasts { position: fixed; inset-block-end: var(--sp-5); inset-inline: 0; z-index: 90; display: grid; justify-items: center; gap: var(--sp-2); pointer-events: none; }
+    #toasts { position: fixed; inset-block-end: calc(var(--sp-5) + var(--safe-b)); inset-inline: 0; z-index: 90; display: grid; justify-items: center; gap: var(--sp-2); pointer-events: none; }
     .toast {
         pointer-events: auto; display: flex; align-items: center; gap: var(--sp-3); max-inline-size: min(560px, calc(100% - var(--sp-8)));
         padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); border-radius: var(--r-md); font-size: var(--fs-md); font-weight: var(--fw-semi);
@@ -371,7 +384,7 @@
     @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } }
 
     /* ── Écran de connexion ── */
-    .login { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: var(--sp-5); background: var(--bg-image), var(--bg); }
+    .login { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: calc(var(--sp-5) + var(--safe-t)) var(--sp-5) calc(var(--sp-5) + var(--safe-b)); background: var(--bg-image), var(--bg); }
     .login-box {
         inline-size: min(420px, 100%); padding: var(--sp-8) var(--sp-8); border-radius: var(--r-lg); text-align: center;
         background: var(--surface); border: 1px solid var(--border-strong); box-shadow: var(--shadow-lg); display: grid; gap: var(--sp-4); justify-items: center;
@@ -435,7 +448,7 @@
     .calc-sub-res { font-size: var(--fs-xl); font-weight: var(--fw-bold); color: var(--danger); min-inline-size: 5ch; text-align: center; }
 
     /* ── Suivi : tableau de bord ── */
-    .suivi { container-type: inline-size; display: grid; gap: var(--sp-4); }
+    .suivi { container-type: inline-size; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-4); }
     .suivi > .page-head { margin-bottom: 0; }
     .pointage > .subtabs { justify-self: start; }
     .pointage { gap: var(--sp-4); }
@@ -478,7 +491,9 @@
     .loads { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
     .load-chip { & button { color: inherit; padding: 0 2px; border-radius: var(--r-xs); &:hover { background: var(--surface-3); } } }
     .budgets { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: var(--sp-2); }
-    .budget { display: grid; gap: var(--sp-1); justify-items: stretch; & .badge { justify-content: center; } & .control { text-align: center; } }
+    .budget { display: grid; gap: var(--sp-1); justify-items: stretch; min-width: 0;
+        & .badge { justify-content: center; max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; }
+        & .control { text-align: center; inline-size: 100%; min-width: 0; } }
 
     .notice { padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); background: var(--accent-soft); border: 1px solid var(--accent-border); font-size: var(--fs-md); &.warn { background: var(--warn-soft); border-color: var(--warn); } }
     .scroll-list { max-block-size: 160px; overflow-y: auto; padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-6); border-radius: var(--r-sm); background: var(--surface-2); font-size: var(--fs-sm); }
@@ -500,6 +515,63 @@
     .gap-line { font-size: var(--fs-xs); font-weight: var(--fw-semi); color: var(--text-2); white-space: nowrap; }
     .gap-ok { color: var(--ok); } .gap-warn { color: var(--warn); }
     .dec { color: var(--ok); font-weight: var(--fw-bold); }
+
+    /* ── Téléphone (iPhone, ≤ 600 px) ───────────────────────────────── */
+    @media (max-width: 600px) {
+        .container { padding-block: var(--sp-3); padding-inline: max(var(--sp-3), var(--safe-l)) max(var(--sp-3), var(--safe-r)); }
+        .suivi > .page-head { display: contents; }      /* titre masqué + onglets en bas : pas de bandeau vide */
+        .app-main { padding-bottom: calc(var(--tabbar-h) + var(--safe-b) + var(--sp-6)); }
+        #toasts { inset-block-end: calc(var(--tabbar-h) + var(--safe-b) + var(--sp-3)); }
+        .panel { padding: var(--sp-4) var(--sp-3); }
+
+        /* Onglets principaux → barre fixe en bas, sous le pouce */
+        .main-tabs {
+            position: fixed; inset: auto 0 0 0; z-index: 60; inline-size: auto;
+            display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0;
+            padding: var(--sp-1) max(var(--sp-1), var(--safe-r)) calc(var(--sp-1) + var(--safe-b)) max(var(--sp-1), var(--safe-l));
+            border-radius: 0; border: 0; border-top: 1px solid var(--border);
+            background: rgba(7, 13, 26, .97); backdrop-filter: var(--glass); -webkit-backdrop-filter: var(--glass);
+        }
+        .main-tabs .tab {
+            min-block-size: calc(var(--tabbar-h) - var(--sp-2)); padding: var(--sp-1) 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+            font-size: var(--fs-xs); text-align: center;
+            &:is([aria-current="page"]) { background: var(--accent-soft); color: var(--accent); }
+        }
+        .main-tabs .tab-icon { font-size: var(--fs-xl); line-height: 1; }
+        .main-tabs .tab-full { display: none; }
+        .main-tabs .tab-short { display: block; }
+
+        /* Pointage : jours en liste (nom · heures · décimal / puces Férié-Congé) */
+        .days { grid-template-columns: 1fr; gap: var(--sp-2); }
+        .day {
+            grid-template-columns: 3.5rem 1fr auto; grid-template-areas: "name hm dec" "date reasons reasons";
+            justify-items: start; align-items: center; column-gap: var(--sp-3); row-gap: var(--sp-1);
+            padding: var(--sp-3); text-align: start;
+        }
+        .day-name { grid-area: name; } .day-date { grid-area: date; } .hm { grid-area: hm; }
+        .day-dec { grid-area: dec; justify-self: end; } .day-reasons { grid-area: reasons; justify-self: end; }
+        .day-reason { display: none; }            /* l'état est déjà porté par la puce Férié / Congé */
+        .week-nav { gap: var(--sp-2); & h2 { order: -1; flex-basis: 100%; min-width: 0; font-size: var(--fs-base); } }
+        .total-card { padding: var(--sp-5) var(--sp-4); }
+        .balance { inset-inline-end: var(--sp-2); }
+        .calc-row { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; & .control { inline-size: 100%; } }
+
+        /* Heures imputées / affaires : titres d'accordéon compacts */
+        .acc-head { padding: var(--sp-3); gap: var(--sp-2); }
+        .gap-line { white-space: normal; }
+        .grid-kpi .tile { min-width: 0; }
+        .grid-kpi { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .tile.is-wide { grid-column: 1 / -1; }
+        .aff-grid { grid-template-columns: 1fr; }
+        .legend { min-width: 0; flex-basis: 100%; }
+        .pie-block { justify-content: center; }
+        .filter-bar .info { margin-left: 0; flex-basis: 100%; }
+        #dlg { inline-size: calc(100% - var(--sp-4)); &[data-size] { inline-size: calc(100% - var(--sp-4)); } }
+        .dlg-head { padding: var(--sp-4) var(--sp-4) var(--sp-2); }
+        .dlg-body { padding: var(--sp-2) var(--sp-4) var(--sp-4); }
+        .dlg-foot { padding: var(--sp-3) var(--sp-4); & .btn { flex: 1 1 auto; } }
+    }
 }
 
 /* ───────────────────────────── utilities ───────────────────────────── */
@@ -519,8 +591,11 @@
         .hide-narrow { display: none; }
         .show-narrow { display: inline; }
         .vh-narrow { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-        .app-header { gap: var(--sp-2); padding-inline: var(--sp-3); }
+        .app-header { gap: var(--sp-2); padding-inline: max(var(--sp-3), var(--safe-l)) max(var(--sp-3), var(--safe-r)); }
     }
+    /* Tactile (iPhone) : champs en 16 px minimum, sinon Safari zoome à chaque saisie.
+       Dans la couche utilities pour passer devant la taille des composants. */
+    @media (pointer: coarse) { :is(input, select, textarea, .control) { font-size: max(16px, 1em); } }
     .stack > * + * { margin-top: var(--sp-4); }
     .stack > details.acc + details.acc { margin-top: var(--sp-2); }
     .w-sm { inline-size: 9rem; } .w-md { inline-size: 12rem; } .w-lg { inline-size: 16rem; }

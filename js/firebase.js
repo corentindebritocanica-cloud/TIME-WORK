@@ -16,8 +16,20 @@ const [appMod, authMod, fsMod] = await Promise.all([
 export const EMULATOR = ['localhost', '127.0.0.1'].includes(location.hostname)
     && new URLSearchParams(location.search).has('emu');
 
+/**
+ * Vrai quand l'app est servie par Firebase Hosting (lisa-cmpt.web.app — adresse iPhone).
+ * La page de connexion Google (/__/auth/handler) est alors sur le même domaine que l'app :
+ * la connexion par redirection fonctionne dans Safari, qui bloque le stockage tiers.
+ * Sur GitHub Pages (adresse PC), on garde le domaine d'authentification Firebase et la fenêtre popup.
+ */
+export const SAME_ORIGIN_AUTH = /\.(web\.app|firebaseapp\.com)$/.test(location.hostname);
+
 /* global FIREBASE_CONFIG — défini dans index.html */
-const config = EMULATOR ? { ...FIREBASE_CONFIG, projectId: 'demo-lisa' } : FIREBASE_CONFIG;
+const config = {
+    ...FIREBASE_CONFIG,
+    ...(SAME_ORIGIN_AUTH ? { authDomain: location.hostname } : {}),
+    ...(EMULATOR ? { projectId: 'demo-lisa' } : {})
+};
 
 export const app = appMod.initializeApp(config);
 export const auth = authMod.getAuth(app);

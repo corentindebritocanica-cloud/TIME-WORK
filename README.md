@@ -1,8 +1,17 @@
 # Time-Work
 
-Application Windows (PWA Edge / Chrome) pour le pointage CEGID, la saisie des
-heures par affaire et le suivi du temps de travail. Modules ES natifs, sans
-dépendance ni étape de build : GitHub Pages sert le dépôt tel quel.
+Application **Windows (PWA Edge / Chrome) et iPhone (PWA Safari)** pour le
+pointage CEGID, la saisie des heures par affaire et le suivi du temps de travail.
+Modules ES natifs, sans dépendance ni étape de build : le dépôt est servi tel quel.
+
+| Appareil | Adresse | Publication |
+|---|---|---|
+| **PC Windows** | https://corentindebritocanica-cloud.github.io/TIME-WORK/ | GitHub Pages (automatique à chaque push) |
+| **iPhone** | https://lisa-cmpt.web.app | Firebase Hosting (workflow `.github/workflows/firebase-hosting.yml`) |
+
+Un seul code, **les mêmes données** (Firestore, temps réel entre PC et iPhone).
+L'app ne détecte pas le système : la mise en page suit la largeur d'écran
+(≤ 600 px = téléphone) et la connexion suit l'adresse (voir « iPhone » ci-dessous).
 
 ## Contenu
 
@@ -26,7 +35,8 @@ l'en-tête regroupe sauvegarde, restauration et import CSV.
 
 ## Utilisation
 
-App en ligne : **https://corentindebritocanica-cloud.github.io/TIME-WORK/**
+App en ligne : **https://corentindebritocanica-cloud.github.io/TIME-WORK/** (PC)
+et **https://lisa-cmpt.web.app** (iPhone).
 
 Connexion avec un compte Google. Les données sont stockées dans **Firebase
 Firestore** et synchronisées **en temps réel** entre postes et onglets. Hors
@@ -46,6 +56,37 @@ l'en-tête de l'app dans la barre de titre Windows. L'application démarre aussi
 hors ligne (service worker `sw.js`).
 
 L'ancien raccourci `msedge.exe --app=…` fonctionne toujours.
+
+### iPhone (PWA Safari)
+
+**Installation** : ouvrir **https://lisa-cmpt.web.app** dans **Safari** →
+bouton **Partager** → **Sur l'écran d'accueil**. L'app s'ouvre ensuite en plein
+écran, comme une app native, et démarre hors ligne.
+
+Sur téléphone (≤ 600 px) : onglets dans une **barre en bas** (sous le pouce),
+jours du pointage en liste, zones sûres respectées (Dynamic Island, barre
+d'accueil), champs en 16 px (pas de zoom automatique de Safari), dialogues
+pleine largeur.
+
+**Pourquoi une seconde adresse ?** Safari bloque le stockage « tiers » : la
+connexion Google de Firebase ne fonctionne pas quand la page de connexion
+(`lisa-cmpt.firebaseapp.com`) n'est pas sur le même domaine que l'app
+(`github.io`). Sur `lisa-cmpt.web.app`, la page de connexion
+(`/__/auth/handler`) est servie par le même domaine : `js/firebase.js` y utilise
+`authDomain = location.hostname` et `js/cloud.js` la connexion par
+**redirection** (fiable en PWA iOS). Sur GitHub Pages rien ne change (popup).
+
+**Réglages faits une seule fois** :
+1. Google Cloud → APIs & Services → Identifiants → *Web client (auto created by
+   Google Service)* → URI de redirection autorisés :
+   `https://lisa-cmpt.web.app/__/auth/handler` (sinon erreur
+   `redirect_uri_mismatch`).
+2. GitHub → Settings → Secrets and variables → Actions → secret
+   `FIREBASE_SERVICE_ACCOUNT_LISA_CMPT` = contenu JSON du compte de service
+   Firebase. Sans lui, le workflow ignore la publication (avertissement) : l'adresse
+   iPhone ne suit plus les mises à jour. Publication manuelle possible :
+   `firebase deploy --only hosting --project lisa-cmpt` (fichiers exclus : voir
+   `firebase.json`, dont `.git/**`).
 
 ### Raccourci clavier
 
@@ -130,6 +171,12 @@ python3 -m http.server 8765                                           # depuis l
 Le paramètre `?emu` (uniquement sur `localhost`) branche l'app sur les
 émulateurs Auth (9099) et Firestore (8080) du projet `demo-lisa` et expose
 `__twTestSignIn(email)` pour se connecter sans popup Google.
+
+- **iPhone** : mêmes tests dans **WebKit** (moteur de Safari, Playwright) au
+  format iPhone 16 Pro Max (430 × 932, tactile) : navigation par la barre du bas,
+  pointage au doigt, Férié, menu Données, saisie rapide, absence de débordement
+  horizontal et de champ < 16 px. Le test final (installation + connexion Google)
+  se fait sur l'iPhone.
 
 ## Sauvegarde & restauration
 
@@ -225,6 +272,7 @@ service cloud.firestore {
 | 2026-09-29 | Lot 3 A16 | Design system en couches (`@layer`) et tokens, thèmes clair/sombre, Segoe UI Variable, PWA installable (manifeste, service worker hors ligne, Window Controls Overlay), `<dialog>` à la place de ~20 `alert`/`confirm`, toasts avec **Annuler** (5 s), raccourcis clavier + aide `?`, **saisie rapide Ctrl+K**, sémantique et navigation clavier complètes. 6 problèmes rencontrés consignés (C1 à C6). |
 | 2026-09-29 | Lot 3 retours | **Blocage sur « Chargement… »** corrigé : chargeur protégé dans `index.html` (en cas d'échec, rechargement forcé de tous les fichiers de l'app une fois, puis message clair « Ctrl+F5 »), service worker qui revalide chaque fichier (`cache: 'no-cache'`, VERSION `lot3b`), bouton **Recharger** si Firestore ne répond pas en 15 s. **Thème clair supprimé** (sombre uniquement, comme avant). **Raccourcis supprimés** (`Alt+H/P/S`, `1`–`4`, `←`/`→`/`T`, `Ctrl+F`, `Ctrl+S`, aide `?`) — seul `Ctrl+K` est conservé. Problèmes C7 à C9 consignés. |
 | 2026-09-29 | Navigation | **Page d'accueil supprimée** : l'app s'ouvre sur le Tableau de bord. **Pointage CEGID devient un onglet**, à droite de « Heures imputées » (`#/suivi/pointage`). Liens Accueil / Pointage / Suivi retirés de l'en-tête ; sauvegarde, restauration et import CSV déplacés dans un menu **💾 Données** (Popover API) de l'en-tête. Anciennes adresses `#/` et `#/pointage` redirigées. Raccourcis de l'icône PWA mis à jour. `js/views/home.js` supprimé, logique déplacée dans `js/ui/data.js`. Service worker `lot3c`. |
+| 2026-09-29 | iPhone | **App utilisable en PWA sur iPhone** : seconde adresse **https://lisa-cmpt.web.app** (Firebase Hosting, même code, mêmes données) avec connexion Google par redirection sur le même domaine (contourne le blocage du stockage tiers de Safari) ; l'adresse PC ne change pas. Mise en page téléphone (barre d'onglets en bas, pointage en liste, zones sûres, champs 16 px, dialogues pleine largeur), icône iPhone, balises `apple-mobile-web-app-*`. Corrigé : plantage Safari au démarrage (`requestIdleCallback`). Ajout de `firebase.json`, `.firebaserc`, workflow de publication. Tests WebKit iPhone 11/11. Service worker `ios1`. Problèmes D1 à D7 consignés. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 
@@ -236,12 +284,15 @@ service cloud.firestore {
 
 ```
 index.html              Coquille : en-tête, <main>, écran de connexion, <dialog>, zone de toasts
-css/app.css             Styles en couches (@layer reset, tokens, base, components, views, utilities), thème sombre
+css/app.css             Styles en couches (@layer reset, tokens, base, components, views, utilities), thème sombre, mise en page téléphone ≤ 600 px
 manifest.webmanifest    Manifeste PWA (Window Controls Overlay, raccourcis)
+firebase.json           Firebase Hosting (adresse iPhone) : fichiers publiés, en-têtes de cache
+.firebaserc             Projet Firebase par défaut (lisa-cmpt)
+.github/workflows/      firebase-hosting.yml : publication automatique sur lisa-cmpt.web.app à chaque push
 sw.js                   Service worker : démarrage hors ligne (⚠ incrémenter VERSION et tenir SHELL à jour à chaque livraison)
-icons/                  Icônes de l'application (SVG, PNG 192/512, maskable)
+icons/                  Icônes de l'application (SVG, PNG 192/512, maskable, apple-touch-icon 180 pour iPhone)
 js/app.js               Point d'entrée : routage #/suivi/<onglet>, sections chargées à la demande, Ctrl+K, menu Données, rafraîchissement temps réel
-js/firebase.js          Initialisation Firebase (SDK modulaire 12.19, cache IndexedDB, mode émulateur)
+js/firebase.js          Initialisation Firebase (SDK modulaire 12.19, cache IndexedDB, mode émulateur, authDomain selon l'adresse)
 js/store.js             Store : état en mémoire, écritures ciblées, écoute temps réel, restauration (Annuler)
 js/cloud.js             Connexion, migration, démarrage du store, état de synchro
 js/migrate.js           Conversion de l'ancien format (kv / cache local) avec contrôle des totaux

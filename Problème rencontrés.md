@@ -38,6 +38,7 @@ Journal des problèmes rencontrés sur Time-Work et de leur résolution.
   n'existe qu'en Codespaces ; il échoue ailleurs (ex. VS Code sur Windows).
 - **Contournement possible** : remplacer `cd "$REPO"` par `cd "$(dirname "$0")"`.
 - **Statut** : non modifié.
+- **Mise à jour 2026-09-29** : script supprimé du repo (ainsi que `.vscode/tasks.json`), jugé inutile — problème clos.
 
 ### 6. Secrets exposés dans les instructions du projet Claude
 - **Constat** : token GitHub et clé privée du compte de service Firebase

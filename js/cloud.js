@@ -215,7 +215,7 @@ async function runMigration(user, legacy) {
     } catch (e) {
         console.error('[migration]', e);
         showLogin('', (e.code === 'permission-denied'
-            ? 'Migration refusée par Firestore : publie d\'abord la nouvelle version de firestore.rules dans la console Firebase.'
+            ? 'Migration refusée par Firestore : publie d\'abord les nouvelles règles Firestore dans la console Firebase (voir README).'
             : 'Migration interrompue : ' + (e.message || e)) +
             '\nTes données d\'origine sont intactes (et sauvegardées). Recharge la page pour réessayer.');
         return false;
@@ -225,7 +225,7 @@ async function runMigration(user, legacy) {
 function deny(user) {
     store.stop();
     showLogin('', 'Accès refusé par Firestore pour « ' + (user.email || '?') + ' ».\n' +
-        'Seul le compte de la liste blanche (firestore.rules) est autorisé, et les règles doivent être publiées dans la console.');
+        'Seul le compte de la liste blanche des règles Firestore est autorisé, et les règles doivent être publiées dans la console.');
 }
 
 /* ───────────────────────── Démarrage ───────────────────────── */

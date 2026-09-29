@@ -149,6 +149,8 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 #### A16. Accessibilité et design system
 - **Constat** : contrastes mesurés sous WCAG AA — texte `--tx-muted` 4,15:1, client des accordéons 3,38:1, légendes 3,09:1, blanc sur bouton bleu `#3d9eff` 2,79:1 ; textes de 9–10 px ; thème sombre uniquement ; police Inter chargée via `@import` Google Fonts au lieu de Segoe UI Variable ; ~20 `alert()`/`confirm()` natifs ; cartes du Dashboard non focusables ; boutons ✕ sans `aria-label` ; labels non reliés aux champs ; pas de `prefers-reduced-motion` ; aucun raccourci clavier ; pas de manifest PWA.
 - **Solution** : Lot 3 du README.
+- **Statut** : corrigé le 2026-09-29 (partiel — suite au lot 2)
+- **Correction appliquée** : Tokens : `--tx-muted` 0,45 → 0,64 ; nouveau `--blue-strong` (#1a66d0, 5,45:1 sous texte blanc) pour boutons pleins, puce active, onglet actif, total CEGID, pastille du jour ; `--blue` #3d9eff → #6cb8ff, `--red` #ff5252 → #ff8f8f ; 11 couleurs de types + palette des Loads éclaircies (tokens CSS et table `SV_COLORS` alignés). Suppression des atténuations par `opacity` sur du texte (libellés de tuiles, boutons ✕, compteurs) ; ~24 blancs à 0,3–0,55 remplacés par `--tx-muted` ; séparateurs et flèches décoratifs en `aria-hidden`. 47 tailles de 7 à 10 px portées à 11 px. Vérification : script de contraste maison (compose les fonds semi-transparents et teste chaque arrêt de dégradé) : 207 défauts avant → 0 ; axe-core `color-contrast` : 0. Contrôles désactivés exclus (exemptés par WCAG).
 
 ---
 

@@ -82,6 +82,7 @@ bash auto-push.sh
 | 2026-09-29 | Correctif A9 | Modification d'une durée existante : si la saisie est invalide, toast d'erreur explicite, champ en rouge et valeur précédente restaurée ; toast de confirmation si la modification est acceptée. |
 | 2026-09-29 | Correctif A10 | Vue CEGID : grille fluide 5 colonnes (3 puis 2 en container query), plus de scroll interne ; les 5 jours et le total restent visibles de 1200×800 à 560×500. |
 | 2026-09-29 | Correctif A11 | Écrans renommés « Pointage CEGID » (portail) et « Heures imputées (semaine) » (Suivi) ; écart pointé − imputé affiché par jour et sur la semaine ; motif Férié / Congé enregistré (`r_AAAA-MM-JJ`) et affiché sur la carte du jour. |
+| 2026-09-29 | Correctif A16 | Contrastes : tous les textes des 7 vues ≥ 4,5:1 (3:1 pour les grands titres), aucun texte < 11 px ; couleurs d'accent et de types éclaircies pour le texte, boutons pleins sur un bleu plus foncé. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

@@ -74,6 +74,17 @@ démarrage : c'est ce bug, pas le code. Contournement documenté (non nécessair
   « Web client (auto created by Google Service) » (sinon `redirect_uri_mismatch`).
 - Le service worker ne met **jamais** en cache `/__/…` (pages de connexion Firebase Hosting).
 
+### 1.8 Glisser-déposer au doigt (Paramètres → types de travail)
+- **Pointer Events** plutôt que le glisser-déposer HTML5 (peu fiable au doigt sur iPhone) : un seul code pour la souris et le doigt.
+- La poignée porte `touch-action: none` : le doigt déplace la ligne au lieu de faire défiler la page (le reste de la ligne défile normalement).
+- `setPointerCapture` sur la poignée ; **ne jamais retirer du document l'élément qui a capturé le pointeur** pendant le geste (sinon `lostpointercapture` coupe le geste : Problème F1) → on déplace toujours la ligne voisine.
+- Défilement automatique près des bords, **au-dessus de la barre d'onglets** (le bas de l'écran est couvert par la pilule et le « + »).
+- Sélection de texte coupée pendant le geste (`user-select: none` sur la liste).
+
+### 1.9 Changer l'icône de l'app
+- iOS lit l'`apple-touch-icon` (180 × 180, sans transparence) **seulement au moment de l'ajout à l'écran d'accueil** : pour voir une nouvelle icône, supprimer l'app de l'écran d'accueil puis la rajouter depuis Safari (« ··· » → Partager → Sur l'écran d'accueil). Aucune donnée perdue (Firestore).
+- Toujours **renommer** les fichiers d'icône (caches du navigateur, du service worker et de Firebase Hosting `max-age=86400`).
+
 ---
 
 ## 2. Débogage et tests
@@ -111,6 +122,7 @@ démarrage : c'est ce bug, pas le code. Contournement documenté (non nécessair
 - [ ] Aucune structure « écran fixe » ; aucun élément fixe dans `<main>` ; fond de `<html>` inchangé ou mis à jour.
 - [ ] Champs ≥ 16 px en tactile, zones tactiles ≥ 44 px, pas de débordement horizontal à 430 px.
 - [ ] Demande de test précise : **fermer complètement l'app** (multitâche) puis la rouvrir depuis l'icône.
+- [ ] Si l'icône a changé : préciser qu'il faut **supprimer puis rajouter** l'app à l'écran d'accueil.
 
 ---
 
@@ -120,6 +132,7 @@ démarrage : c'est ce bug, pas le code. Contournement documenté (non nécessair
 |---|---|
 | 29/09/2026 | Version iPhone : adresse `lisa-cmpt.web.app`, connexion par redirection sur le même domaine, mise en page téléphone, `requestIdleCallback` (D1), champs 16 px (D3), débordements (D4, D5), `.git` publié par erreur puis exclu (D6), secret CI (D7), Node 24 (D8). |
 | 29/09/2026 | Refonte « Verre » : structure de page conforme aux leçons PORTAIL-DUO (page qui défile, barres fixes hors de la plaque, fond de `<html>` = bas de la plaque, `--v-haut`, `--nav-offset` ≈ 22 pt), `mobile-web-app-capable` ajouté, police Unbounded mise en cache, dialogues en feuille du bas. Ce guide créé. |
+| 29/09/2026 | Onglet Paramètres : glisser-déposer au doigt (Pointer Events, `touch-action: none`, capture conservée), 6 onglets tenant sur 375 pt, nouvelle icône (à rajouter à l'écran d'accueil). §1.8, §1.9. |
 
 *Mettre à jour ce document si une version d'iOS change un comportement décrit ici.*
 

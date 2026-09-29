@@ -74,6 +74,8 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 - **Symptôme** : un nom de machine `<img src=x onerror=…>` exécute du JS à l'ouverture du Dashboard (test headless positif).
 - **Cause** : champs insérés dans `innerHTML` sans `esc()` : machine (camembert + légende « Machines »), noms de Load (badges, options, `onclick`), aperçu CSV (client, code, types inconnus, messages d'erreur).
 - **Solution** : `esc()` partout à court terme ; à terme rendu via `textContent` / `<template>` et suppression des `onclick` inline.
+- **Statut** : corrigé le 2026-09-29
+- **Correction appliquée** : `esc()` ajouté sur machine (camembert, légende, « Top »), libellés de type et de Load (`svGetTypeLabel` renvoie désormais du HTML sûr), options de type, aperçu et erreurs de l'import CSV. Noms de Load validés par `/^[A-Z0-9_]{1,10}$/` (création, ajout). Nouvelle fonction `normalizeData()` appliquée au chargement et à l'import JSON : ids numériques, dates ISO, types `[A-Z0-9_]`, durées > 0 ; les éléments invalides sont ignorés et comptés. Suppression de Load et budgets passés en `data-*` + délégation d'événements. Vérifié en headless : charge piégée dans client, code, machine, Load, type, id de saisie et CSV → aucun script exécuté dans les 4 vues ni dans l'aperçu CSV.
 
 #### A4. Règles Firestore sans liste blanche ni validation
 - **Constat** : tout compte Google peut se connecter et créer son document `users/{uid}` ; aucune limite de taille ni de format.

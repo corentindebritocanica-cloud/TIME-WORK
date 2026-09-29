@@ -75,6 +75,7 @@ bash auto-push.sh
 | 2026-09-29 | Correctif A2 | Démarrage : les clés en attente d'envoi gardent leur valeur locale au lieu d'être écrasées par le cloud, puis sont renvoyées automatiquement. |
 | 2026-09-29 | Correctif A3 | XSS : échappement de toutes les données utilisateur restantes (machines, Loads, types, aperçu CSV), noms de Load validés, données importées normalisées, plus aucune chaîne utilisateur dans un `onclick`. |
 | 2026-09-29 | Correctif A4 | Règles Firestore : accès limité au compte `corentin.debritocanica@gmail.com` (e-mail vérifié), validation du format du document, suppression de la règle globale. **À republier dans la console Firebase.** |
+| 2026-09-29 | Correctif A5 | Accordéons (affaires, semaines, jours) : animation `height: 0 → auto`, plus aucune saisie masquée quelle que soit la longueur. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

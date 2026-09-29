@@ -89,6 +89,8 @@ Statut de tous les points : **ouvert** (aucun code modifié lors de l'audit).
 - **Symptôme** : une affaire avec 129 saisies mesure 8 977 px mais seuls 4 000 px s'affichent → plus de la moitié des saisies invisibles. Idem semaines (4 000 px) et jours CEGID (2 000 px).
 - **Cause** : animation par `max-height` codée en dur.
 - **Solution** : `<details>` natif ou `interpolate-size: allow-keywords` + `height: auto`.
+- **Statut** : corrigé le 2026-09-29
+- **Correction appliquée** : Suppression des `max-height` 4000 / 2000 px (CSS, templates, `svToggleAcc`, `svToggleCegidDay`). `:root { interpolate-size: allow-keywords }` + transition de `height` pilotée uniquement par la classe `.open` ; `visibility: hidden` quand replié pour que le contenu caché ne soit plus atteignable au clavier ; rotation du chevron des jours en CSS. Vérifié en headless : affaire de 210 saisies = 14 107 px de contenu, 14 107 px visibles ; semaines et jours idem ; repliés = 0 px.
 
 #### A6. Solde global CEGID faux en cours de semaine
 - **Symptôme** : un mardi avec 2 jours saisis (14h12) → solde « −21h18 ».

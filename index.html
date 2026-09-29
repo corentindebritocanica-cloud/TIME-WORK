@@ -512,7 +512,17 @@
         .sv-acc-hdr:hover { background:rgba(61,158,255,0.07); }
         .sv-acc-icon { color:rgba(61,158,255,0.45); font-size:22px; font-weight:300; transition:transform .38s cubic-bezier(.4,0,.2,1); flex-shrink:0; width:22px; text-align:center; line-height:1; }
         .sv-acc-item.open .sv-acc-icon { transform:rotate(90deg); color:var(--blue); }
-        .sv-acc-body { max-height:0; overflow:hidden; transition:max-height .45s cubic-bezier(.4,0,.2,1); }
+        /* A5 : hauteur animée 0 → auto (plus de plafond en max-height) */
+        :root { interpolate-size: allow-keywords; }
+        .sv-acc-body, .sv-week-body, .sv-cegid-body {
+            height: 0; overflow: hidden; visibility: hidden;
+            transition: height .45s cubic-bezier(.4,0,.2,1), visibility .45s;
+        }
+        .sv-acc-item.open > .sv-acc-body,
+        .sv-week-item.open > .sv-week-body,
+        .sv-cegid-day.open > .sv-cegid-body { height: auto; visibility: visible; }
+        .sv-cegid-caret { transform: rotate(0deg); }
+        .sv-cegid-day.open .sv-cegid-caret { transform: rotate(90deg); }
         .sv-acc-body-inner { padding:4px 20px 22px; }
 
         /* ── ACCORDÉON SEMAINE ── */
@@ -532,7 +542,6 @@
         .sv-cegid-hdr:hover { background:rgba(61,158,255,0.04); }
         .sv-cegid-hdr:focus-visible { outline:2px solid var(--blue); outline-offset:-2px; }
         .sv-week-item.open .sv-acc-icon { color:#60a5fa; }
-        .sv-week-body { max-height:0; overflow:hidden; transition:max-height .45s cubic-bezier(.4,0,.2,1); }
         .sv-week-body-inner { padding:0; }
 
         /* ── FORM DANS ACCORDÉON ── */
@@ -1819,7 +1828,6 @@
         if (!body) return;
         const isOpen = item.classList.contains('open');
         item.classList.toggle('open', !isOpen);
-        body.style.maxHeight = isOpen ? '0' : '4000px';
         const hdr = item.querySelector('.sv-acc-hdr, .sv-week-hdr');
         if (hdr) hdr.setAttribute('aria-expanded', String(!isOpen));
     }
@@ -2221,7 +2229,7 @@
             })() +
             '<button onclick="event.stopPropagation();deleteAffaire(' + a.id + ',event);" class="ac-del" title="Supprimer">✕</button>' +
             '</div>' +
-            '<div class="sv-acc-body" id="sv-body-' + a.id + '" style="max-height:' + (open ? '4000px' : '0') + '">' +
+            '<div class="sv-acc-body" id="sv-body-' + a.id + '">' +
             '<div class="sv-acc-body-inner">' +
             '<div class="sv-acc-form">' +
             '<div class="panel-title" style="margin-bottom:12px;font-size:13px;">Saisir des heures</div>' +
@@ -2480,7 +2488,7 @@
                 '<div style="font-size:11px;color:rgba(255,255,255,.38);">' + fmtSh(mon) + ' → ' + fmtSh(fri) + '</div></div>' +
                 '<div style="margin-left:auto;font-size:15px;font-weight:700;color:#93c5fd;">' + minsToHM(weekTot) + '</div>' +
                 '</div>' +
-                '<div class="sv-week-body" id="sv-wkbody-' + wk + '" style="max-height:' + (isOpen ? '4000px' : '0') + '">' +
+                '<div class="sv-week-body" id="sv-wkbody-' + wk + '">' +
                 '<div class="sv-week-body-inner"><table class="entries-table">' +
                 '<thead><tr><th>Affaire</th><th>Client</th><th>Type</th><th></th><th style="text-align:right;color:#fff;">Temps</th></tr></thead>' +
                 '<tbody>' + daysHTML +
@@ -2575,7 +2583,7 @@
             return '<div id="sv-cegid-day-' + iso + '" class="panel sv-cegid-day' + (isOpen ? ' open' : '') + '" style="padding:0;margin-bottom:12px;border-color:' + brdCol + ';overflow:hidden;">' +
                 '<div class="sv-cegid-hdr" role="button" tabindex="0" aria-expanded="' + (isOpen ? 'true' : 'false') + '" onclick="svToggleCegidDay(\'' + iso + '\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();svToggleCegidDay(\'' + iso + '\');}" style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;gap:16px;cursor:pointer;user-select:none;' + headBg + '">' +
                     '<div style="display:flex;align-items:center;gap:14px;min-width:0;">' +
-                        '<span class="sv-cegid-caret" aria-hidden="true" style="color:' + (isToday ? '#fff' : 'rgba(61,158,255,.55)') + ';font-size:20px;line-height:1;transition:transform .35s cubic-bezier(.4,0,.2,1);transform:rotate(' + (isOpen ? 90 : 0) + 'deg);flex-shrink:0;width:16px;text-align:center;">›</span>' +
+                        '<span class="sv-cegid-caret" aria-hidden="true" style="color:' + (isToday ? '#fff' : 'rgba(61,158,255,.55)') + ';font-size:20px;line-height:1;transition:transform .35s cubic-bezier(.4,0,.2,1);flex-shrink:0;width:16px;text-align:center;">›</span>' +
                         '<div style="width:44px;height:44px;border-radius:12px;background:' + (isToday ? 'linear-gradient(135deg,#3d9eff,#0050d4)' : 'rgba(255,255,255,.06)') + ';display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:' + (isToday ? '0 4px 14px rgba(61,100,255,.4)' : 'none') + ';">' +
                             '<div style="font-size:9px;font-weight:700;color:' + (isToday ? '#fff' : 'rgba(255,255,255,.55)') + ';letter-spacing:.5px;">' + shortWd(d) + '</div>' +
                             '<div style="font-size:16px;font-weight:800;color:' + (isToday ? '#fff' : 'rgba(255,255,255,.9)') + ';line-height:1;">' + d.getDate() + '</div>' +
@@ -2590,7 +2598,7 @@
                         (dayTot ? '<div style="font-size:12px;color:#00e4a8;font-weight:700;margin-top:4px;">' + (dayTot/60).toFixed(2).replace('.', ',') + ' déc.</div>' : '') +
                     '</div>' +
                 '</div>' +
-                '<div class="sv-cegid-body" style="overflow:hidden;transition:max-height .35s cubic-bezier(.4,0,.2,1);max-height:' + (isOpen ? '2000px' : '0') + ';">' +
+                '<div class="sv-cegid-body">' +
                 (list.length ? '<div style="display:grid;grid-template-columns:minmax(160px,2fr) minmax(120px,1.2fr) minmax(140px,1fr) 90px 90px;gap:12px;padding:9px 18px;background:rgba(0,0,0,.15);border-top:1px solid rgba(255,255,255,.05);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(61,158,255,.75);">' +
                     '<div>Client</div><div>Code affaire</div><div>Type</div>' +
                     '<div style="text-align:right;">Heures</div><div style="text-align:right;">Décimal</div>' +
@@ -2610,13 +2618,9 @@
     function svToggleCegidDay(iso) {
         const item = document.getElementById('sv-cegid-day-' + iso);
         if (!item) return;
-        const body  = item.querySelector('.sv-cegid-body');
-        const caret = item.querySelector('.sv-cegid-caret');
         const hdr   = item.querySelector('.sv-cegid-hdr');
         const isOpen = item.classList.contains('open');
         item.classList.toggle('open', !isOpen);
-        if (body)  body.style.maxHeight = isOpen ? '0' : '2000px';
-        if (caret) caret.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
         if (hdr)   hdr.setAttribute('aria-expanded', String(!isOpen));
         if (!window._svCegidClosed) window._svCegidClosed = new Set();
         if (isOpen) window._svCegidClosed.add(iso);

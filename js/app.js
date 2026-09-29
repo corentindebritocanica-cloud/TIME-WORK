@@ -4,7 +4,7 @@
  *    (toute autre adresse, dont les anciennes #/ et #/pointage, est redirigée)
  *  - sections chargées à la demande (import() dynamique), montées/démontées proprement
  *  - rafraîchissement quand un autre poste/onglet modifie les données (sans casser une saisie)
- *  - saisie rapide (Ctrl+K), menu « Données » (sauvegarde, restauration, import CSV)
+ *  - saisie rapide (Ctrl+K ou bouton rond « + »), menu « Données » (sauvegarde, restauration, import CSV)
  */
 import { startCloud, logout, store } from './cloud.js';
 import { EMULATOR } from './firebase.js';
@@ -28,7 +28,8 @@ let pendingRefresh = false;
 const ctx = {
     store, toast, ask, confirmAction, inform,
     nav: path => { location.hash = path; },
-    refresh: () => refreshCurrent()
+    refresh: () => refreshCurrent(),
+    quick: () => openQuickEntry()          // bouton rond « + » de la barre d'onglets
 };
 
 /** Analyse l'URL → onglet ; corrige l'adresse si elle n'est pas canonique. */
@@ -44,6 +45,7 @@ async function route() {
     if (!ready) return;
     const r = parseRoute();
     document.title = TITLES[r.tab] + ' — TIME-WORK';
+    document.getElementById('page-title').textContent = TITLES[r.tab];     // titre de l'en-tête (Unbounded 22 px)
     if (current) { current.api.update?.(r); return; }
     let mod;
     try { mod = await loadSuivi(); }
@@ -121,7 +123,6 @@ function preload() {
 
 /* ───────────────────────── Démarrage ───────────────────────── */
 function init() {
-    document.getElementById('quick-btn').addEventListener('click', openQuickEntry);
     document.getElementById('logout-btn').addEventListener('click', logout);
     bindDataMenu();
     addEventListener('hashchange', route);

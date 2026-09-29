@@ -17,18 +17,22 @@ import { minsToHM } from '../domain/time.js';
 export function pie(data, o) {
     const total = data.reduce((s, d) => s + d.mins, 0);
     if (!total) return html`<p class="empty">Aucune saisie</p>`;
-    const S = o.size, c = S / 2, R = S / 2 - 4, Rin = R * 0.46;
+    // Anneau dessiné par secteurs évidés (pas de disque plein au centre : sur le verre translucide,
+    // un « trou » opaque ferait une tache sombre — design Verre, UX-UI.md)
+    const S = o.size, c = S / 2, R = S / 2 - 4, Rin = R * 0.6;
+    const pt = (r, ang) => (c + r * Math.cos(ang)).toFixed(2) + ',' + (c + r * Math.sin(ang)).toFixed(2);
     let a = -Math.PI / 2;
     const slices = data.map((d, i) => {
         const k = o.scope + '-' + i, ang = d.mins / total * 2 * Math.PI;
         const title = html`<title>${d.label} — ${minsToHM(d.mins)} (${Math.round(d.mins / total * 100)} %)</title>`;
         let shape;
         if (ang >= 2 * Math.PI - 1e-4) {
-            shape = html`<circle class="slice ${d.cls}" data-lk="${k}" cx="${c}" cy="${c}" r="${R}">${title}</circle>`;
+            const ring = `M${c - R},${c} A${R},${R} 0 1 0 ${c + R},${c} A${R},${R} 0 1 0 ${c - R},${c} Z ` +
+                         `M${c - Rin},${c} A${Rin},${Rin} 0 1 1 ${c + Rin},${c} A${Rin},${Rin} 0 1 1 ${c - Rin},${c} Z`;
+            shape = html`<path class="slice ${d.cls}" data-lk="${k}" fill-rule="evenodd" d="${ring}">${title}</path>`;
         } else {
-            const x1 = c + R * Math.cos(a), y1 = c + R * Math.sin(a);
-            const x2 = c + R * Math.cos(a + ang), y2 = c + R * Math.sin(a + ang);
-            shape = html`<path class="slice ${d.cls}" data-lk="${k}" d="M${c},${c} L${x1.toFixed(1)},${y1.toFixed(1)} A${R},${R} 0 ${ang > Math.PI ? 1 : 0},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z">${title}</path>`;
+            const large = ang > Math.PI ? 1 : 0, b = a + ang;
+            shape = html`<path class="slice ${d.cls}" data-lk="${k}" d="M${pt(R, a)} A${R},${R} 0 ${large},1 ${pt(R, b)} L${pt(Rin, b)} A${Rin},${Rin} 0 ${large},0 ${pt(Rin, a)} Z">${title}</path>`;
         }
         a += ang;
         return shape;
@@ -36,7 +40,6 @@ export function pie(data, o) {
     return html`
         <svg class="pie" viewBox="0 0 ${S} ${S}" width="${S}" height="${S}" role="img" aria-label="${o.label || 'Répartition'}">
             ${slices}
-            <circle class="pie-hole" cx="${c}" cy="${c}" r="${Rin}"/>
             <text class="pie-center" x="${c}" y="${c + (o.sub ? 1 : 5)}">${o.center}</text>
             ${o.sub ? html`<text class="pie-sub" x="${c}" y="${c + 15}">${o.sub}</text>` : ''}
         </svg>`;

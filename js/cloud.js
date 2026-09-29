@@ -49,13 +49,15 @@ function renderStatus() {
     box.hidden = !currentUser;
     if (!currentUser) return;
     const s = store.status();
+    // Pastille à côté du titre (design Verre) : vert synchronisé, or envoi en cours, rouge hors ligne / erreur
     let state = 'ok', label = 'Synchronisé';
     if (s.error) { state = 'error'; label = 'Erreur de synchro'; }
-    else if (!navigator.onLine) { state = 'pending'; label = s.pending ? 'Hors ligne — enregistré sur ce poste' : 'Hors ligne'; }
+    else if (!navigator.onLine) { state = 'offline'; label = s.pending ? 'Hors ligne — enregistré sur ce poste' : 'Hors ligne'; }
     else if (s.pending) { state = 'pending'; label = 'Enregistrement…'; }
     box.dataset.s = state;
+    document.documentElement.dataset.sync = state === 'ok' ? 'ok' : state === 'pending' ? 'envoi' : 'hors-ligne';
     el('sync-txt').textContent = label;
-    box.title = (currentUser.email || '') + (s.error ? ' — ' + (s.error.message || s.error) : '');
+    box.title = label + ' — ' + (currentUser.email || '') + (s.error ? ' — ' + (s.error.message || s.error) : '');
 }
 
 /** Télécharge un objet en JSON. */

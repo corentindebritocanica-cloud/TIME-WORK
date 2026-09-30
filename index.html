@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" class="verre" data-app="timework" data-sync="ok">
+<html lang="fr" class="verre" data-app="timework" data-sync="ok" data-theme="verre">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -53,6 +53,11 @@
             if (!Number.isFinite(l)) l = 50;
             if (l !== 50) racine.style.setProperty('--v-flou', l === 0 ? 'none' : 'blur(' + (l * 0.6).toFixed(1) + 'px) saturate(' + (100 + l * 1.6).toFixed(0) + '%)');
             if (p.animations === false) racine.dataset.animations = 'off';
+            if (p.theme === 'neo') {                   // thème Neumorphisme (Paramètres → Apparence)
+                racine.dataset.theme = 'neo';
+                racine.style.setProperty('--v-flou', 'none');
+                document.querySelector('meta[name="theme-color"]').setAttribute('content', '#1f232a');
+            }
         } catch { /* stockage indisponible : valeurs par défaut */ }
     })();
     </script>

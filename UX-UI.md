@@ -217,8 +217,33 @@ et `VERSION`). Sur iPhone, l'icône n'est relue qu'à l'ajout à l'écran d'accu
 | 29/09/2026 | **Refonte « Verre »** : aspect identique aux apps PORTAIL-DUO (halos animés bleu + violet, plaque de verre, panneaux sans flou, pilules, Unbounded, barre flottante + « + », pastille de connexion à côté du titre, dialogues en feuille du bas sur téléphone, anneaux évidés). Écarts assumés : voile de lisibilité et textes éclaircis (contraste AA), couleur d'app violette, « + » à côté de la pilule sur PC, en-tête WCO. |
 | 29/09/2026 | **Onglet Paramètres** : types de travail personnalisés (ajout, couleur de la palette, glisser-déposer, masquage, suppression si inutilisé), curseur d'intensité du flou et interrupteur des animations (par appareil) ; **animations de changement d'onglet** (entrée directionnelle 280 ms) ; **nouvelle icône** style Verre ; 6ᵉ onglet « Réglages ». |
 | 30/09/2026 | **Tri des affaires** (Par affaire) : rangée de puces « Trier par » sous la recherche (`.filter-bar` + `.chip[aria-pressed]`), flèche ↑ / ↓ sur la puce active, 2ᵉ clic = ordre inversé. |
+| 30/09/2026 | **Thème Neumorphisme** (au choix, par appareil) : voir la section « Thème Neumorphisme ». Le Verre reste le thème par défaut et la référence (charte PORTAIL-DUO). |
 
 *Mettre à jour ce tableau à chaque évolution de l'interface.*
+
+---
+
+## 7. Thème Neumorphisme (2ᵉ thème, 30/09/2026)
+
+Demande de Corentin : pouvoir choisir entre le Verre et un design **neumorphique**. Choix dans
+**Paramètres → Apparence → Thème**, enregistré **par appareil** (`localStorage['tw-apparence'].theme` =
+`verre` | `neo`), appliqué avant le premier affichage par le script du `<head>` (`<html data-theme="neo">`).
+
+**Principes** (neumorphisme **sombre**, puisque l'app est sombre uniquement) :
+- une seule matière : `--n-bg: #1f232a` pour le fond ET toutes les surfaces (zone hors page iPhone comprise) ;
+- relief par **double ombre** : sombre `#14171c` en bas à droite, claire `#2b313b` en haut à gauche
+  (`--n-out`, `--n-out-sm`, `--n-out-lg`) ;
+- **enfoncé** (`--n-in`, `--n-in-sm`) = champ de saisie, élément actif (onglet, puce, bascule, case cochée),
+  bouton pendant l'appui, jour pointé ;
+- pas de halos, pas de verre, **aucun flou** (`--v-flou: none`, forcé aussi en JS car le réglage de flou est posé
+  en style en ligne — Problème G1) ; pas de plaque : le contenu est posé sur la matière ;
+- couleur : l'accent passe dans le **texte** des éléments actifs (et le grand total du Pointage), plus d'aplats teintés ;
+  couleurs de catégories et typographie inchangées ; contraste AA vérifié (0 défaut / 1 891 textes).
+
+**Implémentation** : couche CSS `theme` (la dernière, donc prioritaire) dans `css/app.css` : elle **redirige les jetons
+du verre** (`--v-soft`, `--v-edge`, `--v-reflet`, `--v-glass*`…) vers la matière, puis donne son relief à chaque famille
+de composants. Aucun composant n'est dupliqué. Pour un nouveau composant : vérifier son rendu dans les **deux**
+thèmes (relief `--n-out*` s'il est posé, `--n-in*` s'il est actif / creusé).
 
 ---
 

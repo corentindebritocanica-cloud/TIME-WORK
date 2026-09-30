@@ -3,7 +3,8 @@
  *  1. Types de travail (enregistrés dans Firestore, settings.types) : ajout, ordre par glisser-déposer
  *     (doigt ou souris, Pointer Events) ou au clavier (flèches sur la poignée, boutons ↑ ↓),
  *     masquage, suppression d'un type personnalisé inutilisé, retour à l'ordre par défaut.
- *  2. Apparence (propre à cet appareil) : intensité du flou du verre, animations entre onglets.
+ *  2. Apparence (propre à cet appareil) : thème Verre / Neumorphisme, intensité du flou du verre,
+ *     animations entre onglets.
  */
 import { html, mount as render, on, $, $$ } from '../ui/dom.js';
 import {
@@ -11,6 +12,8 @@ import {
     typeClass, CUSTOM_COLORS, TYPE_LABEL_MAX, BUILTIN_TYPES
 } from '../domain/types.js';
 import { loadPrefs, savePrefs, flouLabel, DEFAULT_PREFS } from '../ui/prefs.js';
+
+const THEME_CHOICES = [['verre', 'Verre', 'Halos, verre dépoli'], ['neo', 'Neumorphisme', 'Relief doux, sans flou']];
 
 const AUTO_SCROLL_EDGE = 72;       // px : zone près des bords où la liste défile pendant un glisser
 const AUTO_SCROLL_MAX = 14;        // px par image
@@ -108,17 +111,26 @@ export function create(el, ctx) {
                     <h2 id="h-look" class="panel-title">Apparence</h2>
                     <span class="tag" title="Réglage enregistré sur cet appareil uniquement">Cet appareil</span>
                 </div>
-                <div class="field">
-                    <label for="flou-range">Effet de verre (flou)</label>
+                <fieldset class="theme-choice">
+                    <legend class="label">Thème</legend>
+                    ${THEME_CHOICES.map(([k, label, sub]) => html`
+                        <label class="theme-opt">
+                            <input type="radio" name="theme" value="${k}" data-action="theme" ${prefs.theme === k ? 'checked' : ''}>
+                            <span class="theme-apercu apercu-${k}" aria-hidden="true"><i></i><i></i><i></i></span>
+                            <span class="theme-nom"><strong>${label}</strong><small>${sub}</small></span>
+                        </label>`)}
+                </fieldset>
+                <div class="field mt-4">
+                    <label for="flou-range">Effet de verre (flou)${prefs.theme === 'neo' ? html` <span class="muted">— sans effet en Neumorphisme</span>` : ''}</label>
                     <div class="range-row">
                         <span class="muted" aria-hidden="true">Réduit</span>
-                        <input id="flou-range" type="range" min="0" max="100" step="5" value="${prefs.flou}" data-action="flou" aria-describedby="flou-val">
+                        <input id="flou-range" type="range" min="0" max="100" step="5" value="${prefs.flou}" data-action="flou" aria-describedby="flou-val" ${prefs.theme === 'neo' ? 'disabled' : ''}>
                         <span class="muted" aria-hidden="true">Accentué</span>
                     </div>
                     <output id="flou-val" class="range-val" data-role="flou-val" for="flou-range">${flouLabel(prefs.flou)}</output>
                 </div>
                 <div class="toolbar">
-                    <button type="button" class="btn btn-ghost btn-sm" data-action="flou-reset" ${prefs.flou === DEFAULT_PREFS.flou ? 'disabled' : ''}>Valeur d'origine</button>
+                    <button type="button" class="btn btn-ghost btn-sm" data-action="flou-reset" ${prefs.flou === DEFAULT_PREFS.flou || prefs.theme === 'neo' ? 'disabled' : ''}>Valeur d'origine</button>
                 </div>
                 <label class="check mt-4"><input type="checkbox" data-action="anim" ${prefs.animations ? 'checked' : ''}> Animations entre les onglets</label>
                 <p class="settings-help mt-4">Plus le flou est fort, plus l'affichage demande de calcul (surtout sur iPhone).
@@ -281,6 +293,13 @@ export function create(el, ctx) {
                      const reset = $('[data-action="flou-reset"]', el); if (reset) reset.disabled = +r.value === DEFAULT_PREFS.flou; }
     }, ac.signal);
     on(el, 'change', {
+        theme: r => {
+            if (!r.checked) return;
+            savePrefs({ theme: r.value });
+            draw();
+            $(`[name="theme"][value="${r.value}"]`, el)?.focus();
+            ctx.toast(r.value === 'neo' ? 'Thème Neumorphisme appliqué sur cet appareil.' : 'Thème Verre appliqué sur cet appareil.');
+        },
         anim: c => { savePrefs({ animations: c.checked }); ctx.toast(c.checked ? 'Animations entre les onglets activées.' : 'Animations entre les onglets désactivées.'); }
     }, ac.signal);
     el.addEventListener('change', e => { if (e.target.name === 'color') addColor = +e.target.value; }, { signal: ac.signal });

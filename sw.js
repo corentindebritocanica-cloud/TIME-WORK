@@ -6,7 +6,7 @@
  *  - police Unbounded (Google Fonts, design Verre) : cache d'abord (titre et chiffres identiques hors ligne) ;
  *  - Firestore / Auth : jamais interceptés (le SDK gère son propre cache IndexedDB).
  */
-const VERSION = 'tw-2026-09-30-tri1';   // ⚠ à changer à CHAQUE livraison (voir GUIDE-PWA-IOS.md §5)
+const VERSION = 'tw-2026-09-30-neo1';   // ⚠ à changer à CHAQUE livraison (voir GUIDE-PWA-IOS.md §5)
 const SHELL = [
     './', './index.html', './css/app.css', './manifest.webmanifest', './icons/tw-verre.svg', './icons/tw-verre-192.png', './icons/tw-verre-apple-180.png',
     './js/app.js', './js/cloud.js', './js/firebase.js', './js/store.js', './js/migrate.js',

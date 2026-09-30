@@ -47,7 +47,9 @@ restauration et import CSV ; le bouton rond voisin déconnecte.
     direct entre PC et iPhone ; l'ordre est utilisé partout (listes, légendes,
     budgets). Les types personnalisés sont reconnus à l'import CSV (par nom ou
     code) et inclus dans la sauvegarde JSON.
-  - **Apparence** (propre à chaque appareil) : curseur **Effet de verre** pour
+  - **Apparence** (propre à chaque appareil) : choix du **thème** — **Verre**
+    (halos, verre dépoli, par défaut) ou **Neumorphisme** (sombre, surfaces en relief
+    doux, éléments actifs « enfoncés », sans flou ni halos) — ; curseur **Effet de verre** pour
     réduire ou accentuer le flou (0 à 60 px, 30 px par défaut) et interrupteur
     **Animations entre les onglets**.
 - **Suivi Projet** : gestion des affaires, saisies horaires par type
@@ -327,6 +329,7 @@ service cloud.firestore {
 | 2026-09-29 | Doc | Ajout de [`UX-UI.md`](./UX-UI.md) (design, règles, méthode, historique + charte de référence) et [`GUIDE-PWA-IOS.md`](./GUIDE-PWA-IOS.md) (iPhone : règles, tests, corrections du guide de référence + guide en annexe). README : section Documentation. |
 | 2026-09-29 | Paramètres | **Nouvel onglet Paramètres** (« Réglages » dans la pilule). **Types de travail personnalisés** : ajout (nom + couleur), ordre par **glisser-déposer** (doigt ou souris, défilement automatique) ou clavier, masquage, suppression d'un type inutilisé (avec Annuler), ordre par défaut — enregistré dans Firestore (`settings.types`, règles inchangées), synchronisé en direct, utilisé partout, compris par l'import CSV et la sauvegarde JSON. **Apparence** (par appareil) : curseur d'intensité du flou du verre, interrupteur des animations. **Animations de changement d'onglet** (glissé directionnel 280 ms + fondu du titre). **Nouvelle icône** style Verre (Windows, iPhone, favicon). Vérifié : 35 contrôles fonctionnels (dont glisser au doigt et à la souris, synchro entre 2 appareils), 52 tests unitaires, contraste 0 défaut sur 4 101 textes. Service worker `params1`. Problèmes F1 à F7 consignés. |
 | 2026-09-30 | Tri des affaires | Onglet **Par affaire** : puces **Création · Code affaire · Client · Machine** ; 2ᵉ clic = ordre inversé (flèche ↑ / ↓). Tri naturel français (`Intl.Collator`, nombres comparés comme des nombres, accents ignorés), affaires sans valeur toujours à la fin. Choix enregistré dans Firestore (`settings.affSort`), identique sur PC et iPhone. Fonction pure `js/domain/sort.js` (6 tests, 58 au total). Service worker `tri1`. |
+| 2026-09-30 | Thème Neumorphisme | **2ᵉ thème au choix** dans Paramètres → Apparence (par appareil) : **Neumorphisme sombre** (matière `#1f232a`, relief par double ombre, actifs et champs enfoncés, pas de halos ni de flou) à côté du **Verre** (par défaut). Cartes de choix avec aperçu, curseur de flou désactivé en Neumorphisme, appliqué avant le premier affichage, `theme-color` adaptée. Couche CSS `theme` qui redirige les jetons du verre. Vérifié : 6 onglets PC + iPhone sans débordement, contraste 0 défaut sur 1 891 textes, bascule / rechargement / retour au Verre. Service worker `neo1`. Problèmes G1–G2. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

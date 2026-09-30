@@ -216,6 +216,7 @@ et `VERSION`). Sur iPhone, l'icône n'est relue qu'à l'ajout à l'écran d'accu
 | 29/09/2026 | Version iPhone : barre d'onglets en bas sur téléphone, zones sûres, champs 16 px. |
 | 29/09/2026 | **Refonte « Verre »** : aspect identique aux apps PORTAIL-DUO (halos animés bleu + violet, plaque de verre, panneaux sans flou, pilules, Unbounded, barre flottante + « + », pastille de connexion à côté du titre, dialogues en feuille du bas sur téléphone, anneaux évidés). Écarts assumés : voile de lisibilité et textes éclaircis (contraste AA), couleur d'app violette, « + » à côté de la pilule sur PC, en-tête WCO. |
 | 29/09/2026 | **Onglet Paramètres** : types de travail personnalisés (ajout, couleur de la palette, glisser-déposer, masquage, suppression si inutilisé), curseur d'intensité du flou et interrupteur des animations (par appareil) ; **animations de changement d'onglet** (entrée directionnelle 280 ms) ; **nouvelle icône** style Verre ; 6ᵉ onglet « Réglages ». |
+| 30/09/2026 | **Tri des affaires** (Par affaire) : rangée de puces « Trier par » sous la recherche (`.filter-bar` + `.chip[aria-pressed]`), flèche ↑ / ↓ sur la puce active, 2ᵉ clic = ordre inversé. |
 
 *Mettre à jour ce tableau à chaque évolution de l'interface.*
 

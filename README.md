@@ -33,6 +33,11 @@ restauration et import CSV ; le bouton rond voisin déconnecte.
 
 - **Pointage CEGID** : saisie hebdomadaire des heures, motifs Férié / Congé,
   calculateur de sessions, solde cumulé (7h06 par jour ouvré, 35h30 / semaine).
+- **Par affaire** : tri de la liste par **code affaire**, **client** ou **machine**
+  (ou ordre de création) ; un 2ᵉ clic sur le tri actif inverse l'ordre (A→Z / Z→A).
+  Tri naturel (AF-2026-9 avant AF-2026-10), accents et majuscules ignorés, affaires
+  sans valeur à la fin. Le choix est enregistré dans Firestore (même tri sur PC et iPhone)
+  et se combine avec le champ de recherche.
 - **Paramètres** (onglet « Réglages ») :
   - **Types de travail** : ajouter ses propres types (nom + couleur), les
     **réordonner par glisser-déposer** (poignée ⋮⋮, au doigt ou à la souris ;
@@ -148,7 +153,7 @@ Si Firestore ne répond pas au bout de 15 s, un bouton **Recharger** apparaît.
 ```
 users/{uid}
   affaires   : { [id]: { client, num, machine, loads[], budgets{}, productive, unbilled, createdAt } }
-  settings   : { dashFilter, types: [ { code, hidden? } | { code, label, color, custom: true, hidden? } ] }
+  settings   : { dashFilter, affSort: { by: created|num|client|machine, dir: asc|desc }, types: [ { code, hidden? } | { code, label, color, custom: true, hidden? } ] }
   migratedAt : date de conversion depuis l'ancien format (champ kv supprimé)
 users/{uid}/months/{AAAA-MM}
   entries    : { [id]: { affaireId, date, type, minutes, createdAt } }
@@ -200,7 +205,7 @@ users/{uid}/months/{AAAA-MM}
 
 - **Fonctions pures** (durées, semaines ISO, solde, CSV, validation,
   échappement) : ouvrir `tests/domain.test.html` via un serveur local
-  (52 tests, résultat dans la page et la console).
+  (58 tests, résultat dans la page et la console).
 - **Application complète** : émulateur Firebase ci-dessous.
 
 ```bash
@@ -321,6 +326,7 @@ service cloud.firestore {
 | 2026-09-29 | UX/UI Verre | **Refonte de l'interface, aspect identique aux apps PORTAIL-DUO** (charte UX/UI v2.0, `verre.css`) : fond `#08080a` + deux halos animés calés sur l'horloge (bleu Corentin, violet TIME-WORK), une seule plaque de verre pour le contenu, panneaux sans flou (rayons 22–34 px), boutons / puces / onglets en pilule, Unbounded pour le titre de section et les grands chiffres, en-tête posé sur les halos (titre + pastille de connexion verte / or / rouge, boutons ronds Données et Déconnexion), **barre d'onglets flottante** en pilule avec icônes + **bouton rond « + »** (saisie rapide), dialogues en verre (feuille du bas sur téléphone), toasts en pilule, camemberts en anneau évidé. Contraste AA conservé (voile de lisibilité dans la plaque, textes éclaircis) : **0 défaut sur 5 024 textes mesurés au pixel**. Service worker `verre1` (police mise en cache). Problèmes E1 à E10 consignés. |
 | 2026-09-29 | Doc | Ajout de [`UX-UI.md`](./UX-UI.md) (design, règles, méthode, historique + charte de référence) et [`GUIDE-PWA-IOS.md`](./GUIDE-PWA-IOS.md) (iPhone : règles, tests, corrections du guide de référence + guide en annexe). README : section Documentation. |
 | 2026-09-29 | Paramètres | **Nouvel onglet Paramètres** (« Réglages » dans la pilule). **Types de travail personnalisés** : ajout (nom + couleur), ordre par **glisser-déposer** (doigt ou souris, défilement automatique) ou clavier, masquage, suppression d'un type inutilisé (avec Annuler), ordre par défaut — enregistré dans Firestore (`settings.types`, règles inchangées), synchronisé en direct, utilisé partout, compris par l'import CSV et la sauvegarde JSON. **Apparence** (par appareil) : curseur d'intensité du flou du verre, interrupteur des animations. **Animations de changement d'onglet** (glissé directionnel 280 ms + fondu du titre). **Nouvelle icône** style Verre (Windows, iPhone, favicon). Vérifié : 35 contrôles fonctionnels (dont glisser au doigt et à la souris, synchro entre 2 appareils), 52 tests unitaires, contraste 0 défaut sur 4 101 textes. Service worker `params1`. Problèmes F1 à F7 consignés. |
+| 2026-09-30 | Tri des affaires | Onglet **Par affaire** : puces **Création · Code affaire · Client · Machine** ; 2ᵉ clic = ordre inversé (flèche ↑ / ↓). Tri naturel français (`Intl.Collator`, nombres comparés comme des nombres, accents ignorés), affaires sans valeur toujours à la fin. Choix enregistré dans Firestore (`settings.affSort`), identique sur PC et iPhone. Fonction pure `js/domain/sort.js` (6 tests, 58 au total). Service worker `tri1`. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 
@@ -344,7 +350,7 @@ js/firebase.js          Initialisation Firebase (SDK modulaire 12.19, cache Inde
 js/store.js             Store : état en mémoire, écritures ciblées, écoute temps réel, restauration (Annuler)
 js/cloud.js             Connexion, migration, démarrage du store, état de synchro
 js/migrate.js           Conversion de l'ancien format (kv / cache local) avec contrôle des totaux
-js/domain/              Fonctions pures : time (durées, semaines), balance (solde), types (types intégrés + réglages de l'utilisateur), csv, validate, backup
+js/domain/              Fonctions pures : time (durées, semaines), balance (solde), types (types intégrés + réglages de l'utilisateur), sort (tri des affaires), csv, validate, backup
 js/ui/                  dom (gabarit html`` échappé par défaut, délégation), dialog, toast, pie, quick (saisie rapide), data (sauvegarde / restauration / import CSV), prefs (flou, animations — par appareil)
 js/views/               suivi (hôte des sections + barre d'onglets flottante + animations) + dashboard, affaires, chrono, imputees, pointage, parametres, shared
 tests/domain.test.html  Tests unitaires des fonctions pures

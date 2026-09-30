@@ -10,6 +10,10 @@ import { parseDuration, todayISO, fmtNum, minsToHM, minsToDec } from '../domain/
 import { LOAD_RE, cleanLoadName } from '../domain/validate.js';
 import { budgetBar, minutesByType } from './shared.js';
 import { focus } from './suivi.js';
+import { sortAffaires } from '../domain/sort.js';
+
+/** Tris proposés (le choix est enregistré dans Firestore : settings.affSort, identique PC / iPhone). */
+const SORTS = [['created', 'Création'], ['num', 'Code affaire'], ['client', 'Client'], ['machine', 'Machine']];
 
 const openIds = new Set();     // affaires ouvertes (conservé entre deux rendus)
 let query = '';
@@ -141,7 +145,8 @@ export function create(el, ctx) {
     /* ───────────── Rendu ───────────── */
     function draw() {
         index();
-        const affaires = store.getAffaires();
+        const sort = { by: 'created', dir: 'asc', ...(store.getSettings().affSort || {}) };
+        const affaires = sortAffaires(store.getAffaires(), sort);
         if (focus.affaireId) openIds.add(focus.affaireId);
         const clients = [...new Set(affaires.map(a => a.client).filter(Boolean))];
         render(el, html`
@@ -160,6 +165,14 @@ export function create(el, ctx) {
             <div class="toolbar mt-4">
                 <label class="sr-only" for="aff-search">Filtrer les affaires</label>
                 <input id="aff-search" type="search" class="control search" data-action="search" placeholder="Filtrer les affaires (code, client, machine)…" value="${query}">
+            </div>
+            <div class="filter-bar mt-4" role="group" aria-label="Trier les affaires">
+                <span class="label">Trier par</span>
+                ${SORTS.map(([k, label]) => {
+                    const on = sort.by === k, arrow = on && k !== 'created' ? (sort.dir === 'desc' ? ' ↓' : ' ↑') : '';
+                    return html`<button type="button" class="chip" data-action="sort" data-sort="${k}" aria-pressed="${String(on)}"
+                        title="${on && k !== 'created' ? 'Cliquer pour inverser l\'ordre' : 'Trier par ' + label.toLowerCase()}">${label}${arrow}</button>`;
+                })}
             </div>
             <div class="mt-4" data-role="list">
                 ${affaires.length ? affaires.map(item) : html`<p class="empty">Aucune affaire — crée-en une ci-dessus.</p>`}
@@ -276,7 +289,16 @@ export function create(el, ctx) {
     }
 
     /* ───────────── Événements (délégués) ───────────── */
-    on(el, 'click', { 'del-aff': deleteAffaire, 'del-entry': deleteEntry, 'add-load': addLoad, 'del-load': delLoad }, ac.signal);
+    /** Tri : un clic choisit la clé ; un 2e clic sur la clé active inverse l'ordre (A→Z / Z→A). */
+    function setSort(btn) {
+        const cur = { by: 'created', dir: 'asc', ...(store.getSettings().affSort || {}) }, by = btn.dataset.sort;
+        const dir = by === cur.by && by !== 'created' ? (cur.dir === 'asc' ? 'desc' : 'asc') : 'asc';
+        store.setSettings({ affSort: { by, dir } });
+        draw();
+        $(`[data-action="sort"][data-sort="${by}"]`, el)?.focus();
+    }
+
+    on(el, 'click', { sort: setSort, 'del-aff': deleteAffaire, 'del-entry': deleteEntry, 'add-load': addLoad, 'del-load': delLoad }, ac.signal);
     el.addEventListener('submit', ev => {
         ev.preventDefault();
         if (ev.target.dataset.role === 'new-aff') createAffaire(ev.target);

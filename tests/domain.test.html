@@ -23,6 +23,7 @@ import { normalizeData, cleanLoadName, LOAD_RE } from '../js/domain/validate.js'
 import { typeLabel, typeClass, globalType, normalizeTypeConfig, serializeTypeConfig, makeTypeCode, applyTypeConfig,
          sortTypes, typesFor, defaultType, TYPES, TYPE_CODES } from '../js/domain/types.js';
 import { flouCSS } from '../js/ui/prefs.js';
+import { sortAffaires } from '../js/domain/sort.js';
 import { esc, html } from '../js/ui/dom.js';
 
 const results = [];
@@ -107,6 +108,17 @@ eq('types appliqués : budget d\'un type masqué conservé', typesFor({ loads: [
 eq('CSV : type personnalisé reconnu par libellé et par code', [mapType('essai terrain'), mapType('ESSAI'), mapType('Essai-terrain')], ['ESSAI', 'ESSAI', 'ESSAI']);
 applyTypeConfig(null);
 eq('types : retour à la table intégrée', [TYPES.length, TYPES[0].code, typeLabel('ESSAI'), mapType('essai terrain')], [21, 'DE', 'ESSAI', null]);
+
+// Tri des affaires
+const affsT = [{ num: 'AF-2026-10', client: 'Sanofi', machine: 'M-2', createdAt: 3 }, { num: 'AF-2026-9', client: 'élan', machine: '', createdAt: 1 },
+               { num: '', client: 'Abbott', machine: 'm-1', createdAt: 2 }];
+const nums = l => l.map(a => a.num || '∅');
+eq('tri : création', nums(sortAffaires(affsT, { by: 'created' })), ['AF-2026-9', '∅', 'AF-2026-10']);
+eq('tri : code naturel (9 avant 10), vides à la fin', nums(sortAffaires(affsT, { by: 'num' })), ['AF-2026-9', 'AF-2026-10', '∅']);
+eq('tri : code Z→A, vides toujours à la fin', nums(sortAffaires(affsT, { by: 'num', dir: 'desc' })), ['AF-2026-10', 'AF-2026-9', '∅']);
+eq('tri : client sans tenir compte des accents / majuscules', nums(sortAffaires(affsT, { by: 'client' })), ['∅', 'AF-2026-9', 'AF-2026-10']);
+eq('tri : machine, sans machine à la fin', nums(sortAffaires(affsT, { by: 'machine' })), ['∅', 'AF-2026-10', 'AF-2026-9']);
+eq('tri : clé inconnue → création, liste d\'origine intacte', [nums(sortAffaires(affsT, { by: 'x' })), affsT[0].num], [['AF-2026-9', '∅', 'AF-2026-10'], 'AF-2026-10']);
 
 // Apparence : intensité du flou (même formule que le <head> d'index.html)
 eq('flouCSS', [flouCSS(0), flouCSS(50), flouCSS(100), flouCSS(-5), flouCSS(25)],

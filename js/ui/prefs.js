@@ -1,7 +1,9 @@
 /**
  * Préférences d'AFFICHAGE, propres à chaque appareil (localStorage « tw-apparence ») :
  *  - thème : « verre » (par défaut), « neo » (neumorphisme), « clay » (claymorphism),
- *    « aurora » (aurores + verre) ou « skeuo » (skeuomorphisme) — tous sombres ;
+ *    « aurora » (aurores + verre), « skeuo » (skeuomorphisme), « phosphore » (terminal rétro),
+ *    « blueprint » (plan d'atelier), « cyber » (néon), « moleskine » (carnet papier) ou
+ *    « cockpit » (tableau de bord métal & LED) ;
  *  - intensité du flou du verre (0 = sans flou … 50 = référence Verre … 100 = accentué) ;
  *  - animations entre les onglets (oui / non).
  * Pas dans Firestore : le PC et l'iPhone peuvent vouloir des réglages différents (le flou coûte
@@ -13,7 +15,28 @@
 const KEY = 'tw-apparence';
 export const DEFAULT_PREFS = Object.freeze({ theme: 'verre', flou: 50, animations: true });
 /** Thèmes disponibles → couleur de la barre du navigateur / de l'app (meta theme-color). */
-export const THEMES = Object.freeze({ verre: '#08080a', neo: '#1f232a', clay: '#1b1826', aurora: '#05060d', skeuo: '#161618' });
+export const THEMES = Object.freeze({
+    verre: '#08080a', neo: '#1f232a', clay: '#1b1826', aurora: '#05060d', skeuo: '#161618',
+    phosphore: '#050805', blueprint: '#0b2545', cyber: '#0a0612', moleskine: '#2a1d15', cockpit: '#141619'
+});
+/** Police propre à un thème (Google Fonts), chargée seulement quand le thème est choisi. */
+export const THEME_FONTS = Object.freeze({
+    phosphore: 'VT323&family=IBM+Plex+Mono:wght@400;600',
+    blueprint: 'Share+Tech+Mono',
+    cyber: 'Orbitron:wght@500;700',
+    moleskine: 'Caveat:wght@500;700',
+    cockpit: 'Share+Tech+Mono'
+});
+
+/** Ajoute (une fois) la feuille Google Fonts du thème. Mise en cache par le service worker. */
+export function ensureThemeFont(theme) {
+    const spec = THEME_FONTS[theme];
+    if (!spec || document.getElementById('tw-police-' + theme)) return;
+    const l = document.createElement('link');
+    l.rel = 'stylesheet'; l.id = 'tw-police-' + theme;
+    l.href = 'https://fonts.googleapis.com/css2?family=' + spec + '&display=swap';
+    document.head.append(l);
+}
 /** Thèmes qui utilisent le flou du verre (curseur « Effet de verre » actif). */
 export const FLOU_THEMES = Object.freeze(['verre', 'aurora']);
 
@@ -49,6 +72,7 @@ export function applyPrefs(p = loadPrefs()) {
     root.style.setProperty('--v-flou', FLOU_THEMES.includes(p.theme) ? flouCSS(p.flou) : 'none');
     root.dataset.animations = p.animations ? 'on' : 'off';
     root.dataset.theme = p.theme;
+    ensureThemeFont(p.theme);
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEMES[p.theme]);
 }
 

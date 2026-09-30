@@ -815,6 +815,36 @@
         & i:nth-child(2) { inset: auto 34px 5px 8px; block-size: 9px; border-radius: 4px; background: linear-gradient(#3b3e45, #25272c); border: 1px solid #0a0a0b; box-shadow: inset 0 1px 0 rgba(255,255,255,.18); }
         & i:nth-child(3) { inset: auto 8px 5px 46px; block-size: 9px; border-radius: 4px; background: linear-gradient(#3a8ae8, #1850a8); border: 1px solid #0c3470; box-shadow: inset 0 1px 0 rgba(255,255,255,.3); }
     }
+    .apercu-phosphore {
+        background: repeating-linear-gradient(rgba(0,0,0,.35) 0 1px, transparent 1px 3px), #050805;
+        & i:nth-child(1) { inset: 8px 8px 22px 8px; border: 1px solid #33ff66; box-shadow: 0 0 6px rgba(51,255,102,.5); }
+        & i:nth-child(2) { inset: 14px auto auto 14px; inline-size: 26px; block-size: 3px; background: #7dff9a; box-shadow: 0 0 4px #33ff66; }
+        & i:nth-child(3) { inset: auto 8px 6px 8px; block-size: 9px; background: #33ff66; }
+    }
+    .apercu-blueprint {
+        background: linear-gradient(rgba(255,255,255,.14) 1px, transparent 1px) 0 0 / 8px 8px, linear-gradient(90deg, rgba(255,255,255,.14) 1px, transparent 1px) 0 0 / 8px 8px, #0b2545;
+        & i:nth-child(1) { inset: 8px 10px 20px 10px; border: 1.5px solid #eaf2ff; }
+        & i:nth-child(2) { inset: 16px 24px auto 18px; block-size: 0; border-top: 1px dashed #9fd0ff; }
+        & i:nth-child(3) { inset: auto 10px 6px 40px; block-size: 8px; background: #eaf2ff; }
+    }
+    .apercu-cyber {
+        background: radial-gradient(60% 50% at 80% 100%, rgba(255,43,214,.45), transparent 70%), radial-gradient(50% 50% at 10% 0%, rgba(34,230,255,.35), transparent 70%), #0a0612;
+        & i:nth-child(1) { inset: 8px 8px 20px 8px; border-radius: 4px; border: 1px solid #ff2bd6; box-shadow: 0 0 8px #ff2bd6, inset 0 0 6px rgba(255,43,214,.4); }
+        & i:nth-child(2) { inset: auto 36px 6px 8px; block-size: 8px; border-radius: 3px; border: 1px solid #22e6ff; box-shadow: 0 0 6px #22e6ff; }
+        & i:nth-child(3) { inset: auto 8px 6px 46px; block-size: 8px; border-radius: 3px; background: #ff2bd6; box-shadow: 0 0 8px #ff2bd6; }
+    }
+    .apercu-moleskine {
+        background: #2a1d15;
+        & i:nth-child(1) { inset: 6px 6px 6px 10px; border-radius: 3px; background: repeating-linear-gradient(#efe6d2 0 7px, #c9d6ea 7px 8px); box-shadow: -3px 0 0 #6b4a33; }
+        & i:nth-child(2) { inset: 13px 30px auto 18px; block-size: 3px; border-radius: 2px; background: #1e3a8a; }
+        & i:nth-child(3) { inset: auto 12px 10px auto; inline-size: 18px; block-size: 12px; border: 2px solid #b42318; border-radius: 3px; transform: rotate(-12deg); }
+    }
+    .apercu-cockpit {
+        background: repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0 1px, transparent 1px 3px), #141619;
+        & i:nth-child(1) { inset: 7px 7px 21px 7px; border-radius: 4px; background: linear-gradient(#26292e, #1b1d21); border: 1px solid #0a0b0c; }
+        & i:nth-child(2) { inset: 12px 30px auto 13px; block-size: 9px; border-radius: 2px; background: #061008; box-shadow: inset 0 0 0 1px #0d2616, 0 0 0 1px #000; }
+        & i:nth-child(3) { inset: auto 10px 7px auto; inline-size: 8px; block-size: 8px; border-radius: 50%; background: #39ff88; box-shadow: 0 0 6px #39ff88; }
+    }
     .range-row input[type="range"]:disabled { opacity: .45; cursor: not-allowed; }
     .range-row { display: flex; align-items: center; gap: var(--sp-3); font-size: var(--fs-sm); max-inline-size: 520px; }
     .range-row input[type="range"] { flex: 1; min-inline-size: 0; accent-color: var(--accent); block-size: var(--control-h); cursor: pointer; }
@@ -1171,5 +1201,304 @@
     :root[data-theme="skeuo"] .login { background: var(--k-bg); }
     :root[data-theme="skeuo"] .type-row.is-dragging { background: var(--k-cuir); box-shadow: var(--k-relief), 0 0 0 1px var(--accent-border); }
     :root[data-theme="skeuo"] .theme-opt:has(input:checked) { box-shadow: var(--k-relief), 0 0 0 2px var(--accent-border); }
+}
+
+/* ─────────── Thèmes « d'ambiance » (30/09/2026) : Phosphore, Blueprint, Cyber, Moleskine, Tableau de bord ───────────
+   Même mécanique que les autres : jetons redirigés puis habillage des familles de composants.
+   Aucun n'utilise la plaque de verre ni le flou. Chacun a sa police (chargée à la demande, js/ui/prefs.js). */
+@layer theme {
+    :root:is([data-theme="phosphore"], [data-theme="blueprint"], [data-theme="cyber"], [data-theme="moleskine"], [data-theme="cockpit"]) {
+        --v-glass: transparent; --v-voile: transparent; --v-flou: none; --v-reflet: 0 0 transparent;
+    }
+    :root:is([data-theme="phosphore"], [data-theme="blueprint"], [data-theme="moleskine"], [data-theme="cockpit"]) body::before,
+    :root:is([data-theme="phosphore"], [data-theme="blueprint"], [data-theme="moleskine"], [data-theme="cockpit"]) body::after { display: none; }
+    :root:is([data-theme="phosphore"], [data-theme="blueprint"], [data-theme="cyber"], [data-theme="cockpit"]) .app-main { background: none; border: 0; box-shadow: none; }
+}
+
+/* ── Phosphore : terminal des années 80, texte vert phosphore sur noir, lignes de balayage ── */
+@layer theme {
+    :root[data-theme="phosphore"] {
+        --p-vert: #33ff66; --p-lueur: 0 0 6px rgba(51,255,102,.45);
+        --v-bg: #050805; --v-plaque-bas: #050805; --v-text: #8cffa6;
+        --v-soft: rgba(51,255,102,.035); --v-soft-on: rgba(51,255,102,.12);
+        --v-edge: rgba(51,255,102,.38); --v-edge-fort: rgba(51,255,102,.6); --v-hair: rgba(51,255,102,.16);
+        --v-glass-fort: #030503; --v-glass-modal: #040604; --v-ombre: rgba(0,0,0,.6); --backdrop: rgba(0,0,0,.75);
+        --text: #8cffa6; --text-2: #74e88f; --text-3: #5fcf7a;
+        --accent: #33ff66; --accent-rgb: 51,255,102; --accent-text: #8cffa6; --focus: #b6ffc8;
+        --font: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+        --font-chiffres: 'VT323', 'IBM Plex Mono', ui-monospace, monospace;
+        --r-xs: 2px; --r-sm: 3px; --r-md: 3px; --r-lg: 4px; --r-panel: 4px; --r-plaque: 4px; --r-pill: 3px;
+    }
+    :root[data-theme="phosphore"] { background: #050805; }
+    :root[data-theme="phosphore"] body { background: repeating-linear-gradient(rgba(0,0,0,.28) 0 1px, transparent 1px 3px); }
+    :root[data-theme="phosphore"] :is(.page-title, .tile-value, .total-value, .prod-value, .calc-total-value, .acc-total, .day-dec) { text-shadow: var(--p-lueur); }
+    /* VT323 est une police étroite et basse : grands chiffres agrandis d'environ 40 % */
+    :root[data-theme="phosphore"] :is(.tile-value, .total-value, .prod-value, .calc-total-value, .acc-total, .aff-total, .day-dec, .range-val) { font-weight: 400; letter-spacing: 0; }
+    :root[data-theme="phosphore"] .tile-value { font-size: 36px; }
+    :root[data-theme="phosphore"] .type-tiles .tile-value, :root[data-theme="phosphore"] .tile-value.tile-value-sm { font-size: 24px; }
+    :root[data-theme="phosphore"] :is(.total-value, .prod-value) { font-size: 60px; }
+    :root[data-theme="phosphore"] .calc-total-value { font-size: 46px; }
+    :root[data-theme="phosphore"] :is(.acc-total, .aff-total, .day-dec) { font-size: 22px; }
+    :root[data-theme="phosphore"] .pie-center { font-size: 20px; }
+    :root[data-theme="phosphore"] .page-title { font-family: 'VT323', monospace; font-weight: 400; font-size: 30px; letter-spacing: .5px; }
+    :root[data-theme="phosphore"] .page-title::after { content: '█'; margin-left: 6px; animation: curseur 1.1s steps(1) infinite; }
+    @keyframes curseur { 50% { opacity: 0; } }
+    :root[data-theme="phosphore"] :is(.panel, details.acc, .tile, .day, .aff-card, .prod, .login-box, .theme-opt, .total-card, .tabbar, .nav-add, .menu, .toast, #dlg, .balance, .round-btn, .tag, .date-badge) {
+        background: #040704; border: 1px solid var(--v-edge); box-shadow: inset 0 0 14px rgba(51,255,102,.06);
+    }
+    :root[data-theme="phosphore"] .panel { border-style: double; border-width: 3px; }
+    :root[data-theme="phosphore"] :is(.btn, .btn-icon, .chip, .check) { background: transparent; border: 1px solid var(--v-edge); box-shadow: none; }
+    :root[data-theme="phosphore"] .btn::before { content: '['; } :root[data-theme="phosphore"] .btn::after { content: ']'; }
+    :root[data-theme="phosphore"] :is(.btn-primary, .chip[aria-pressed="true"], .tab:is([aria-selected="true"], [aria-current="page"]), .tabbar-btn[aria-current="page"], .check:has(input:checked)) {
+        background: var(--p-vert); color: #030503; border-color: var(--p-vert); box-shadow: var(--p-lueur); text-shadow: none;
+    }
+    :root[data-theme="phosphore"] .tabbar-btn[aria-current="page"] .ico { color: #030503; }
+    :root[data-theme="phosphore"] .btn-danger { background: transparent; color: #ff8f8f; border-color: #ff8f8f; }
+    :root[data-theme="phosphore"] :is(.control, .search) { background: #000; border: 1px solid var(--v-edge); box-shadow: none; caret-color: var(--p-vert); }
+    :root[data-theme="phosphore"] select.control option { background: #000; }
+    :root[data-theme="phosphore"] :is(.tile.is-accent, .day.is-filled, .entry-form, .notice) { background: rgba(51,255,102,.07); border-color: var(--v-edge-fort); --tc-text: var(--v-text); }
+    :root[data-theme="phosphore"] .day.is-today { box-shadow: 0 0 0 1px var(--p-vert), var(--p-lueur); }
+    :root[data-theme="phosphore"] .total-card { color: var(--v-text); }
+    :root[data-theme="phosphore"] .total-card .bar { --bc: var(--p-vert); }
+    :root[data-theme="phosphore"] .bar-bg { fill: rgba(51,255,102,.12); }
+    :root[data-theme="phosphore"] .pie .slice { stroke: #050805; }
+    :root[data-theme="phosphore"] .login { background: #050805; }
+    :root[data-theme="phosphore"] .type-row.is-dragging { background: #0a140c; box-shadow: 0 0 0 1px var(--p-vert); }
+    :root[data-theme="phosphore"] .nav-add { outline-color: var(--p-vert); }
+    :root[data-theme="phosphore"] .sync-dot { border-radius: 0; }
+}
+
+/* ── Blueprint : plan technique, papier bleu quadrillé, traits blancs, repères de coin ── */
+@layer theme {
+    :root[data-theme="blueprint"] {
+        --b-trait: rgba(234,242,255,.55);
+        --v-bg: #0b2545; --v-plaque-bas: #0b2545; --v-text: #eaf2ff;
+        --v-soft: rgba(11,37,69,.72); --v-soft-on: rgba(234,242,255,.1);
+        --v-edge: var(--b-trait); --v-edge-fort: #eaf2ff; --v-hair: rgba(234,242,255,.18);
+        --v-glass-fort: #0b2545; --v-glass-modal: #0d2a4e; --v-ombre: rgba(0,0,0,.35); --backdrop: rgba(4,14,28,.7);
+        --text: #eaf2ff; --text-2: #cfe0f7; --text-3: #b3cbe8;
+        --accent-text: #a8d4ff;
+        --font-chiffres: 'Share Tech Mono', ui-monospace, monospace;
+        --r-xs: 0; --r-sm: 0; --r-md: 0; --r-lg: 0; --r-panel: 0; --r-plaque: 0; --r-pill: 0;
+    }
+    :root[data-theme="blueprint"] { background: #0b2545; }
+    :root[data-theme="blueprint"] body {
+        background:
+            linear-gradient(rgba(234,242,255,.09) 1px, transparent 1px) 0 0 / 120px 120px,
+            linear-gradient(90deg, rgba(234,242,255,.09) 1px, transparent 1px) 0 0 / 120px 120px,
+            linear-gradient(rgba(234,242,255,.045) 1px, transparent 1px) 0 0 / 24px 24px,
+            linear-gradient(90deg, rgba(234,242,255,.045) 1px, transparent 1px) 0 0 / 24px 24px;
+    }
+    :root[data-theme="blueprint"] :is(.page-title, .panel-title, .tile-label, .label, .field > span:first-child, .table th) { font-family: 'Share Tech Mono', ui-monospace, monospace; letter-spacing: .08em; }
+    :root[data-theme="blueprint"] .page-title { font-weight: 400; text-transform: uppercase; font-size: 24px; }
+    /* Repères de coin (équerres) sur les panneaux */
+    :root[data-theme="blueprint"] .panel {
+        border: 1px solid var(--b-trait); box-shadow: none;
+        background:
+            linear-gradient(#eaf2ff, #eaf2ff) top left / 14px 2px no-repeat, linear-gradient(#eaf2ff, #eaf2ff) top left / 2px 14px no-repeat,
+            linear-gradient(#eaf2ff, #eaf2ff) top right / 14px 2px no-repeat, linear-gradient(#eaf2ff, #eaf2ff) top right / 2px 14px no-repeat,
+            linear-gradient(#eaf2ff, #eaf2ff) bottom left / 14px 2px no-repeat, linear-gradient(#eaf2ff, #eaf2ff) bottom left / 2px 14px no-repeat,
+            linear-gradient(#eaf2ff, #eaf2ff) bottom right / 14px 2px no-repeat, linear-gradient(#eaf2ff, #eaf2ff) bottom right / 2px 14px no-repeat,
+            rgba(11,37,69,.72);
+    }
+    :root[data-theme="blueprint"] :is(details.acc, .tile, .day, .aff-card, .prod, .login-box, .theme-opt, .total-card, .menu, .toast, #dlg, .balance, .round-btn, .tag, .date-badge) { border: 1px solid var(--b-trait); box-shadow: none; }
+    :root[data-theme="blueprint"] :is(.tabbar, .nav-add) { background: #0b2545; border: 1.5px solid #eaf2ff; box-shadow: 0 10px 24px rgba(0,0,0,.4); }
+    :root[data-theme="blueprint"] :is(.btn, .btn-icon, .chip, .check) { background: transparent; border: 1px solid var(--b-trait); box-shadow: none; text-transform: uppercase; letter-spacing: .05em; }
+    :root[data-theme="blueprint"] :is(.btn-primary, .chip[aria-pressed="true"], .tab:is([aria-selected="true"], [aria-current="page"]), .tabbar-btn[aria-current="page"], .check:has(input:checked)) {
+        background: #eaf2ff; color: #0b2545; border-color: #eaf2ff; box-shadow: none;
+    }
+    :root[data-theme="blueprint"] .tabbar-btn[aria-current="page"] .ico { color: #0b2545; }
+    :root[data-theme="blueprint"] .btn-danger { background: transparent; color: #ffb3b3; border-color: #ffb3b3; }
+    :root[data-theme="blueprint"] :is(.control, .search) { background: rgba(4,14,28,.35); border: 0; border-bottom: 1.5px dashed #eaf2ff; box-shadow: none; }
+    :root[data-theme="blueprint"] select.control option { background: #0b2545; }
+    :root[data-theme="blueprint"] :is(.tile.is-accent, .day.is-filled, .entry-form, .notice) { background: rgba(234,242,255,.08); border-style: dashed; --tc-text: var(--v-text); }
+    :root[data-theme="blueprint"] .day.is-today { box-shadow: 0 0 0 2px #eaf2ff; }
+    :root[data-theme="blueprint"] .total-card { background: rgba(11,37,69,.8); color: var(--v-text); border-width: 2px; }
+    :root[data-theme="blueprint"] .total-card .bar { --bc: #eaf2ff; }
+    :root[data-theme="blueprint"] .bar { filter: none; }
+    :root[data-theme="blueprint"] .bar-bg { fill: rgba(234,242,255,.14); }
+    :root[data-theme="blueprint"] .pie .slice { stroke: #0b2545; }
+    :root[data-theme="blueprint"] .login { background: #0b2545; }
+    :root[data-theme="blueprint"] .type-row.is-dragging { background: #0f3060; box-shadow: 0 0 0 1px #eaf2ff; }
+    :root[data-theme="blueprint"] .nav-add { outline-color: #a8d4ff; }
+}
+
+/* ── Cyber : néons de Tokyo sous la pluie, rose et cyan, grésillement du titre ── */
+@layer theme {
+    :root[data-theme="cyber"] {
+        --y-rose: #ff2bd6; --y-cyan: #22e6ff;
+        --v-bg: #0a0612; --v-plaque-bas: #0a0612; --v-text: #f6efff;
+        --v-soft: rgba(24,12,40,.86); --v-soft-on: rgba(34,230,255,.12);
+        --v-edge: rgba(255,43,214,.55); --v-edge-fort: var(--y-rose); --v-hair: rgba(255,43,214,.2);
+        --v-glass-fort: #0d0818; --v-glass-modal: #120a20; --v-ombre: rgba(0,0,0,.6); --backdrop: rgba(5,2,10,.75);
+        --text: #f6efff; --text-2: #ddd0f2; --text-3: #c7b6e3;
+        --accent: var(--y-cyan); --accent-rgb: 34,230,255; --accent-text: #7ff0ff; --focus: #7ff0ff;
+        --v-app: var(--y-rose); --v-halo-op: .35;
+        --font-chiffres: 'Orbitron', 'Unbounded', sans-serif;
+        --r-sm: 4px; --r-md: 6px; --r-lg: 8px; --r-panel: 10px; --r-plaque: 10px; --r-pill: 6px;
+    }
+    :root[data-theme="cyber"] { background: #0a0612; }
+    :root[data-theme="cyber"] .page-title { font-family: 'Orbitron', sans-serif; font-weight: 700; letter-spacing: 1px; color: #f6efff; text-shadow: 0 0 6px var(--y-cyan), 0 0 16px rgba(34,230,255,.5); }
+    :root[data-theme="cyber"] .page-title.titre-entre { animation: neon-gresille .6s steps(1) backwards; }
+    @keyframes neon-gresille { 0% { opacity: .2; } 15% { opacity: 1; } 25% { opacity: .35; } 35% { opacity: 1; } 55% { opacity: .6; } 70% { opacity: 1; } }
+    :root[data-theme="cyber"] :is(.tile-value, .total-value, .prod-value) { font-weight: 500; letter-spacing: 0; text-shadow: 0 0 10px color-mix(in srgb, var(--tc, var(--y-cyan)) 70%, transparent); }
+    :root[data-theme="cyber"] :is(.panel, details.acc, .prod, .login-box, #dlg, .total-card) { border: 1px solid var(--y-rose); box-shadow: 0 0 10px rgba(255,43,214,.45), inset 0 0 14px rgba(255,43,214,.12); }
+    :root[data-theme="cyber"] :is(.tile, .day, .aff-card, .theme-opt, .menu, .toast, .balance, .round-btn, .tag, .date-badge) { border: 1px solid rgba(34,230,255,.6); box-shadow: 0 0 8px rgba(34,230,255,.3), inset 0 0 10px rgba(34,230,255,.08); }
+    :root[data-theme="cyber"] :is(.tabbar, .nav-add) { background: #0d0818; border: 1px solid var(--y-cyan); box-shadow: 0 0 12px rgba(34,230,255,.45), inset 0 0 12px rgba(34,230,255,.1); }
+    :root[data-theme="cyber"] :is(.btn, .btn-icon, .chip, .check) { background: rgba(34,230,255,.05); border: 1px solid rgba(34,230,255,.55); box-shadow: 0 0 6px rgba(34,230,255,.25); }
+    :root[data-theme="cyber"] :is(.btn-primary, .chip[aria-pressed="true"], .check:has(input:checked)) { background: var(--y-rose); color: #0a0612; border-color: var(--y-rose); box-shadow: 0 0 14px rgba(255,43,214,.7); }
+    :root[data-theme="cyber"] :is(.tab:is([aria-selected="true"], [aria-current="page"]), .tabbar-btn[aria-current="page"]) { background: rgba(34,230,255,.14); color: #7ff0ff; box-shadow: inset 0 0 0 1px var(--y-cyan), 0 0 10px rgba(34,230,255,.5); text-shadow: 0 0 6px var(--y-cyan); }
+    :root[data-theme="cyber"] .btn-danger { background: rgba(255,80,80,.1); color: #ff9e9e; border-color: #ff6b6b; }
+    :root[data-theme="cyber"] :is(.control, .search) { background: #06030c; border: 1px solid rgba(255,43,214,.5); box-shadow: inset 0 0 8px rgba(255,43,214,.15); }
+    :root[data-theme="cyber"] .control:focus-visible { border-color: var(--y-cyan); box-shadow: 0 0 8px rgba(34,230,255,.6); }
+    :root[data-theme="cyber"] select.control option { background: #0d0818; }
+    :root[data-theme="cyber"] :is(.tile.is-accent, .day.is-filled, .entry-form, .notice) { background: rgba(34,230,255,.08); --tc-text: var(--v-text); }
+    :root[data-theme="cyber"] .day.is-today { box-shadow: 0 0 0 1px var(--y-rose), 0 0 14px rgba(255,43,214,.6); }
+    :root[data-theme="cyber"] .total-card { background: rgba(24,12,40,.9); color: var(--v-text); }
+    :root[data-theme="cyber"] .total-card .bar { --bc: var(--y-rose); }
+    :root[data-theme="cyber"] .bar-bg { fill: rgba(255,255,255,.08); }
+    :root[data-theme="cyber"] .pie .slice { stroke: #0a0612; }
+    :root[data-theme="cyber"] .login { background: rgba(10,6,18,.92); }
+    :root[data-theme="cyber"] .type-row.is-dragging { background: #1a0d2c; box-shadow: 0 0 0 1px var(--y-cyan), 0 0 14px rgba(34,230,255,.5); }
+    :root[data-theme="cyber"] .nav-add { outline-color: var(--y-rose); }
+    /* Halos → lueurs de la ville (rose en bas, cyan en haut) */
+    :root[data-theme="cyber"] body::before { background: radial-gradient(40% 25% at 20% 18%, rgba(34,230,255,.3), transparent 72%); }
+    :root[data-theme="cyber"] body::after { background: radial-gradient(45% 22% at 75% 60%, rgba(255,43,214,.28), transparent 72%); }
+}
+
+/* ── Moleskine : carnet relié cuir, pages crème, encre bleu-noir, titres manuscrits, tampon « Validé » ──
+   Seul thème à pages CLAIRES : les couleurs de texte et de catégories passent en encres foncées. */
+@layer theme {
+    :root[data-theme="moleskine"] {
+        --m-cuir: #2a1d15; --m-papier: #f3ead6; --m-papier-2: #fbf6ea; --m-trait: #cdbd9c; --m-encre: #1e2a44;
+        --v-bg: var(--m-cuir); --v-plaque-bas: var(--m-papier); --v-text: var(--m-encre);
+        --v-soft: var(--m-papier-2); --v-soft-on: rgba(30,42,68,.08);
+        --v-edge: var(--m-trait); --v-edge-fort: #a9977a; --v-hair: rgba(30,42,68,.14);
+        --v-glass-fort: #3a2a1f; --v-glass-modal: var(--m-papier); --v-ombre: rgba(0,0,0,.35); --backdrop: rgba(20,12,8,.6);
+        --text: var(--m-encre); --text-2: #35405a; --text-3: #4c5468;
+        --accent: #1e3a8a; --accent-rgb: 30,58,138; --accent-text: #1e3a8a; --on-accent: #fbf6ea; --focus: #1e3a8a;
+        --accent-soft: rgba(30,58,138,.08); --accent-tint: rgba(30,58,138,.14); --accent-border: rgba(30,58,138,.5);
+        --ok: #166534; --warn: #7a4f00; --danger: #a8201a; --danger-soft: rgba(168,32,26,.1);
+        --ok-soft: rgba(22,101,52,.1); --warn-soft: rgba(122,79,0,.1);
+        --r-xs: 3px; --r-sm: 4px; --r-md: 6px; --r-lg: 6px; --r-panel: 8px; --r-plaque: 10px; --r-pill: 999px;
+        color-scheme: light;
+    }
+    :root[data-theme="moleskine"] { background: var(--m-cuir); }
+    :root[data-theme="moleskine"] body { background: radial-gradient(120% 80% at 50% 0%, #3a2819, transparent 70%); }
+    :root[data-theme="moleskine"] body::before, :root[data-theme="moleskine"] body::after { display: none; }
+    /* Couleur d'une catégorie en TEXTE : encre (couleur assombrie) ; les remplissages gardent leur teinte */
+    :root[data-theme="moleskine"] :is([class*="t-"], [class*="load-"], [class*="pal-"], [class*="c-"]) { --tc-text: color-mix(in srgb, var(--tc) 48%, #000); }
+    :root[data-theme="moleskine"] .c-accent { --tc: #1e3a8a; } :root[data-theme="moleskine"] .c-ok { --tc: #1f8a4c; }
+    :root[data-theme="moleskine"] .c-warn { --tc: #c98a00; } :root[data-theme="moleskine"] .c-danger { --tc: #c0392b; }
+    /* En-tête sur le cuir : texte clair */
+    :root[data-theme="moleskine"] .app-header { color: #f3ead6; }
+    :root[data-theme="moleskine"] .page-title { font-family: 'Caveat', cursive; font-weight: 700; font-size: 36px; letter-spacing: 0; color: #f3ead6; padding-inline-end: .18em; line-height: 1.25; }
+    :root[data-theme="moleskine"] .app-eyebrow { color: #d9c7a4; & svg { color: #d9c7a4; } }
+    :root[data-theme="moleskine"] .round-btn { background: #3a2a1f; color: #f3ead6; border-color: #6b4a33; box-shadow: 0 4px 10px rgba(0,0,0,.4); }
+    /* La page du carnet (plaque) : papier ligné, reliure à gauche */
+    :root[data-theme="moleskine"] .app-main {
+        background: repeating-linear-gradient(transparent 0 31px, rgba(30,58,138,.07) 31px 32px), var(--m-papier);
+        border: 0; border-radius: 10px 10px 0 0; box-shadow: inset 10px 0 12px -8px rgba(0,0,0,.35), 0 -4px 20px rgba(0,0,0,.4);
+    }
+    :root[data-theme="moleskine"] :is(.panel-title) { font-family: 'Caveat', cursive; font-size: 24px; font-weight: 700; text-transform: none; letter-spacing: 0; color: var(--m-encre); }
+    :root[data-theme="moleskine"] :is(.panel, details.acc, .prod, .login-box, #dlg, .menu, .toast) { background: var(--m-papier-2); border: 1px solid var(--m-trait); box-shadow: 0 1px 0 #fff inset, 0 2px 6px rgba(60,40,20,.15); }
+    :root[data-theme="moleskine"] :is(.tile, .day, .aff-card, .theme-opt, .balance, .tag, .date-badge) { background: #fffdf6; border: 1px solid var(--m-trait); box-shadow: 0 1px 3px rgba(60,40,20,.12); }
+    :root[data-theme="moleskine"] .panel { border-left: 3px double #c0392b33; }
+    :root[data-theme="moleskine"] :is(.btn, .btn-icon, .chip, .check) { background: #fffdf6; border: 1px solid #b9a887; color: var(--m-encre); box-shadow: 0 1px 2px rgba(60,40,20,.15); }
+    :root[data-theme="moleskine"] :is(.btn-primary, .chip[aria-pressed="true"], .tab:is([aria-selected="true"], [aria-current="page"]), .check:has(input:checked)) { background: #1e3a8a; color: #fbf6ea; border-color: #1e3a8a; box-shadow: none; }
+    :root[data-theme="moleskine"] .btn-danger { background: #a8201a; color: #fff; border-color: #a8201a; }
+    :root[data-theme="moleskine"] :is(.control, .search) { background: #fffdf6; border: 0; border-bottom: 1.5px solid #9c8f75; border-radius: 3px 3px 0 0; box-shadow: none; color: var(--m-encre); }
+    :root[data-theme="moleskine"] .control:focus-visible { border-bottom-color: #1e3a8a; background: #fff; }
+    :root[data-theme="moleskine"] select.control option { background: #fffdf6; color: var(--m-encre); }
+    :root[data-theme="moleskine"] input[type="date"]::-webkit-calendar-picker-indicator { filter: none; }
+    :root[data-theme="moleskine"] :is(.tile.is-accent, .day.is-filled, .entry-form, .notice) { background: #eef2fb; border-color: #9fb0d8; --tc-text: #1e3a8a; }
+    :root[data-theme="moleskine"] .day.is-today { box-shadow: 0 0 0 2px #1e3a8a; }
+    :root[data-theme="moleskine"] .day[data-reason] { background: #fbf1d8; border-color: #c98a00; }
+    :root[data-theme="moleskine"] .total-card { background: #fffdf6; color: var(--m-encre); border: 1px solid var(--m-trait); box-shadow: 0 3px 10px rgba(60,40,20,.2); }
+    :root[data-theme="moleskine"] .total-card .total-value { color: #1e3a8a; }
+    :root[data-theme="moleskine"] .total-card .bar { --bc: #1e3a8a; }
+    /* Tampon « VALIDÉ » quand la semaine atteint 35h30 */
+    :root[data-theme="moleskine"] .total-card[data-complete]::after {
+        content: 'VALIDÉ'; position: absolute; inset-block-start: 14px; inset-inline-start: 14px; transform: rotate(-12deg);
+        padding: 2px 8px; border: 2.5px solid #b42318; border-radius: 6px; color: #b42318; font-weight: 800; letter-spacing: .12em; font-size: 13px;
+        opacity: .85; pointer-events: none;
+    }
+    :root[data-theme="moleskine"] .prod-head .label, :root[data-theme="moleskine"] .prod-value { color: var(--tc-text); }
+    :root[data-theme="moleskine"] .bar { filter: none; }
+    :root[data-theme="moleskine"] .bar-bg { fill: #e6dcc4; }
+    :root[data-theme="moleskine"] .pie .slice { stroke: #fbf6ea; }
+    :root[data-theme="moleskine"] .pie-center { fill: var(--m-encre); }
+    :root[data-theme="moleskine"] .sync-dot { box-shadow: 0 0 0 2px #2a1d15; }
+    /* Barre d'onglets : sangle de cuir ; onglet actif = marque-page papier */
+    :root[data-theme="moleskine"] :is(.tabbar, .nav-add) { background: #3a2a1f; border: 1px solid #6b4a33; box-shadow: 0 10px 24px rgba(0,0,0,.45); color: #f3ead6; }
+    :root[data-theme="moleskine"] .tabbar-btn { color: #e3d4b6; }
+    :root[data-theme="moleskine"] .tabbar-btn[aria-current="page"] { background: var(--m-papier); color: #1e3a8a; box-shadow: none; }
+    :root[data-theme="moleskine"] .tabbar-btn[aria-current="page"] .ico { color: #1e3a8a; }
+    :root[data-theme="moleskine"] .nav-add { outline-color: #d9c7a4; }
+    :root[data-theme="moleskine"] .login { background: var(--m-cuir); }
+    :root[data-theme="moleskine"] .type-row.is-dragging { background: #fffdf6; box-shadow: 0 0 0 1px #1e3a8a, 0 10px 20px rgba(60,40,20,.25); }
+    :root[data-theme="moleskine"] .table tbody tr:hover { background: rgba(30,58,138,.04); }
+    :root[data-theme="moleskine"] ::-webkit-scrollbar-thumb { background: #b9a887; }
+}
+
+/* ── Tableau de bord : métal brossé, vis, afficheurs LCD verts, LED, jauges segmentées ── */
+@layer theme {
+    :root[data-theme="cockpit"] {
+        --k-led: #39ff88; --k-lcd: #061008;
+        --v-bg: #141619; --v-plaque-bas: #141619;
+        --v-soft: #202328; --v-soft-on: rgba(255,255,255,.06);
+        --v-edge: #0a0b0c; --v-edge-fort: #000; --v-hair: rgba(255,255,255,.07);
+        --v-glass-fort: #1b1d21; --v-glass-modal: #202328; --v-ombre: rgba(0,0,0,.6); --backdrop: rgba(0,0,0,.65);
+        --accent-text: #8fd0ff;
+        --font-chiffres: 'Share Tech Mono', ui-monospace, monospace;
+        --r-xs: 2px; --r-sm: 5px; --r-md: 6px; --r-lg: 8px; --r-panel: 10px; --r-plaque: 10px; --r-pill: 6px;
+    }
+    :root[data-theme="cockpit"] { background: #141619; }
+    :root[data-theme="cockpit"] body { background: repeating-linear-gradient(90deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px); }
+    :root[data-theme="cockpit"] .page-title { font-family: 'Share Tech Mono', monospace; font-weight: 400; text-transform: uppercase; letter-spacing: .12em; font-size: 24px; }
+    /* Panneaux vissés */
+    :root[data-theme="cockpit"] .panel {
+        border: 1px solid #0a0b0c; box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 8px 20px rgba(0,0,0,.5);
+        background:
+            radial-gradient(circle at 11px 11px, #8a8f97 0 2px, #3a3d42 2.5px 3.5px, transparent 4px),
+            radial-gradient(circle at calc(100% - 11px) 11px, #8a8f97 0 2px, #3a3d42 2.5px 3.5px, transparent 4px),
+            radial-gradient(circle at 11px calc(100% - 11px), #8a8f97 0 2px, #3a3d42 2.5px 3.5px, transparent 4px),
+            radial-gradient(circle at calc(100% - 11px) calc(100% - 11px), #8a8f97 0 2px, #3a3d42 2.5px 3.5px, transparent 4px),
+            linear-gradient(180deg, #25282d, #1c1e22);
+    }
+    :root[data-theme="cockpit"] :is(details.acc, .tile, .day, .aff-card, .prod, .login-box, .theme-opt, .total-card, .menu, .toast, #dlg, .balance, .tag, .date-badge) {
+        background: linear-gradient(180deg, #25282d, #1c1e22); border: 1px solid #0a0b0c; box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 4px 10px rgba(0,0,0,.45);
+    }
+    /* Afficheurs LCD : grands chiffres verts sur fond noir, lueur */
+    :root[data-theme="cockpit"] :is(.tile-value, .total-value, .prod-value, .calc-total-value) {
+        display: inline-block; padding: 2px 10px; border-radius: 4px; background: var(--k-lcd); letter-spacing: .04em; font-weight: 400;
+        color: var(--k-led); text-shadow: 0 0 8px rgba(57,255,136,.6); box-shadow: inset 0 2px 6px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.06);
+    }
+    :root[data-theme="cockpit"] .prod-value { display: block; }
+    :root[data-theme="cockpit"] .dot { box-shadow: 0 0 6px var(--tc), inset 0 -1px 1px rgba(0,0,0,.4); }
+    /* Interrupteurs */
+    :root[data-theme="cockpit"] :is(.btn, .btn-icon, .chip, .check, .round-btn) { background: linear-gradient(180deg, #3a3d42, #26282c); border: 1px solid #0b0c0d; box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 2px 3px rgba(0,0,0,.6); text-transform: uppercase; letter-spacing: .06em; }
+    :root[data-theme="cockpit"] :is(.btn, .btn-icon, .chip, .round-btn, .tile, .aff-card):active:not(:disabled) { background: linear-gradient(180deg, #1f2124, #2a2c30); box-shadow: inset 0 2px 5px rgba(0,0,0,.8); transform: none; }
+    :root[data-theme="cockpit"] .btn-primary { background: linear-gradient(180deg, #f5a524, #c77a00); color: #1a1100; border-color: #5a3700; text-shadow: none; }
+    :root[data-theme="cockpit"] .btn-danger { background: linear-gradient(180deg, #d0453d, #8f1f19); color: #fff; border-color: #4d0f0c; }
+    /* Actif : bouton enfoncé + LED verte allumée */
+    :root[data-theme="cockpit"] :is(.chip[aria-pressed="true"], .tab:is([aria-selected="true"], [aria-current="page"]), .tabbar-btn[aria-current="page"], .check:has(input:checked)) {
+        background: #0e1511; color: var(--k-led); border-color: #1d4a2e; box-shadow: inset 0 2px 5px rgba(0,0,0,.8), 0 0 0 1px #1d4a2e; text-shadow: 0 0 6px rgba(57,255,136,.5);
+    }
+    :root[data-theme="cockpit"] .tabbar-btn[aria-current="page"] .ico { color: var(--k-led); filter: drop-shadow(0 0 4px rgba(57,255,136,.7)); }
+    :root[data-theme="cockpit"] :is(.control, .search) { background: #0c0d0f; border: 1px solid #000; box-shadow: inset 0 2px 5px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.05); color: #d9ffe8; }
+    :root[data-theme="cockpit"] select.control option { background: #1b1d21; }
+    :root[data-theme="cockpit"] :is(.tabbar, .nav-add) { background: linear-gradient(180deg, #2c2f34, #191b1e); border: 1px solid #0a0a0b; box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 12px 26px rgba(0,0,0,.6); }
+    :root[data-theme="cockpit"] :is(.tile.is-accent, .day.is-filled, .entry-form, .notice) { background: linear-gradient(180deg, #1c2a22, #16201a); border-color: #1d4a2e; --tc-text: var(--v-text); }
+    :root[data-theme="cockpit"] .day.is-today { box-shadow: 0 0 0 1px var(--k-led), 0 0 10px rgba(57,255,136,.35); }
+    :root[data-theme="cockpit"] .total-card { color: var(--v-text); }
+    /* Jauges façon vu-mètre : segments */
+    :root[data-theme="cockpit"] .bar { filter: none; block-size: 8px; -webkit-mask: repeating-linear-gradient(90deg, #000 0 5px, transparent 5px 7px); mask: repeating-linear-gradient(90deg, #000 0 5px, transparent 5px 7px); }
+    :root[data-theme="cockpit"] .bar-bg { fill: #0a0b0c; }
+    :root[data-theme="cockpit"] .total-card .bar { --bc: var(--k-led); }
+    :root[data-theme="cockpit"] .pie .slice { stroke: #141619; }
+    :root[data-theme="cockpit"] .login { background: #141619; }
+    :root[data-theme="cockpit"] .type-row.is-dragging { background: #25282d; box-shadow: 0 0 0 1px var(--k-led); }
+    :root[data-theme="cockpit"] .nav-add { outline-color: rgba(57,255,136,.6); }
 }
 

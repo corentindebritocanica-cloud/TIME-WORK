@@ -54,11 +54,16 @@
             if (l !== 50) racine.style.setProperty('--v-flou', l === 0 ? 'none' : 'blur(' + (l * 0.6).toFixed(1) + 'px) saturate(' + (100 + l * 1.6).toFixed(0) + '%)');
             if (p.animations === false) racine.dataset.animations = 'off';
             // Thème (Paramètres → Apparence) — mêmes valeurs que THEMES / FLOU_THEMES de js/ui/prefs.js
-            const THEMES = { neo: '#1f232a', clay: '#1b1826', aurora: '#05060d', skeuo: '#161618' };
+            const THEMES = { neo: '#1f232a', clay: '#1b1826', aurora: '#05060d', skeuo: '#161618', phosphore: '#050805',
+                             blueprint: '#0b2545', cyber: '#0a0612', moleskine: '#2a1d15', cockpit: '#141619' };
+            const POLICES = { phosphore: 'VT323&family=IBM+Plex+Mono:wght@400;600', blueprint: 'Share+Tech+Mono',
+                              cyber: 'Orbitron:wght@500;700', moleskine: 'Caveat:wght@500;700', cockpit: 'Share+Tech+Mono' };
             if (Object.hasOwn(THEMES, p.theme)) {
                 racine.dataset.theme = p.theme;
                 if (p.theme !== 'aurora') racine.style.setProperty('--v-flou', 'none');
                 document.querySelector('meta[name="theme-color"]').setAttribute('content', THEMES[p.theme]);
+                if (POLICES[p.theme]) document.write('<link rel="stylesheet" id="tw-police-' + p.theme +
+                    '" href="https://fonts.googleapis.com/css2?family=' + POLICES[p.theme] + '&display=swap">');
             }
         } catch { /* stockage indisponible : valeurs par défaut */ }
     })();

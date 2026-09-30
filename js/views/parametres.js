@@ -18,7 +18,12 @@ const THEME_CHOICES = [
     ['neo',    'Neumorphisme',   'Relief doux, sans flou'],
     ['clay',   'Claymorphism',   'Pâte à modeler, formes gonflées'],
     ['aurora', 'Aurora',         'Aurores boréales, verre'],
-    ['skeuo',  'Skeuomorphisme', 'Cuir surpiqué, boutons en relief']
+    ['skeuo',  'Skeuomorphisme', 'Cuir surpiqué, boutons en relief'],
+    ['phosphore', 'Phosphore',   'Terminal rétro, vert phosphore'],
+    ['blueprint', 'Blueprint',   'Plan d\'atelier, papier quadrillé'],
+    ['cyber',     'Cyber',       'Néons de Tokyo, rose et cyan'],
+    ['moleskine', 'Moleskine',   'Carnet papier, encre et cuir'],
+    ['cockpit',   'Tableau de bord', 'Métal brossé, LED, afficheurs']
 ];
 const THEME_NAMES = Object.fromEntries(THEME_CHOICES.map(([k, n]) => [k, n]));
 

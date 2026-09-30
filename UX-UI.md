@@ -219,6 +219,7 @@ et `VERSION`). Sur iPhone, l'icône n'est relue qu'à l'ajout à l'écran d'accu
 | 30/09/2026 | **Tri des affaires** (Par affaire) : rangée de puces « Trier par » sous la recherche (`.filter-bar` + `.chip[aria-pressed]`), flèche ↑ / ↓ sur la puce active, 2ᵉ clic = ordre inversé. |
 | 30/09/2026 | **Thème Neumorphisme** (au choix, par appareil) : voir la section « Thème Neumorphisme ». Le Verre reste le thème par défaut et la référence (charte PORTAIL-DUO). |
 | 30/09/2026 | **Thèmes Claymorphism, Aurora, Skeuomorphisme** (5 thèmes au total) : voir §7. |
+| 30/09/2026 | **5 thèmes originaux** : Phosphore, Blueprint, Cyber, Moleskine, Tableau de bord (10 au total) : voir §7.2. |
 
 *Mettre à jour ce tableau à chaque évolution de l'interface.*
 
@@ -259,6 +260,23 @@ qui **redirige les jetons** puis habille les familles de composants ; `THEMES` (
 | **Skeuomorphisme** (`skeuo`) | fond `#161618` texturé (fines rayures à 45°) | panneaux de **cuir** (dégradé) **surpiqués** (`outline` pointillé à −7 px), boutons **biseautés** brillants enfoncés à l'appui, champs creusés noirs, barre d'onglets en **métal**, onglet actif enfoncé ; bouton principal bleu brillant | coins plus petits (objets physiques), texte gravé (`text-shadow`) sur les grands titres |
 
 **Contraste** (mesure au pixel, UX-UI §4, textes recouverts ou derrière un dialogue exclus) : 0 défaut dans les 5 thèmes.
+
+### 7.2 Phosphore, Blueprint, Cyber, Moleskine, Tableau de bord (30/09/2026)
+
+Même mécanique (§7.1). Nouveauté : une **police propre au thème** (`THEME_FONTS` dans `js/ui/prefs.js`, `POLICES`
+dans le `<head>`), ajoutée en `<link>` **seulement** quand le thème est actif (`ensureThemeFont`) : les autres
+thèmes ne téléchargent rien de plus. Le service worker la met en cache (règle polices, cache d'abord). Aucun de ces
+thèmes n'utilise le flou (`--v-flou: none`), le curseur « Effet de verre » y est désactivé.
+
+| Thème | Matière | Relief / états | Particularités |
+|---|---|---|---|
+| **Phosphore** (`phosphore`) | noir `#050805`, texte vert `#33ff66` monochrome, lignes de balayage | cadres fins (double sur les panneaux), coins carrés ; actif = **vidéo inverse** (fond vert, texte noir) ; boutons entre `[ ]` | IBM Plex Mono pour le texte, **VT323** pour les chiffres (tailles en px explicites : VT323 est petite à taille égale), curseur `█` clignotant après le titre, lueur `text-shadow` |
+| **Blueprint** (`blueprint`) | bleu de plan `#0b2545` quadrillé | traits blancs fins, coins à 0, **repères d'angle** sur les panneaux ; actif = aplat blanc texte bleu | Share Tech Mono en capitales pour titres et libellés |
+| **Cyber** (`cyber`) | nuit `#0a0612` + lueurs de ville en halos | bordures **néon** rose `#ff2bd6` / cyan `#22e6ff` avec lueur ; bouton principal rose | titre Orbitron lumineux, **grésillement** du néon à l'entrée d'onglet (`neon-gresille`) |
+| **Moleskine** (`moleskine`) | fond cuir `#2a1d15`, plaque = **papier crème ligné** | cartes papier, encres : texte `#1e2a44`, accent `#1e3a8a`, ok `#166534`, alerte `#7a4f00`, danger `#a8201a` ; barre d'onglets en cuir, actif = **marque-page** papier | seul thème à pages **claires** : couleurs de catégories assombries pour le texte (`--tc-text: color-mix(… 48 %, #000)`) ; titres Caveat (marge droite : l'inclinaison était rognée par `overflow: hidden`) ; **tampon « VALIDÉ »** sur la carte Total quand la semaine atteint 35 h (`.total-card[data-complete]`, posé par `pointage.js`) |
+| **Tableau de bord** (`cockpit`) | acier brossé `#141619` | panneaux **vissés** (4 vis en `radial-gradient`), valeurs en **afficheur LCD** vert `#39ff88` sur `#061008`, bouton principal ambre ; actif = **LED verte** enfoncée ; barres segmentées (`mask`) | Share Tech Mono en capitales |
+
+**Contraste** : 0 défaut sur chaque thème (~4 400 textes chacun, PC + iPhone, 6 onglets, 3 hauteurs de défilement).
 
 ---
 

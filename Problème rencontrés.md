@@ -441,6 +441,14 @@ règles iPhone : [`GUIDE-PWA-IOS.md`](./GUIDE-PWA-IOS.md).
 - **Outil de mesure** : deux « défauts » Clay étaient des textes **recouverts** par la barre d'onglets et le bouton « + » sur téléphone (invisibles à cet endroit). Le script ignore désormais un texte dont le centre est couvert par un autre élément (`elementFromPoint`).
 - **Statut** : corrigé le 2026-09-30
 
+#### G4. 5 thèmes originaux : polices, pages claires, faux positifs de mesure
+- **Chiffres trop petits en Phosphore** : VT323 dessine des glyphes bien plus petits qu'Unbounded à taille égale ; une taille relative (`1.35em`) ne suffisait pas → **tailles en px explicites** par famille de valeurs (tuiles 36, total 60, calcul 46…).
+- **Polices** : charger 5 polices de plus pour tout le monde aurait alourdi chaque démarrage → `<link>` ajouté **uniquement** pour le thème actif (dans le `<head>` avant affichage, puis `ensureThemeFont` au changement).
+- **Moleskine (pages claires)** : les couleurs de catégories pensées pour un fond sombre (bleu, vert clair…) tombaient sous 3:1 sur le papier → teinte assombrie pour le texte (`--tc-text`), jetons d'état en « encres » ; le libellé « Temps productif » restait clair → corrigé.
+- **Moleskine (titre)** : l'écriture Caveat penche à droite, `overflow: hidden` du titre rognait le dernier « d » (« Tableau de bora ») → marge interne à droite.
+- **Outil de mesure** : faux défauts sur des textes **coupés par un bord** de l'écran (cellules d'un tableau qui défile horizontalement, bouton « + Ajouter » à moitié au-dessus du haut de l'écran : l'échantillon prenait le fond *sous* le bouton) et sur des textes dans la bande de la barre flottante → le script ignore les textes non entièrement visibles.
+- **Statut** : corrigé le 2026-09-30
+
 ---
 
 ## Lancement en mode application (Edge)

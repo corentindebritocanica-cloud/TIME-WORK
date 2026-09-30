@@ -53,10 +53,12 @@
             if (!Number.isFinite(l)) l = 50;
             if (l !== 50) racine.style.setProperty('--v-flou', l === 0 ? 'none' : 'blur(' + (l * 0.6).toFixed(1) + 'px) saturate(' + (100 + l * 1.6).toFixed(0) + '%)');
             if (p.animations === false) racine.dataset.animations = 'off';
-            if (p.theme === 'neo') {                   // thème Neumorphisme (Paramètres → Apparence)
-                racine.dataset.theme = 'neo';
-                racine.style.setProperty('--v-flou', 'none');
-                document.querySelector('meta[name="theme-color"]').setAttribute('content', '#1f232a');
+            // Thème (Paramètres → Apparence) — mêmes valeurs que THEMES / FLOU_THEMES de js/ui/prefs.js
+            const THEMES = { neo: '#1f232a', clay: '#1b1826', aurora: '#05060d', skeuo: '#161618' };
+            if (Object.hasOwn(THEMES, p.theme)) {
+                racine.dataset.theme = p.theme;
+                if (p.theme !== 'aurora') racine.style.setProperty('--v-flou', 'none');
+                document.querySelector('meta[name="theme-color"]').setAttribute('content', THEMES[p.theme]);
             }
         } catch { /* stockage indisponible : valeurs par défaut */ }
     })();

@@ -11,9 +11,16 @@ import {
     allTypes, applyTypeConfig, serializeTypeConfig, normalizeTypeConfig, makeTypeCode, normLabel,
     typeClass, CUSTOM_COLORS, TYPE_LABEL_MAX, BUILTIN_TYPES
 } from '../domain/types.js';
-import { loadPrefs, savePrefs, flouLabel, DEFAULT_PREFS } from '../ui/prefs.js';
+import { loadPrefs, savePrefs, flouLabel, DEFAULT_PREFS, FLOU_THEMES } from '../ui/prefs.js';
 
-const THEME_CHOICES = [['verre', 'Verre', 'Halos, verre dépoli'], ['neo', 'Neumorphisme', 'Relief doux, sans flou']];
+const THEME_CHOICES = [
+    ['verre',  'Verre',          'Halos, verre dépoli'],
+    ['neo',    'Neumorphisme',   'Relief doux, sans flou'],
+    ['clay',   'Claymorphism',   'Pâte à modeler, formes gonflées'],
+    ['aurora', 'Aurora',         'Aurores boréales, verre'],
+    ['skeuo',  'Skeuomorphisme', 'Cuir surpiqué, boutons en relief']
+];
+const THEME_NAMES = Object.fromEntries(THEME_CHOICES.map(([k, n]) => [k, n]));
 
 const AUTO_SCROLL_EDGE = 72;       // px : zone près des bords où la liste défile pendant un glisser
 const AUTO_SCROLL_MAX = 14;        // px par image
@@ -121,16 +128,16 @@ export function create(el, ctx) {
                         </label>`)}
                 </fieldset>
                 <div class="field mt-4">
-                    <label for="flou-range">Effet de verre (flou)${prefs.theme === 'neo' ? html` <span class="muted">— sans effet en Neumorphisme</span>` : ''}</label>
+                    <label for="flou-range">Effet de verre (flou)${FLOU_THEMES.includes(prefs.theme) ? '' : html` <span class="muted">— sans effet avec ce thème</span>`}</label>
                     <div class="range-row">
                         <span class="muted" aria-hidden="true">Réduit</span>
-                        <input id="flou-range" type="range" min="0" max="100" step="5" value="${prefs.flou}" data-action="flou" aria-describedby="flou-val" ${prefs.theme === 'neo' ? 'disabled' : ''}>
+                        <input id="flou-range" type="range" min="0" max="100" step="5" value="${prefs.flou}" data-action="flou" aria-describedby="flou-val" ${FLOU_THEMES.includes(prefs.theme) ? '' : 'disabled'}>
                         <span class="muted" aria-hidden="true">Accentué</span>
                     </div>
                     <output id="flou-val" class="range-val" data-role="flou-val" for="flou-range">${flouLabel(prefs.flou)}</output>
                 </div>
                 <div class="toolbar">
-                    <button type="button" class="btn btn-ghost btn-sm" data-action="flou-reset" ${prefs.flou === DEFAULT_PREFS.flou || prefs.theme === 'neo' ? 'disabled' : ''}>Valeur d'origine</button>
+                    <button type="button" class="btn btn-ghost btn-sm" data-action="flou-reset" ${prefs.flou === DEFAULT_PREFS.flou || !FLOU_THEMES.includes(prefs.theme) ? 'disabled' : ''}>Valeur d'origine</button>
                 </div>
                 <label class="check mt-4"><input type="checkbox" data-action="anim" ${prefs.animations ? 'checked' : ''}> Animations entre les onglets</label>
                 <p class="settings-help mt-4">Plus le flou est fort, plus l'affichage demande de calcul (surtout sur iPhone).
@@ -298,7 +305,7 @@ export function create(el, ctx) {
             savePrefs({ theme: r.value });
             draw();
             $(`[name="theme"][value="${r.value}"]`, el)?.focus();
-            ctx.toast(r.value === 'neo' ? 'Thème Neumorphisme appliqué sur cet appareil.' : 'Thème Verre appliqué sur cet appareil.');
+            ctx.toast(`Thème ${THEME_NAMES[r.value]} appliqué sur cet appareil.`);
         },
         anim: c => { savePrefs({ animations: c.checked }); ctx.toast(c.checked ? 'Animations entre les onglets activées.' : 'Animations entre les onglets désactivées.'); }
     }, ac.signal);

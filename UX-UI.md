@@ -218,6 +218,7 @@ et `VERSION`). Sur iPhone, l'icône n'est relue qu'à l'ajout à l'écran d'accu
 | 29/09/2026 | **Onglet Paramètres** : types de travail personnalisés (ajout, couleur de la palette, glisser-déposer, masquage, suppression si inutilisé), curseur d'intensité du flou et interrupteur des animations (par appareil) ; **animations de changement d'onglet** (entrée directionnelle 280 ms) ; **nouvelle icône** style Verre ; 6ᵉ onglet « Réglages ». |
 | 30/09/2026 | **Tri des affaires** (Par affaire) : rangée de puces « Trier par » sous la recherche (`.filter-bar` + `.chip[aria-pressed]`), flèche ↑ / ↓ sur la puce active, 2ᵉ clic = ordre inversé. |
 | 30/09/2026 | **Thème Neumorphisme** (au choix, par appareil) : voir la section « Thème Neumorphisme ». Le Verre reste le thème par défaut et la référence (charte PORTAIL-DUO). |
+| 30/09/2026 | **Thèmes Claymorphism, Aurora, Skeuomorphisme** (5 thèmes au total) : voir §7. |
 
 *Mettre à jour ce tableau à chaque évolution de l'interface.*
 
@@ -244,6 +245,20 @@ Demande de Corentin : pouvoir choisir entre le Verre et un design **neumorphique
 du verre** (`--v-soft`, `--v-edge`, `--v-reflet`, `--v-glass*`…) vers la matière, puis donne son relief à chaque famille
 de composants. Aucun composant n'est dupliqué. Pour un nouveau composant : vérifier son rendu dans les **deux**
 thèmes (relief `--n-out*` s'il est posé, `--n-in*` s'il est actif / creusé).
+
+### 7.1 Claymorphism, Aurora, Skeuomorphisme (30/09/2026)
+
+Même mécanique que le Neumorphisme : `<html data-theme="clay|aurora|skeuo">`, une section `@layer theme` par thème
+qui **redirige les jetons** puis habille les familles de composants ; `THEMES` (couleur `theme-color`) et
+`FLOU_THEMES` (thèmes qui gardent le flou : Verre, Aurora) dans `js/ui/prefs.js`, recopiés dans le `<head>`.
+
+| Thème | Matière | Relief / états | Particularités |
+|---|---|---|---|
+| **Claymorphism** (`clay`) | fond `#1b1826`, surfaces violet ardoise `#2a2440` (`#221d35` à l'intérieur d'un panneau) | volume par **ombres intérieures** (lumière haut-gauche, creux bas-droite) + ombre portée ; actifs = **pâte bleue** `#1a66d0` texte blanc (5,4:1) ; champs creusés | coins très arrondis (`--r-lg` 26, `--r-panel` 32) ; pas de flou ni de halos |
+| **Aurora** (`aurora`) | ciel `#05060d` | = Verre (plaque, flou réglable) | halos remplacés par des **rideaux d'aurore** (ellipses étirées verticalement vert, cyan, violet, rose) sur les mêmes calques animés ; centrés **sous l'en-tête** (sinon titre illisible) ; voile `.68` (contraste AA) ; bas de page `#0f1017` |
+| **Skeuomorphisme** (`skeuo`) | fond `#161618` texturé (fines rayures à 45°) | panneaux de **cuir** (dégradé) **surpiqués** (`outline` pointillé à −7 px), boutons **biseautés** brillants enfoncés à l'appui, champs creusés noirs, barre d'onglets en **métal**, onglet actif enfoncé ; bouton principal bleu brillant | coins plus petits (objets physiques), texte gravé (`text-shadow`) sur les grands titres |
+
+**Contraste** (mesure au pixel, UX-UI §4, textes recouverts ou derrière un dialogue exclus) : 0 défaut dans les 5 thèmes.
 
 ---
 

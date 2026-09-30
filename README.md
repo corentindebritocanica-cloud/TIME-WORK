@@ -47,11 +47,15 @@ restauration et import CSV ; le bouton rond voisin déconnecte.
     direct entre PC et iPhone ; l'ordre est utilisé partout (listes, légendes,
     budgets). Les types personnalisés sont reconnus à l'import CSV (par nom ou
     code) et inclus dans la sauvegarde JSON.
-  - **Apparence** (propre à chaque appareil) : choix du **thème** parmi 5, tous sombres —
+  - **Apparence** (propre à chaque appareil) : choix du **thème** parmi 10 —
     **Verre** (halos, verre dépoli, par défaut), **Neumorphisme** (relief doux, actifs
     « enfoncés »), **Claymorphism** (pâte à modeler, formes gonflées, boutons bleus),
     **Aurora** (aurores boréales vertes / cyan / violettes derrière le verre) et
-    **Skeuomorphisme** (cuir surpiqué, boutons biseautés, barre en métal) — ; curseur **Effet de verre** (Verre et Aurora) pour
+    **Skeuomorphisme** (cuir surpiqué, boutons biseautés, barre en métal), **Phosphore**
+    (terminal rétro vert, lignes de balayage, curseur clignotant), **Blueprint** (plan
+    d'atelier bleu quadrillé, repères d'angle), **Cyber** (néons roses et cyan de Tokyo),
+    **Moleskine** (carnet papier ligné, encre, tampon « VALIDÉ » à 35 h) et **Tableau de
+    bord** (métal brossé, vis, afficheurs LCD verts, LED) — ; curseur **Effet de verre** (Verre et Aurora) pour
     réduire ou accentuer le flou (0 à 60 px, 30 px par défaut) et interrupteur
     **Animations entre les onglets**.
 - **Suivi Projet** : gestion des affaires, saisies horaires par type
@@ -333,6 +337,7 @@ service cloud.firestore {
 | 2026-09-30 | Tri des affaires | Onglet **Par affaire** : puces **Création · Code affaire · Client · Machine** ; 2ᵉ clic = ordre inversé (flèche ↑ / ↓). Tri naturel français (`Intl.Collator`, nombres comparés comme des nombres, accents ignorés), affaires sans valeur toujours à la fin. Choix enregistré dans Firestore (`settings.affSort`), identique sur PC et iPhone. Fonction pure `js/domain/sort.js` (6 tests, 58 au total). Service worker `tri1`. |
 | 2026-09-30 | Thème Neumorphisme | **2ᵉ thème au choix** dans Paramètres → Apparence (par appareil) : **Neumorphisme sombre** (matière `#1f232a`, relief par double ombre, actifs et champs enfoncés, pas de halos ni de flou) à côté du **Verre** (par défaut). Cartes de choix avec aperçu, curseur de flou désactivé en Neumorphisme, appliqué avant le premier affichage, `theme-color` adaptée. Couche CSS `theme` qui redirige les jetons du verre. Vérifié : 6 onglets PC + iPhone sans débordement, contraste 0 défaut sur 1 891 textes, bascule / rechargement / retour au Verre. Service worker `neo1`. Problèmes G1–G2. |
 | 2026-09-30 | Thèmes Clay / Aurora / Skeuo | **3 thèmes de plus** dans Paramètres → Apparence (5 au total, par appareil) : **Claymorphism** (surfaces violet ardoise « gonflées » par ombres intérieures, coins très arrondis, actifs en pâte bleue), **Aurora** (Verre + rideaux d'aurore animés vert / cyan / violet / rose, voile de lisibilité plus dense) et **Skeuomorphisme** (fond texturé, panneaux de cuir surpiqués, boutons biseautés, champs creusés, barre en métal). Cartes de choix avec aperçu. Contraste mesuré au pixel : **0 défaut** sur chaque thème (Clay 1 829, Skeuo 1 894, Aurora 5 698 textes sur 3 positions des aurores). Service worker `themes1`. Problème G3. |
+| 2026-09-30 | 5 thèmes originaux | **Phosphore**, **Blueprint**, **Cyber**, **Moleskine**, **Tableau de bord** (10 thèmes au total, par appareil). Polices propres à chaque thème (VT323 / IBM Plex Mono, Share Tech Mono, Orbitron, Caveat) chargées **seulement** quand le thème est choisi. Moleskine : pages claires, encres AA, tampon « VALIDÉ » quand la semaine atteint 35 h. Contraste mesuré au pixel : **0 défaut** sur chaque thème (~4 400 textes chacun, PC + iPhone). Service worker `themes2`. Problème G4. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

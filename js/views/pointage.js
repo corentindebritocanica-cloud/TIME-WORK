@@ -102,6 +102,8 @@ export function create(root, ctx) {
         total.textContent = minsToDec(weekMin); total.dataset.value = minsToDec(weekMin);
         $('[data-role="sub"]', panelHebdo).textContent = minsToHM(weekMin) + ' / ' + minsToHM(WEEK_TARGET_MIN);
         render($('[data-role="bar"]', panelHebdo), bar(weekMin / WEEK_TARGET_MIN * 100));
+        // Semaine complète (≥ 35h30) : repère pour les thèmes (ex. tampon « VALIDÉ » du thème Moleskine)
+        total.closest('.total-card').toggleAttribute('data-complete', weekMin >= WEEK_TARGET_MIN);
         // Solde global (tous les jours pointés)
         const all = {};
         Object.entries(store.getDays()).forEach(([iso, d]) => { const m = d.h * 60 + d.m; if (m > 0) all[iso] = m; });

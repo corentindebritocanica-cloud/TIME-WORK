@@ -20,7 +20,7 @@
      conteneur (la barre d'onglets vit donc hors de <main>, dans #tabbar).
    - Fond de <html> = couleur du bas de la plaque (#171719) : bande iOS sous la barre.
    ════════════════════════════════════════════════════════════════════ */
-@layer reset, tokens, base, components, views, utilities;
+@layer reset, tokens, base, components, views, utilities, theme;
 
 /* ───────────────────────────── reset ───────────────────────────── */
 @layer reset {
@@ -773,6 +773,49 @@
         & input:checked + span { outline: 2px solid var(--v-text); outline-offset: 3px; }
         & input:focus-visible + span { outline: var(--focus-w) solid var(--focus); outline-offset: 3px; }
     }
+    /* Choix du thème : deux cartes avec un mini-aperçu (couleurs FIXES, identiques quel que soit le thème actif) */
+    .theme-choice { border: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr)); gap: var(--sp-3); & legend { margin-bottom: var(--sp-2); } }
+    .theme-opt {
+        position: relative; display: flex; align-items: center; gap: var(--sp-3); padding: 10px; cursor: pointer;
+        border-radius: var(--r-lg); border: 1px solid var(--v-edge); background: var(--v-soft); box-shadow: var(--v-reflet);
+        & input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+        &:has(input:checked) { border-color: var(--accent-border); box-shadow: var(--v-reflet), 0 0 0 1px var(--accent-border); }
+        &:has(input:focus-visible) { outline: var(--focus-w) solid var(--focus); outline-offset: 2px; }
+    }
+    .theme-nom { display: grid; & small { font-size: var(--fs-xs); color: var(--text-3); } }
+    .theme-apercu { position: relative; flex-shrink: 0; inline-size: 76px; block-size: 52px; border-radius: 12px; overflow: hidden; }
+    .theme-apercu i { position: absolute; display: block; }
+    .apercu-verre {
+        background: radial-gradient(60% 70% at 20% 25%, rgba(31,143,255,.75), transparent 70%),
+                    radial-gradient(60% 70% at 85% 85%, rgba(155,123,255,.7), transparent 70%), #08080a;
+        & i:nth-child(1) { inset: 10px 10px 18px 10px; border-radius: 9px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.3); }
+        & i:nth-child(2) { inset: auto 22px 6px 22px; block-size: 7px; border-radius: 99px; background: rgba(22,22,26,.7); border: 1px solid rgba(255,255,255,.25); }
+    }
+    .apercu-neo {
+        background: #1f232a;
+        & i:nth-child(1) { inset: 9px 30px 21px 9px; border-radius: 8px; background: #1f232a; box-shadow: 3px 3px 6px #14171c, -2px -2px 5px #2b313b; }
+        & i:nth-child(2) { inset: 9px 9px 21px 52px; border-radius: 8px; background: #1f232a; box-shadow: inset 2px 2px 4px #14171c, inset -2px -2px 4px #2b313b; }
+        & i:nth-child(3) { inset: auto 20px 6px 20px; block-size: 8px; border-radius: 99px; background: #1f232a; box-shadow: 2px 2px 4px #14171c, -2px -2px 4px #2b313b; }
+    }
+    .apercu-clay {
+        background: #1b1826;
+        & i:nth-child(1) { inset: 8px 32px 20px 8px; border-radius: 12px; background: #2a2440; box-shadow: inset 2px 2px 3px rgba(255,255,255,.1), inset -3px -3px 5px rgba(0,0,0,.4), 3px 4px 7px rgba(0,0,0,.5); }
+        & i:nth-child(2) { inset: 8px 8px 20px 50px; border-radius: 12px; background: #1a66d0; box-shadow: inset 2px 2px 3px rgba(255,255,255,.25), inset -3px -3px 5px rgba(0,0,0,.35), 3px 4px 7px rgba(0,0,0,.5); }
+        & i:nth-child(3) { inset: auto 18px 5px 18px; block-size: 9px; border-radius: 99px; background: #2a2440; box-shadow: inset 1px 1px 2px rgba(255,255,255,.1), inset -2px -2px 3px rgba(0,0,0,.4); }
+    }
+    .apercu-aurora {
+        background: radial-gradient(50% 45% at 20% 20%, rgba(52,211,153,.8), transparent 70%), radial-gradient(45% 40% at 60% 10%, rgba(34,211,238,.6), transparent 70%),
+                    radial-gradient(50% 45% at 90% 35%, rgba(155,123,255,.8), transparent 70%), radial-gradient(45% 35% at 60% 70%, rgba(244,114,182,.45), transparent 70%), #05060d;
+        & i:nth-child(1) { inset: 12px 10px 18px 10px; border-radius: 9px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.3); }
+        & i:nth-child(2) { inset: auto 22px 5px 22px; block-size: 7px; border-radius: 99px; background: rgba(22,22,26,.7); border: 1px solid rgba(255,255,255,.25); }
+    }
+    .apercu-skeuo {
+        background: repeating-linear-gradient(45deg, rgba(255,255,255,.02) 0 2px, transparent 2px 4px), #161618;
+        & i:nth-child(1) { inset: 7px 8px 19px 8px; border-radius: 6px; background: linear-gradient(#2e2e32, #222225); border: 1px solid #0a0a0b; outline: 1px dashed rgba(255,255,255,.22); outline-offset: -4px; box-shadow: inset 0 1px 0 rgba(255,255,255,.1); }
+        & i:nth-child(2) { inset: auto 34px 5px 8px; block-size: 9px; border-radius: 4px; background: linear-gradient(#3b3e45, #25272c); border: 1px solid #0a0a0b; box-shadow: inset 0 1px 0 rgba(255,255,255,.18); }
+        & i:nth-child(3) { inset: auto 8px 5px 46px; block-size: 9px; border-radius: 4px; background: linear-gradient(#3a8ae8, #1850a8); border: 1px solid #0c3470; box-shadow: inset 0 1px 0 rgba(255,255,255,.3); }
+    }
+    .range-row input[type="range"]:disabled { opacity: .45; cursor: not-allowed; }
     .range-row { display: flex; align-items: center; gap: var(--sp-3); font-size: var(--fs-sm); max-inline-size: 520px; }
     .range-row input[type="range"] { flex: 1; min-inline-size: 0; accent-color: var(--accent); block-size: var(--control-h); cursor: pointer; }
     .range-val { font-family: var(--font-chiffres); font-weight: 400; font-size: var(--fs-base); letter-spacing: -.2px; color: var(--v-text); }
@@ -883,3 +926,250 @@
         ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
     }
 }
+
+/* ───────────────────────────── theme : Neumorphisme ─────────────────────────────
+   2e thème, au choix dans Paramètres → Apparence (par appareil) : <html data-theme="neo">.
+   Neumorphisme SOMBRE (l'app est sombre uniquement) : toutes les surfaces sont de la même
+   matière que le fond (#1f232a) et sortent en relief par deux ombres (claire en haut à gauche,
+   sombre en bas à droite) ; un élément actif / un champ est « enfoncé » (ombres intérieures).
+   Pas de halos, pas de flou (--v-flou forcé à none par js/ui/prefs.js et le <head>).
+   Principe : on redirige d'abord les jetons du verre (fond des panneaux, arêtes, reflet…),
+   puis on donne son relief à chaque famille de composants. Couche la plus prioritaire.
+   Détail : UX-UI.md, « Thème Neumorphisme ». */
+@layer theme {
+    :root[data-theme="neo"] {
+        --n-bg: #1f232a;
+        --n-sombre: #14171c;      /* ombre (bas / droite) */
+        --n-clair: #2b313b;       /* lumière (haut / gauche) */
+        --n-out: 6px 6px 14px var(--n-sombre), -6px -6px 14px var(--n-clair);
+        --n-out-sm: 3px 3px 7px var(--n-sombre), -3px -3px 7px var(--n-clair);
+        --n-out-lg: 12px 12px 28px var(--n-sombre), -10px -10px 26px var(--n-clair);
+        --n-in: inset 4px 4px 9px var(--n-sombre), inset -4px -4px 9px var(--n-clair);
+        --n-in-sm: inset 2px 2px 5px var(--n-sombre), inset -2px -2px 5px var(--n-clair);
+
+        /* Jetons du verre redirigés vers la matière neumorphique */
+        --v-bg: var(--n-bg); --v-plaque-bas: var(--n-bg);
+        --v-glass: transparent; --v-voile: transparent;
+        --v-glass-fort: var(--n-bg); --v-glass-modal: var(--n-bg);
+        --v-soft: var(--n-bg); --v-soft-on: rgba(255,255,255,.05);
+        --v-edge: transparent; --v-edge-fort: rgba(255,255,255,.08);
+        --v-hair: rgba(255,255,255,.06);
+        --v-reflet: 0 0 transparent;
+        --v-ombre: rgba(0,0,0,.4);
+        --v-flou: none;
+        --backdrop: rgba(10,12,15,.6);
+    }
+
+    /* Fond uni (page ET zone hors page sur iPhone), pas de halos */
+    :root[data-theme="neo"] { background: var(--n-bg); }
+    :root[data-theme="neo"] body::before, :root[data-theme="neo"] body::after { display: none; }
+
+    /* La plaque disparaît : le contenu est posé directement sur la matière */
+    :root[data-theme="neo"] .app-main { background: none; border: 0; box-shadow: none; }
+
+    /* Surfaces en relief */
+    :root[data-theme="neo"] :is(.panel, details.acc, .login-box, .prod, .total-card) { border-color: transparent; box-shadow: var(--n-out); }
+    :root[data-theme="neo"] :is(.tile, .day, .aff-card, .round-btn, .tag, .date-badge) { border-color: transparent; box-shadow: var(--n-out-sm); }
+    :root[data-theme="neo"] :is(.tabbar, .nav-add, .menu, .toast) { border-color: transparent; box-shadow: var(--n-out); }
+    :root[data-theme="neo"] #dlg { border-color: transparent; box-shadow: var(--n-out-lg); }
+    :root[data-theme="neo"] .login { background: var(--n-bg); }
+    :root[data-theme="neo"] .nav-add { outline-color: rgba(var(--accent-rgb), .55); }
+
+    /* Boutons : en relief, enfoncés à l'appui */
+    :root[data-theme="neo"] :is(.btn, .btn-icon, .chip) { border-color: transparent; box-shadow: var(--n-out-sm); }
+    :root[data-theme="neo"] :is(.btn, .btn-icon, .chip, .round-btn, .tile, .aff-card):active:not(:disabled) { box-shadow: var(--n-in-sm); transform: none; }
+    :root[data-theme="neo"] .btn-primary { background: var(--n-bg); color: var(--accent-text); border-color: transparent; box-shadow: var(--n-out-sm); }
+    :root[data-theme="neo"] .btn-primary:hover:not(:disabled) { background: var(--n-bg); color: #a3d0ff; }
+    :root[data-theme="neo"] .btn-danger { background: var(--n-bg); color: var(--danger); }
+    :root[data-theme="neo"] :is(.btn, .btn-icon, .chip):disabled { box-shadow: none; }
+
+    /* État actif / sélectionné : ENFONCÉ, texte à l'accent */
+    :root[data-theme="neo"] :is(.chip[aria-pressed="true"], .tab:is([aria-selected="true"], [aria-current="page"]), .tabbar-btn[aria-current="page"], .check:has(input:checked)) {
+        background: var(--n-bg); color: var(--accent-text); border-color: transparent; box-shadow: var(--n-in-sm);
+    }
+    :root[data-theme="neo"] .tabs { border-color: transparent; box-shadow: var(--n-in-sm); }
+    :root[data-theme="neo"] .check { border-color: transparent; box-shadow: var(--n-out-sm); }
+
+    /* Champs : creusés dans la matière */
+    :root[data-theme="neo"] :is(.control, .search) { background: var(--n-bg); border-color: transparent; box-shadow: var(--n-in); }
+    :root[data-theme="neo"] .control:focus-visible { background: var(--n-bg); border-color: var(--accent); }
+    :root[data-theme="neo"] .is-invalid { border-color: var(--danger-fill); }
+    :root[data-theme="neo"] select.control option, :root[data-theme="neo"] select.control optgroup { background: var(--n-bg); }
+
+    /* Cartes teintées du verre → relief + accent sur le texte */
+    :root[data-theme="neo"] .tile.is-accent, :root[data-theme="neo"] .day.is-filled { background: var(--n-bg); border-color: transparent; box-shadow: var(--n-in-sm); }
+    :root[data-theme="neo"] .tile.is-accent { --tc-text: var(--accent-text); }
+    :root[data-theme="neo"] .day.is-today { box-shadow: var(--n-out-sm), 0 0 0 1.5px var(--accent); }
+    :root[data-theme="neo"] .day[data-reason] { background: var(--n-bg); box-shadow: var(--n-in-sm), 0 0 0 1.5px rgba(255,184,0,.6); }
+    :root[data-theme="neo"] .entry-form { background: var(--n-bg); border-color: transparent; box-shadow: var(--n-in); }
+    :root[data-theme="neo"] :is(.notice, .scroll-list) { background: var(--n-bg); box-shadow: var(--n-in-sm); }
+    :root[data-theme="neo"] .total-card { background: var(--n-bg); color: var(--v-text); }
+    :root[data-theme="neo"] .total-card .total-value { color: var(--accent-text); }
+    :root[data-theme="neo"] .total-card .bar { --bc: var(--accent); }
+    :root[data-theme="neo"] .balance { background: var(--n-bg); border-color: transparent; box-shadow: var(--n-out-sm); }
+    :root[data-theme="neo"] details.acc[open] { box-shadow: var(--n-out), inset 0 0 0 1px rgba(var(--accent-rgb), .35); }
+    :root[data-theme="neo"] .day-panel.is-today .date-badge { background: var(--n-bg); color: var(--accent-text); box-shadow: var(--n-in-sm); & small { color: var(--accent-text); } }
+    :root[data-theme="neo"] .table .group td { background: rgba(0,0,0,.12); }
+
+    /* Jauges : piste creusée */
+    :root[data-theme="neo"] .bar-bg { fill: var(--n-sombre); }
+
+    /* Paramètres : ligne tenue en relief */
+    :root[data-theme="neo"] .type-row.is-dragging { background: var(--n-bg); box-shadow: var(--n-out), 0 0 0 1px var(--accent-border); }
+    :root[data-theme="neo"] .drag-handle:hover { background: var(--n-bg); box-shadow: var(--n-out-sm); }
+
+    /* Pas de filet lumineux / halo sur les pastilles et jauges : relief seulement */
+    :root[data-theme="neo"] .bar { filter: none; }
+    :root[data-theme="neo"] .theme-opt { border-color: transparent; box-shadow: var(--n-out-sm); }
+    :root[data-theme="neo"] .theme-opt:has(input:checked) { box-shadow: var(--n-in-sm), 0 0 0 1px var(--accent-border); }
+}
+
+/* ───────────────────────────── theme : Claymorphism ─────────────────────────────
+   Surfaces « pâte à modeler » : couleur pleine (violet ardoise), coins très arrondis,
+   volume par ombres INTÉRIEURES (lumière en haut à gauche, creux en bas à droite) + ombre portée
+   douce. Boutons actifs = pâte bleue gonflée. Sombre (couleurs de catégories et contrastes conservés). */
+@layer theme {
+    :root[data-theme="clay"] {
+        --c-bg: #1b1826; --c-surf: #2a2440; --c-surf-2: #221d35;
+        --c-puff: inset 5px 5px 10px rgba(255,255,255,.07), inset -7px -7px 14px rgba(0,0,0,.35), 8px 12px 24px rgba(0,0,0,.45);
+        --c-puff-sm: inset 3px 3px 6px rgba(255,255,255,.08), inset -4px -4px 8px rgba(0,0,0,.35), 4px 6px 12px rgba(0,0,0,.4);
+        --c-bleu: inset 3px 3px 6px rgba(255,255,255,.22), inset -4px -4px 8px rgba(0,0,0,.3), 4px 6px 14px rgba(26,102,208,.35);
+        --c-creux: inset 4px 4px 10px rgba(0,0,0,.45), inset -2px -2px 6px rgba(255,255,255,.05);
+        --v-bg: var(--c-bg); --v-plaque-bas: var(--c-bg);
+        --v-glass: transparent; --v-voile: transparent;
+        --v-glass-fort: var(--c-surf); --v-glass-modal: var(--c-surf);
+        --v-soft: var(--c-surf); --v-soft-on: rgba(255,255,255,.08);
+        --v-edge: transparent; --v-edge-fort: rgba(255,255,255,.1); --v-hair: rgba(255,255,255,.07);
+        --v-reflet: 0 0 transparent; --v-flou: none; --backdrop: rgba(10,8,18,.6);
+        --r-sm: 18px; --r-md: 22px; --r-lg: 26px; --r-panel: 32px;
+    }
+    :root[data-theme="clay"] { background: var(--c-bg); }
+    :root[data-theme="clay"] body::before, :root[data-theme="clay"] body::after { display: none; }
+    :root[data-theme="clay"] .app-main { background: none; border: 0; box-shadow: none; }
+
+    :root[data-theme="clay"] :is(.panel, details.acc, .login-box, .prod, .total-card, #dlg, .menu) { border-color: transparent; box-shadow: var(--c-puff); }
+    :root[data-theme="clay"] :is(.tile, .day, .aff-card, .round-btn, .tag, .date-badge, .theme-opt, .toast, .tabbar, .nav-add, .balance) { border-color: transparent; box-shadow: var(--c-puff-sm); }
+    :root[data-theme="clay"] :is(.panel .tile, .panel .aff-card, .panel .prod, .panel .day, details.acc .tile) { background: var(--c-surf-2); }
+    :root[data-theme="clay"] :is(.btn, .btn-icon, .chip, .check) { border-color: transparent; background: var(--c-surf); box-shadow: var(--c-puff-sm); }
+    :root[data-theme="clay"] :is(.btn, .btn-icon, .chip, .round-btn, .tile, .aff-card):active:not(:disabled) { box-shadow: var(--c-creux); transform: scale(.98); }
+    :root[data-theme="clay"] :is(.btn-primary, .chip[aria-pressed="true"], .tab:is([aria-selected="true"], [aria-current="page"]), .tabbar-btn[aria-current="page"], .check:has(input:checked)) {
+        background: #1a66d0; color: #fff; border-color: transparent; box-shadow: var(--c-bleu);
+    }
+    :root[data-theme="clay"] .tabbar-btn[aria-current="page"] .ico { color: #fff; }
+    :root[data-theme="clay"] .btn-danger { background: #b3261e; color: #fff; box-shadow: inset 3px 3px 6px rgba(255,255,255,.18), inset -4px -4px 8px rgba(0,0,0,.3), 4px 6px 12px rgba(0,0,0,.4); }
+    :root[data-theme="clay"] :is(.control, .search) { background: var(--c-surf-2); border-color: transparent; box-shadow: var(--c-creux); }
+    :root[data-theme="clay"] .control:focus-visible { background: var(--c-surf-2); border-color: var(--accent); }
+    :root[data-theme="clay"] select.control option { background: var(--c-surf); }
+    :root[data-theme="clay"] .tabs { background: var(--c-surf-2); border-color: transparent; box-shadow: var(--c-creux); }
+    :root[data-theme="clay"] :is(.entry-form, .notice, .scroll-list) { background: var(--c-surf-2); border-color: transparent; box-shadow: var(--c-creux); }
+    :root[data-theme="clay"] .tile.is-accent, :root[data-theme="clay"] .day.is-filled { background: #243a66; border-color: transparent; box-shadow: var(--c-puff-sm); --tc-text: var(--v-text); }
+    :root[data-theme="clay"] .day.is-today { box-shadow: var(--c-puff-sm), 0 0 0 2px var(--accent); }
+    :root[data-theme="clay"] .day[data-reason] { background: #3d3320; }
+    :root[data-theme="clay"] .total-card { background: #1a66d0; box-shadow: var(--c-bleu); }
+    :root[data-theme="clay"] .total-card .bar { --bc: #fff; }
+    :root[data-theme="clay"] .total-card :is(.total-label, .total-sub) { color: #fff; }
+    :root[data-theme="clay"] .bar-bg { fill: rgba(0,0,0,.3); }
+    :root[data-theme="clay"] .bar { filter: none; block-size: 8px; }
+    :root[data-theme="clay"] details.acc[open] { box-shadow: var(--c-puff), 0 0 0 2px rgba(var(--accent-rgb), .45); }
+    :root[data-theme="clay"] .login { background: var(--c-bg); }
+    :root[data-theme="clay"] .type-row.is-dragging { background: var(--c-surf-2); box-shadow: var(--c-puff), 0 0 0 2px var(--accent-border); }
+    :root[data-theme="clay"] .theme-opt:has(input:checked) { box-shadow: var(--c-creux), 0 0 0 2px var(--accent-border); }
+    :root[data-theme="clay"] .nav-add { outline-color: rgba(var(--accent-rgb), .6); }
+}
+
+/* ───────────────────────────── theme : Aurora ─────────────────────────────
+   Le Verre, éclairé par des AURORES : ciel presque noir (#05060d), rideaux de lumière verts,
+   cyan, violets et roses qui dérivent (mêmes calques et animations que les halos, couleurs changées).
+   Plaque de verre et flou conservés (curseur actif), voile de lisibilité un peu plus dense. */
+@layer theme {
+    :root[data-theme="aurora"] {
+        --v-bg: #05060d; --v-plaque-bas: #0f1017;
+        --v-voile: rgba(5,6,13,.68);
+        --v-app: #34d399;
+    }
+    /* Rideaux d'aurore : ellipses étirées verticalement, plus intenses que les halos du Verre */
+    :root[data-theme="aurora"] body::before {
+        background:
+            radial-gradient(14% 34% at 16% 42%, rgba(52,211,153,.75), transparent 72%),
+            radial-gradient(12% 30% at 34% 36%, rgba(34,211,238,.6), transparent 72%),
+            radial-gradient(15% 32% at 56% 40%, rgba(52,211,153,.55), transparent 72%),
+            radial-gradient(17% 32% at 80% 40%, rgba(155,123,255,.7), transparent 72%);
+    }
+    :root[data-theme="aurora"] body::after {
+        background:
+            radial-gradient(22% 22% at 68% 56%, rgba(244,114,182,.42), transparent 72%),
+            radial-gradient(20% 24% at 26% 58%, rgba(31,143,255,.42), transparent 72%);
+    }
+    :root[data-theme="aurora"] .nav-add { outline-color: #34d399; }
+}
+
+/* ───────────────────────────── theme : Skeuomorphisme ─────────────────────────────
+   Matières réelles : fond texturé, panneaux de CUIR sombre SURPIQUÉS (contour en pointillés),
+   boutons biseautés et brillants, champs creusés, barre d'onglets en métal. Coins plus petits
+   (objets physiques), texte gravé (ombre portée). Sombre, contrastes conservés. */
+@layer theme {
+    :root[data-theme="skeuo"] {
+        --k-bg: #161618;
+        --k-cuir: linear-gradient(180deg, #2d2d31, #222225);
+        --k-bouton: linear-gradient(180deg, #3b3e45, #25272c);
+        --k-bouton-bas: linear-gradient(180deg, #202226, #2b2e34);
+        --k-bleu: linear-gradient(180deg, #2f7fe0, #154fa6);
+        --k-metal: linear-gradient(180deg, #34363c, #1c1d21);
+        --k-relief: inset 0 1px 0 rgba(255,255,255,.09), 0 1px 0 rgba(0,0,0,.5), 0 10px 22px rgba(0,0,0,.5);
+        --k-relief-sm: inset 0 1px 0 rgba(255,255,255,.16), 0 1px 2px rgba(0,0,0,.6);
+        --k-creux: inset 0 2px 5px rgba(0,0,0,.7), 0 1px 0 rgba(255,255,255,.06);
+        --v-bg: var(--k-bg); --v-plaque-bas: var(--k-bg);
+        --v-glass: transparent; --v-voile: transparent;
+        --v-glass-fort: #1f2023; --v-glass-modal: #242427;
+        --v-soft: #28282b; --v-soft-on: rgba(255,255,255,.07);
+        --v-edge: #0b0b0c; --v-edge-fort: #000; --v-hair: rgba(255,255,255,.07);
+        --v-reflet: inset 0 1px 0 rgba(255,255,255,.09); --v-flou: none; --backdrop: rgba(0,0,0,.6);
+        --r-sm: 8px; --r-md: 10px; --r-lg: 12px; --r-panel: 16px; --r-plaque: 18px;
+    }
+    :root[data-theme="skeuo"] { background: var(--k-bg); }
+    :root[data-theme="skeuo"] body { background: repeating-linear-gradient(45deg, rgba(255,255,255,.012) 0 2px, transparent 2px 4px); }
+    :root[data-theme="skeuo"] body::before, :root[data-theme="skeuo"] body::after { display: none; }
+    :root[data-theme="skeuo"] .app-main { background: none; border: 0; box-shadow: none; }
+    :root[data-theme="skeuo"] :is(.page-title, .tile-value, .total-value, .prod-value) { text-shadow: 0 1px 0 #000, 0 2px 6px rgba(0,0,0,.5); }
+
+    /* Cuir surpiqué */
+    :root[data-theme="skeuo"] :is(.panel, .login-box, #dlg) { background: var(--k-cuir); border: 1px solid #0b0b0c; box-shadow: var(--k-relief); outline: 1px dashed rgba(255,255,255,.14); outline-offset: -7px; }
+    :root[data-theme="skeuo"] :is(details.acc, .prod, .tile, .day, .aff-card, .theme-opt, .menu, .toast, .balance) { background: var(--k-cuir); border: 1px solid #0b0b0c; box-shadow: var(--k-relief); }
+    :root[data-theme="skeuo"] .tag { background: var(--k-bouton); border-color: #0b0b0c; box-shadow: var(--k-relief-sm); }
+
+    /* Boutons biseautés, enfoncés à l'appui */
+    :root[data-theme="skeuo"] :is(.btn, .btn-icon, .chip, .round-btn, .check) { background: var(--k-bouton); border: 1px solid #0b0c0e; box-shadow: var(--k-relief-sm); text-shadow: 0 -1px 0 rgba(0,0,0,.7); }
+    :root[data-theme="skeuo"] :is(.btn, .chip) { border-radius: 10px; }
+    :root[data-theme="skeuo"] :is(.btn, .btn-icon, .chip, .round-btn, .tile, .aff-card):active:not(:disabled) { background: var(--k-bouton-bas); box-shadow: var(--k-creux); transform: none; }
+    :root[data-theme="skeuo"] :is(.btn-primary, .chip[aria-pressed="true"], .check:has(input:checked)) { background: var(--k-bleu); border-color: #0c3470; color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 1px 2px rgba(0,0,0,.6); }
+    :root[data-theme="skeuo"] .btn-danger { background: linear-gradient(180deg, #d0453d, #8f1f19); border-color: #4d0f0c; color: #fff; }
+
+    /* Champs creusés, bascule et onglets en « interrupteurs » */
+    :root[data-theme="skeuo"] :is(.control, .search) { background: #0f0f11; border: 1px solid #000; box-shadow: var(--k-creux); }
+    :root[data-theme="skeuo"] .control:focus-visible { background: #0f0f11; border-color: var(--accent); }
+    :root[data-theme="skeuo"] select.control option { background: #1f2023; }
+    :root[data-theme="skeuo"] .tabs { background: #0f0f11; border: 1px solid #000; box-shadow: var(--k-creux); border-radius: 12px; }
+    :root[data-theme="skeuo"] .tab { border-radius: 9px; }
+    :root[data-theme="skeuo"] .tab:is([aria-selected="true"], [aria-current="page"]) { background: var(--k-bouton); color: var(--v-text); box-shadow: var(--k-relief-sm); }
+    :root[data-theme="skeuo"] :is(.entry-form, .notice, .scroll-list) { background: #1a1a1c; border: 1px solid #000; box-shadow: var(--k-creux); }
+
+    /* Barre d'onglets en métal brossé, onglet actif enfoncé */
+    :root[data-theme="skeuo"] :is(.tabbar, .nav-add) { background: var(--k-metal); border: 1px solid #0a0a0b; box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 12px 26px rgba(0,0,0,.6); }
+    :root[data-theme="skeuo"] .tabbar-btn[aria-current="page"] { background: #121214; color: var(--accent-text); box-shadow: var(--k-creux); }
+    :root[data-theme="skeuo"] .nav-add { outline-color: rgba(var(--accent-rgb), .6); }
+
+    /* États */
+    :root[data-theme="skeuo"] .tile.is-accent, :root[data-theme="skeuo"] .day.is-filled { background: linear-gradient(180deg, #213556, #182842); border-color: #0c1a30; --tc-text: var(--v-text); }
+    :root[data-theme="skeuo"] .day.is-today { box-shadow: var(--k-relief), 0 0 0 2px var(--accent); }
+    :root[data-theme="skeuo"] .day[data-reason] { background: linear-gradient(180deg, #3d3320, #2b2416); }
+    :root[data-theme="skeuo"] .total-card { background: linear-gradient(180deg, #2a5fa8, #173a6e); border: 1px solid #0c2448; box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 10px 24px rgba(0,0,0,.55); outline: 1px dashed rgba(255,255,255,.22); outline-offset: -8px; }
+    :root[data-theme="skeuo"] .total-card .bar { --bc: #fff; }
+    :root[data-theme="skeuo"] .bar { filter: none; block-size: 8px; box-shadow: inset 0 1px 3px rgba(0,0,0,.7); }
+    :root[data-theme="skeuo"] .bar-bg { fill: #0c0c0d; }
+    :root[data-theme="skeuo"] details.acc[open] { border-color: #0c2448; box-shadow: var(--k-relief), 0 0 0 1px rgba(var(--accent-rgb), .45); }
+    :root[data-theme="skeuo"] .date-badge { background: var(--k-bouton); border-color: #0b0b0c; box-shadow: var(--k-relief-sm); }
+    :root[data-theme="skeuo"] .login { background: var(--k-bg); }
+    :root[data-theme="skeuo"] .type-row.is-dragging { background: var(--k-cuir); box-shadow: var(--k-relief), 0 0 0 1px var(--accent-border); }
+    :root[data-theme="skeuo"] .theme-opt:has(input:checked) { box-shadow: var(--k-relief), 0 0 0 2px var(--accent-border); }
+}
+

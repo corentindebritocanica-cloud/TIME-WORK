@@ -423,6 +423,26 @@ règles iPhone : [`GUIDE-PWA-IOS.md`](./GUIDE-PWA-IOS.md).
 
 ---
 
+## 2026-09-30 — Thème Neumorphisme : problèmes rencontrés
+
+#### G1. Le flou restait actif en Neumorphisme (anticipé à la lecture)
+- **Cause** : le réglage d'intensité du flou est posé en **style en ligne** sur `<html>` (`--v-flou`, par `prefs.js` et le `<head>`) ; un style en ligne l'emporte sur toute règle de la feuille de styles, donc `:root[data-theme="neo"] { --v-flou: none }` n'aurait eu aucun effet.
+- **Solution** : en Neumorphisme, `applyPrefs()` et le script du `<head>` posent eux-mêmes `--v-flou: none`. Vérifié : `backdrop-filter` = `none` sur la plaque, la barre et le « + » ; 0 surface floutée.
+- **Statut** : corrigé le 2026-09-30
+
+#### G2. Validation du thème enregistré : piège de l'opérateur `in`
+- **Risque** : `p.theme in THEMES` est vrai pour `"toString"` ou `"constructor"` (propriétés héritées d'`Object.prototype`) : une valeur corrompue dans `localStorage` aurait posé `data-theme="toString"` (aucun style, page cassée).
+- **Solution** : `Object.hasOwn(THEMES, p.theme)` ; sinon thème par défaut (Verre).
+- **Statut** : corrigé le 2026-09-30
+
+#### G3. Thèmes Clay / Aurora / Skeuo : contrastes à reprendre, faux positifs de mesure
+- **Aurora** : les premiers rideaux d'aurore, centrés en haut de l'écran, passaient **derrière le titre** (« TIME-WORK » à 2,4:1, titre à 3,3:1) et, sous la plaque, faisaient descendre de petits textes à ~4:1. **Solution** : rideaux centrés plus bas (sous l'en-tête), intensité réduite, voile de la plaque porté à `.68` → 0 défaut sur 5 698 textes (3 positions de l'animation).
+- **Clay** : textes gris (`--text-2`) sur la carte « Total » bleue à 3,8:1 → texte blanc sur cette carte.
+- **Outil de mesure** : deux « défauts » Clay étaient des textes **recouverts** par la barre d'onglets et le bouton « + » sur téléphone (invisibles à cet endroit). Le script ignore désormais un texte dont le centre est couvert par un autre élément (`elementFromPoint`).
+- **Statut** : corrigé le 2026-09-30
+
+---
+
 ## Lancement en mode application (Edge)
 
 Raccourci Windows utilisé (champ *Cible*) :

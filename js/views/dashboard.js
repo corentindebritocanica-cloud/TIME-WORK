@@ -7,8 +7,10 @@ import { pie, bindPieHover } from '../ui/pie.js';
 import { typeLabel, typeClass, globalType, sortTypes } from '../domain/types.js';
 import { todayISO, mondayOf, addDays, workWeek, isoWeek, fmtShort, fmtNum, minsToHM } from '../domain/time.js';
 import { budgetBar } from './shared.js';
+import { computeProductive } from '../domain/productive.js';
 
 let prodOffset = 0;     // 0 = semaine en cours, -1 = précédente…
+let prodToday = false;  // false = compté jusqu'à hier (J-1, par défaut) ; true = jusqu'à aujourd'hui (J-0)
 const DEFAULT_FILTER = { preset: 'ALL', year: null, from: '', to: '' };
 
 /**
@@ -90,16 +92,11 @@ export function create(el, ctx) {
 
     /** Encart « temps productif » + répartition par machine. */
     function prodBox(affaires, entries) {
-        const mon = addDays(mondayOf(todayISO()), prodOffset * 7), days = workWeek(mon), fri = days[4];
-        let workMin = days.reduce((s, iso) => { const d = store.getDay(iso); return s + (d ? d.h * 60 + d.m : 0); }, 0);
-        const unbilled = new Set(affaires.filter(a => a.unbilled).map(a => a.id));
-        const productive = new Set(affaires.filter(a => a.productive).map(a => a.id));
-        const wk = entries.filter(e => e.date >= mon && e.date <= fri);
-        const counted = wk.filter(e => !unbilled.has(e.affaireId));
-        const unbilledMin = wk.filter(e => unbilled.has(e.affaireId)).reduce((s, e) => s + e.minutes, 0);
-        workMin = workMin === 0 ? counted.reduce((s, e) => s + e.minutes, 0) : Math.max(0, workMin - unbilledMin);
-        const prodMin = counted.filter(e => productive.has(e.affaireId)).reduce((s, e) => s + e.minutes, 0);
-        const pct = workMin > 0 ? Math.round(prodMin / workMin * 100) : 0;
+        const today = todayISO(), until = prodToday ? today : addDays(today, -1);   // jamais l'avenir
+        const mon = addDays(mondayOf(today), prodOffset * 7), days = workWeek(mon), fri = days[4];
+        const { days: kept, workMin, prodMin, pct } = computeProductive({ days, entries, affaires, until,
+            dayMinutes: iso => { const d = store.getDay(iso); return d ? d.h * 60 + d.m : 0; } });
+        const partial = kept.length < days.length;     // semaine en cours pas encore écoulée
         const cls = pct >= 70 ? 'c-ok' : pct >= 50 ? 'c-warn' : 'c-danger';
         const label = prodOffset === 0 ? 'Semaine en cours' : prodOffset === -1 ? 'Semaine dernière' : 'Il y a ' + (-prodOffset) + ' semaines';
 
@@ -119,7 +116,14 @@ export function create(el, ctx) {
                     <button type="button" class="btn-icon" data-action="prod" data-dir="1" aria-label="Semaine suivante" ${prodOffset >= 0 ? 'disabled' : ''}>›</button>
                 </div>
                 <p class="tile-sub">Sem. ${isoWeek(mon)} · ${fmtShort(mon)} → ${fmtShort(fri)}</p>
-                ${workMin === 0 ? html`<p class="empty">Aucun temps de travail renseigné pour cette semaine</p>` : html`
+                ${prodOffset === 0 ? html`
+                    <div class="prod-jour" role="group" aria-label="Jours comptés">
+                        <button type="button" class="chip" data-action="prod-jour" data-today="0" aria-pressed="${String(!prodToday)}" title="Jusqu'à hier">J-1</button>
+                        <button type="button" class="chip" data-action="prod-jour" data-today="1" aria-pressed="${String(prodToday)}" title="Jusqu'à aujourd'hui">J-0</button>
+                        <span class="tile-sub">${partial ? (kept.length ? 'Compté jusqu\'au ' + fmtShort(kept[kept.length - 1]) + (prodToday ? ' (aujourd\'hui)' : ' (hier)') : '') : 'Semaine complète'}</span>
+                    </div>` : ''}
+                ${!kept.length ? html`<p class="empty">Aucun jour écoulé cette semaine : appuie sur J-0 pour compter aujourd'hui</p>`
+                : workMin === 0 ? html`<p class="empty">Aucun temps de travail renseigné pour cette semaine</p>` : html`
                     <p class="prod-value">${pct} %</p>
                     <p class="tile-sub">${label}</p>
                     <svg class="bar" viewBox="0 0 100 5" preserveAspectRatio="none" aria-hidden="true"><rect class="bar-bg" width="100" height="5"/><rect class="bar-fill" width="${Math.min(pct, 100)}" height="5"/></svg>
@@ -141,6 +145,7 @@ export function create(el, ctx) {
         preset: b => setFilter(b.dataset.preset === 'ALL' ? { preset: 'ALL', year: null } : { preset: 'CUSTOM' }),
         year: b => setFilter({ preset: 'YEAR', year: b.dataset.year }),
         prod: b => { const d = +b.dataset.dir; prodOffset = d === 0 ? 0 : Math.min(0, prodOffset + d); draw(); },
+        'prod-jour': b => { prodToday = b.dataset.today === '1'; draw(); },
         open: b => ctx.openAffaire(b.dataset.id)
     }, ac.signal);
     on(el, 'change', { custom: i => setFilter({ preset: 'CUSTOM', [i.dataset.bound]: i.value }) }, ac.signal);

@@ -24,6 +24,7 @@ import { typeLabel, typeClass, globalType, normalizeTypeConfig, serializeTypeCon
          sortTypes, typesFor, defaultType, TYPES, TYPE_CODES } from '../js/domain/types.js';
 import { flouCSS } from '../js/ui/prefs.js';
 import { sortAffaires } from '../js/domain/sort.js';
+import { computeProductive } from '../js/domain/productive.js';
 import { esc, html } from '../js/ui/dom.js';
 
 const results = [];
@@ -119,6 +120,20 @@ eq('tri : code Z→A, vides toujours à la fin', nums(sortAffaires(affsT, { by: 
 eq('tri : client sans tenir compte des accents / majuscules', nums(sortAffaires(affsT, { by: 'client' })), ['∅', 'AF-2026-9', 'AF-2026-10']);
 eq('tri : machine, sans machine à la fin', nums(sortAffaires(affsT, { by: 'machine' })), ['∅', 'AF-2026-10', 'AF-2026-9']);
 eq('tri : clé inconnue → création, liste d\'origine intacte', [nums(sortAffaires(affsT, { by: 'x' })), affsT[0].num], [['AF-2026-9', '∅', 'AF-2026-10'], 'AF-2026-10']);
+
+// Temps productif : jamais l'avenir (J-1 par défaut, J-0 sur demande)
+const wkP = workWeek('2026-09-28');   // lun 28 → ven 2 oct
+const pointe = { '2026-09-28': 480, '2026-09-29': 480, '2026-09-30': 480, '2026-10-01': 480, '2026-10-02': 420 };   // semaine remplie à l'avance
+const affsP = [{ id: 'p', productive: true }, { id: 'n' }, { id: 'u', unbilled: true }];
+const entP = [{ date: '2026-09-28', affaireId: 'p', minutes: 360 }, { date: '2026-09-28', affaireId: 'n', minutes: 120 },
+              { date: '2026-09-29', affaireId: 'u', minutes: 60 }, { date: '2026-09-29', affaireId: 'p', minutes: 420 },
+              { date: '2026-09-30', affaireId: 'p', minutes: 480 }, { date: '2026-10-02', affaireId: 'p', minutes: 420 }];
+const prodP = until => { const r = computeProductive({ days: wkP, dayMinutes: d => pointe[d] || 0, entries: entP, affaires: affsP, until }); return [r.days.length, r.workMin, r.prodMin, r.pct]; };
+eq('productif J-1 (jeu.) : lun → mer seulement, saisies futures ignorées', prodP('2026-09-30'), [3, 1380, 1260, 91]);
+eq('productif J-0 (jeu.) : lun → jeu', prodP('2026-10-01'), [4, 1860, 1260, 68]);
+eq('productif : lundi en J-1 → aucun jour compté', prodP('2026-09-27'), [0, 0, 0, 0]);
+eq('productif : semaine passée → semaine entière', prodP('2026-10-05'), [5, 2280, 1680, 74]);
+eq('productif : sans pointage → somme des saisies facturées jusqu\'à la limite', computeProductive({ days: wkP, dayMinutes: () => 0, entries: entP, affaires: affsP, until: '2026-09-29' }).workMin, 900);
 
 // Apparence : intensité du flou (même formule que le <head> d'index.html)
 eq('flouCSS', [flouCSS(0), flouCSS(50), flouCSS(100), flouCSS(-5), flouCSS(25)],

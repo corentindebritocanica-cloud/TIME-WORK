@@ -220,6 +220,7 @@ et `VERSION`). Sur iPhone, l'icône n'est relue qu'à l'ajout à l'écran d'accu
 | 30/09/2026 | **Thème Neumorphisme** (au choix, par appareil) : voir la section « Thème Neumorphisme ». Le Verre reste le thème par défaut et la référence (charte PORTAIL-DUO). |
 | 30/09/2026 | **Thèmes Claymorphism, Aurora, Skeuomorphisme** (5 thèmes au total) : voir §7. |
 | 30/09/2026 | **5 thèmes originaux** : Phosphore, Blueprint, Cyber, Moleskine, Tableau de bord (10 au total) : voir §7.2. |
+| 01/10/2026 | **Temps productif J-1 / J-0** : paire de puces `.chip[aria-pressed]` (`.prod-jour`) sous la semaine, visible seulement sur la semaine en cours, suivie de « Compté jusqu'au … (hier / aujourd'hui) ». |
 
 *Mettre à jour ce tableau à chaque évolution de l'interface.*
 

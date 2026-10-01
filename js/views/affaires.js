@@ -179,8 +179,17 @@ export function create(el, ctx) {
             </div>`);
         if (focus.affaireId) {
             const d = $('#aff-' + CSS.escape(focus.affaireId), el);
-            focus.affaireId = null;
-            if (d) { d.hidden = false; requestAnimationFrame(() => d.scrollIntoView({ behavior: 'smooth', block: 'start' })); }
+            const row = focus.entryId && d && $('tr[data-entry="' + CSS.escape(focus.entryId) + '"]', d);
+            focus.affaireId = focus.entryId = null;
+            if (d) d.hidden = false;
+            if (row) {          // venu des Imputées : saisie au centre, surlignée, type prêt à changer
+                requestAnimationFrame(() => {
+                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    row.classList.add('is-cible');
+                    row.addEventListener('animationend', () => row.classList.remove('is-cible'), { once: true });
+                    $('.entry-type', row)?.focus({ preventScroll: true });
+                });
+            } else if (d) requestAnimationFrame(() => d.scrollIntoView({ behavior: 'smooth', block: 'start' }));
         }
     }
 

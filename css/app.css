@@ -479,6 +479,10 @@
     }
     .table td { padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--v-hair); }
     .table tbody tr:hover { background: rgba(255,255,255,.03); }
+    /* Saisie ciblée depuis les Imputées : surlignage bref qui s'estompe */
+    .table tbody tr.is-cible { animation: ligne-cible 2.4s ease-out; }
+    @keyframes ligne-cible { 0%, 35% { background: var(--accent-tint); box-shadow: inset 3px 0 0 var(--accent); } }
+    :root[data-animations="off"] .table tbody tr.is-cible { animation-duration: 1.6s; animation-timing-function: steps(1, end); }
     .table .num { text-align: right; }
     .table .group td { background: var(--v-soft); font-weight: var(--fw-semi); color: var(--text-2); }
     .table .total td { font-weight: var(--fw-bold); color: var(--v-text); border-bottom: none; }

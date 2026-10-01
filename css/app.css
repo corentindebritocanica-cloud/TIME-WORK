@@ -661,6 +661,7 @@
     .prod-head .label { margin-right: auto; color: var(--tc); }
     .prod-value { font-family: var(--font-chiffres); font-size: var(--fs-4xl); font-weight: 300; letter-spacing: -1.8px; line-height: 1; text-align: center; color: var(--tc); font-variant-numeric: tabular-nums; }
     .prod-split { display: flex; justify-content: space-between; font-size: var(--fs-sm); & strong { display: block; font-size: var(--fs-md); } }
+    .prod-jour { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); & .chip { min-inline-size: 48px; justify-content: center; } & .tile-sub { margin-left: var(--sp-1); } }
     .prod .bar { --bc: var(--tc); }
     .machines { padding-top: var(--sp-3); border-top: 1px solid var(--v-hair); display: grid; gap: var(--sp-2); }
     .aff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--sp-3); }

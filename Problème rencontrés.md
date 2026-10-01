@@ -451,6 +451,16 @@ règles iPhone : [`GUIDE-PWA-IOS.md`](./GUIDE-PWA-IOS.md).
 
 ---
 
+## 2026-10-01 — Temps productif J-1 : problèmes rencontrés
+
+#### H1. Pourcentage faussé par le pointage rempli à l'avance
+- **Symptôme** : Corentin remplit le Pointage de la semaine à l'avance ; le temps productif comptait alors les heures pointées des jours **à venir** (sans saisies en face) et le pourcentage chutait en début de semaine.
+- **Solution** : `computeProductive()` (`js/domain/productive.js`) ne retient que les jours ≤ une date limite, pour le pointage **et** les saisies : hier par défaut (J-1), aujourd'hui sur demande (J-0), jamais au-delà.
+- **Cas limite** : le lundi en J-1, aucun jour de la semaine n'est encore écoulé → message « Aucun jour écoulé cette semaine : appuie sur J-0 » au lieu d'un 0 % trompeur.
+- **Statut** : corrigé le 2026-10-01
+
+---
+
 ## Lancement en mode application (Edge)
 
 Raccourci Windows utilisé (champ *Cible*) :

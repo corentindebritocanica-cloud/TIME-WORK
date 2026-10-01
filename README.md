@@ -31,6 +31,12 @@ s'affiche en haut à gauche (« Paramètres » pour Réglages). Passer d'un ongl
 l'autre fait glisser la section depuis le côté de l'onglet choisi. Le bouton rond **Données** de l'en-tête regroupe sauvegarde,
 restauration et import CSV ; le bouton rond voisin déconnecte.
 
+- **Temps productif** (Tableau) : part des heures pointées passée sur les affaires
+  « temps productif » (hors affaires non facturées), semaine par semaine. Il ne compte
+  **jamais l'avenir** : par défaut jusqu'à **hier (J-1)**, pour qu'un pointage rempli à
+  l'avance ne fausse pas le pourcentage ; le bouton **J-0** inclut aujourd'hui. Les
+  semaines passées sont comptées en entier.
+
 - **Pointage CEGID** : saisie hebdomadaire des heures, motifs Férié / Congé,
   calculateur de sessions, solde cumulé (7h06 par jour ouvré, 35h30 / semaine).
 - **Par affaire** : tri de la liste par **code affaire**, **client** ou **machine**
@@ -338,6 +344,7 @@ service cloud.firestore {
 | 2026-09-30 | Thème Neumorphisme | **2ᵉ thème au choix** dans Paramètres → Apparence (par appareil) : **Neumorphisme sombre** (matière `#1f232a`, relief par double ombre, actifs et champs enfoncés, pas de halos ni de flou) à côté du **Verre** (par défaut). Cartes de choix avec aperçu, curseur de flou désactivé en Neumorphisme, appliqué avant le premier affichage, `theme-color` adaptée. Couche CSS `theme` qui redirige les jetons du verre. Vérifié : 6 onglets PC + iPhone sans débordement, contraste 0 défaut sur 1 891 textes, bascule / rechargement / retour au Verre. Service worker `neo1`. Problèmes G1–G2. |
 | 2026-09-30 | Thèmes Clay / Aurora / Skeuo | **3 thèmes de plus** dans Paramètres → Apparence (5 au total, par appareil) : **Claymorphism** (surfaces violet ardoise « gonflées » par ombres intérieures, coins très arrondis, actifs en pâte bleue), **Aurora** (Verre + rideaux d'aurore animés vert / cyan / violet / rose, voile de lisibilité plus dense) et **Skeuomorphisme** (fond texturé, panneaux de cuir surpiqués, boutons biseautés, champs creusés, barre en métal). Cartes de choix avec aperçu. Contraste mesuré au pixel : **0 défaut** sur chaque thème (Clay 1 829, Skeuo 1 894, Aurora 5 698 textes sur 3 positions des aurores). Service worker `themes1`. Problème G3. |
 | 2026-09-30 | 5 thèmes originaux | **Phosphore**, **Blueprint**, **Cyber**, **Moleskine**, **Tableau de bord** (10 thèmes au total, par appareil). Polices propres à chaque thème (VT323 / IBM Plex Mono, Share Tech Mono, Orbitron, Caveat) chargées **seulement** quand le thème est choisi. Moleskine : pages claires, encres AA, tampon « VALIDÉ » quand la semaine atteint 35 h. Contraste mesuré au pixel : **0 défaut** sur chaque thème (~4 400 textes chacun, PC + iPhone). Service worker `themes2`. Problème G4. |
+| 2026-10-01 | Temps productif J-1 | Le temps productif de la semaine en cours ne compte plus que les jours **jusqu'à hier** (pointage ET saisies), pour ignorer le pointage rempli à l'avance ; bouton **J-1 / J-0** dans l'encart (J-0 = jusqu'à aujourd'hui, jamais au-delà) et mention « Compté jusqu'au … ». Calcul extrait dans `js/domain/productive.js` (5 tests, 63 au total). Service worker `prodj1`. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

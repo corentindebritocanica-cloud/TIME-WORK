@@ -461,6 +461,21 @@ règles iPhone : [`GUIDE-PWA-IOS.md`](./GUIDE-PWA-IOS.md).
 
 ---
 
+## 2026-10-01 — Lien Imputées → Affaires, retrait de Chrono : problèmes rencontrés
+
+#### H2. Arriver sur une saisie précise depuis un autre onglet
+- **Contexte** : l'onglet Affaires est entièrement recréé à l'arrivée (et l'hôte remonte la page en haut à chaque changement d'onglet) ; on ne peut donc pas faire défiler vers la saisie au moment du clic.
+- **Solution** : le clic dépose `{ affaireId, entryId }` dans l'objet partagé `focus` (`suivi.js`), puis la vue Affaires, après son rendu, ouvre l'affaire, centre la ligne `tr[data-entry]` dans une `requestAnimationFrame`, la surligne (`tr.is-cible`) et met le focus sur le **type** avec `preventScroll` (le défilement doux n'est pas interrompu ; sur iPhone un `<select>` focalisé n'ouvre pas le clavier, un champ texte si).
+- **Piège de test** : un bouton récupéré avant un re-rendu temps réel (écoute Firestore) est **détaché** du DOM au moment du clic (« Element is not attached ») ; le test cible désormais par sélecteur au moment du clic (`locator`) plutôt que par élément mémorisé.
+- **Statut** : corrigé le 2026-10-01
+
+#### H3. Retrait de l'onglet Chrono sans casser les raccourcis
+- **Risque** : un favori, l'historique ou une app installée pouvait encore pointer vers `#/suivi/chrono`.
+- **Solution** : l'onglet n'est plus dans `TABS` ; l'analyse de l'adresse renvoie alors l'onglet par défaut et **corrige l'URL** (`#/suivi/dashboard`). Vue, préchargement, entrée du service worker (`SHELL`) et icône `#i-calendar` supprimés ensemble, sinon le service worker aurait tenté de mettre en cache un fichier disparu (installation en échec).
+- **Statut** : corrigé le 2026-10-01
+
+---
+
 ## Lancement en mode application (Edge)
 
 Raccourci Windows utilisé (champ *Cible*) :

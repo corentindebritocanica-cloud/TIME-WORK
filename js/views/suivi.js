@@ -25,8 +25,8 @@ const SECTIONS = {
 };
 const ORDER = Object.keys(SECTIONS);
 
-/** Affaire à ouvrir à l'arrivée sur « Par affaire » (depuis le tableau de bord ou la saisie rapide). */
-export const focus = { affaireId: null };
+/** Affaire (et saisie) à ouvrir à l'arrivée sur « Par affaire » (depuis le tableau de bord, les Imputées ou la saisie rapide). */
+export const focus = { affaireId: null, entryId: null };
 
 /**
  * @param {HTMLElement} root
@@ -74,9 +74,9 @@ export function mount(root, ctx, route) {
     }
     host.addEventListener('animationend', e => { if (e.target === host) host.classList.remove('entre-d', 'entre-g'); });
 
-    /** Ouvre une affaire dans « Par affaire ». */
-    function openAffaire(id) {
-        focus.affaireId = id;
+    /** Ouvre une affaire dans « Par affaire » (et, si `entryId`, amène à cette saisie). */
+    function openAffaire(id, entryId = null) {
+        focus.affaireId = id; focus.entryId = entryId;
         if (name === 'affaires') section.refresh(); else ctx.nav('#/suivi/affaires');
     }
 

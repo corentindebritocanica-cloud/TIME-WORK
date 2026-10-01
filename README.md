@@ -67,7 +67,10 @@ restauration et import CSV ; le bouton rond voisin déconnecte.
 - **Suivi Projet** : gestion des affaires, saisies horaires par type
   (DE, ECA, CD, Réunion, Formation, MEP, Loads CD…), budgets par type,
   répartition graphique (camemberts), chronologie hebdomadaire, vue
-  « Heures imputées (semaine) » avec l'écart pointé − imputé.
+  « Heures imputées (semaine) » avec l'écart pointé − imputé. Dans les Imputées, un
+  clic sur le **code affaire** d'une saisie ouvre l'affaire dans l'onglet Affaires,
+  amène à **cette saisie** (surlignée) et place le curseur sur son type, pour corriger
+  le type ou la durée.
 - **Saisie rapide** (bouton rond **« + »** de la barre d'onglets, ou `Ctrl+K`) depuis
   n'importe quel écran : affaire (autocomplétion code / client / machine), type, date,
   durée → `Entrée`.
@@ -345,6 +348,7 @@ service cloud.firestore {
 | 2026-09-30 | Thèmes Clay / Aurora / Skeuo | **3 thèmes de plus** dans Paramètres → Apparence (5 au total, par appareil) : **Claymorphism** (surfaces violet ardoise « gonflées » par ombres intérieures, coins très arrondis, actifs en pâte bleue), **Aurora** (Verre + rideaux d'aurore animés vert / cyan / violet / rose, voile de lisibilité plus dense) et **Skeuomorphisme** (fond texturé, panneaux de cuir surpiqués, boutons biseautés, champs creusés, barre en métal). Cartes de choix avec aperçu. Contraste mesuré au pixel : **0 défaut** sur chaque thème (Clay 1 829, Skeuo 1 894, Aurora 5 698 textes sur 3 positions des aurores). Service worker `themes1`. Problème G3. |
 | 2026-09-30 | 5 thèmes originaux | **Phosphore**, **Blueprint**, **Cyber**, **Moleskine**, **Tableau de bord** (10 thèmes au total, par appareil). Polices propres à chaque thème (VT323 / IBM Plex Mono, Share Tech Mono, Orbitron, Caveat) chargées **seulement** quand le thème est choisi. Moleskine : pages claires, encres AA, tampon « VALIDÉ » quand la semaine atteint 35 h. Contraste mesuré au pixel : **0 défaut** sur chaque thème (~4 400 textes chacun, PC + iPhone). Service worker `themes2`. Problème G4. |
 | 2026-10-01 | Temps productif J-1 | Le temps productif de la semaine en cours ne compte plus que les jours **jusqu'à hier** (pointage ET saisies), pour ignorer le pointage rempli à l'avance ; bouton **J-1 / J-0** dans l'encart (J-0 = jusqu'à aujourd'hui, jamais au-delà) et mention « Compté jusqu'au … ». Calcul extrait dans `js/domain/productive.js` (5 tests, 63 au total). Service worker `prodj1`. |
+| 2026-10-01 | Imputées → Affaires | Le code affaire de chaque saisie des Imputées est un lien : il ouvre l'affaire dans Affaires, fait défiler jusqu'à la saisie (au centre, surlignée ~2 s), focus sur son type. `openAffaire(id, entryId)` dans `suivi.js`. Service worker `lien1`. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

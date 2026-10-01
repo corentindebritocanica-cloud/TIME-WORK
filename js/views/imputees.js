@@ -75,7 +75,8 @@ export function create(el, ctx) {
                             <caption class="sr-only">Saisies du ${fmtWeekday(d)} ${fmtShort(d)}</caption>
                             <thead><tr><th>Client</th><th>Code affaire</th><th>Type</th><th class="num">Heures</th><th class="num">Décimal</th></tr></thead>
                             <tbody>${byDay[d].map(e => { const a = affById.get(e.affaireId) || {}; return html`
-                                <tr><td class="strong">${a.client || '—'}</td><td class="accent">${a.num || '—'}</td>
+                                <tr><td class="strong">${a.client || '—'}</td><td>${a.id ? html`<button type="button" class="btn-link" data-action="open-entry" data-aff="${a.id}" data-entry="${e.id}"
+                                        title="Modifier cette saisie dans Affaires">${a.num || a.client || '(sans N°)'}</button>` : '—'}</td>
                                     <td><span class="badge ${typeClass(e.type)}">${typeLabel(e.type)}</span></td>
                                     <td class="num strong">${minsToHM(e.minutes)}</td><td class="num dec">${minsToDec(e.minutes)}</td></tr>`; })}</tbody>
                         </table>` : html`<p class="empty">Aucune saisie</p>`}
@@ -87,6 +88,7 @@ export function create(el, ctx) {
 
     on(el, 'click', {
         week: b => { const d = +b.dataset.dir; weekOffset = d === 0 ? 0 : weekOffset + d; draw(); },
+        'open-entry': b => ctx.openAffaire(b.dataset.aff, b.dataset.entry),
         goto: b => { const p = $('#day-' + b.dataset.day, el); p.open = true; p.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     }, ac.signal);
     el.addEventListener('toggle', ev => {

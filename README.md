@@ -4,6 +4,24 @@ Application **Windows (PWA Edge / Chrome) et iPhone (PWA Safari)** pour le
 pointage CEGID, la saisie des heures par affaire et le suivi du temps de travail.
 Modules ES natifs, sans dépendance ni étape de build : le dépôt est servi tel quel.
 
+> ## ⚠️ RÈGLE ABSOLUE : mettre à jour TOUS les fichiers `.md` après CHAQUE modification
+>
+> Aucune modification (code, design, correctif, ajout ou retrait de fonction) n'est
+> terminée tant que **tous** les fichiers `.md` du dépôt n'ont pas été relus et mis à
+> jour **dans le même commit** :
+>
+> | Fichier | Quoi mettre à jour |
+> |---|---|
+> | `README.md` | description des fonctions, structure des fichiers, ligne dans « Historique des mises à jour » |
+> | `UX-UI.md` | tout changement visuel ou d'interaction, ligne dans « Historique des décisions » |
+> | `GUIDE-PWA-IOS.md` | tout ce qui touche l'iPhone / la PWA / le service worker, ligne dans « Historique » |
+> | `Problème rencontrés.md` | chaque problème rencontré, sa cause, sa solution et son statut (nouvelle section datée) |
+> | `AUDIT-2026-09-29.md` | statut d'un point de l'audit s'il est concerné |
+>
+> Si un fichier n'est pas concerné, le vérifier quand même. Cette documentation est la
+> base de connaissances du projet : un changement non documenté est un changement
+> incomplet.
+
 | Appareil | Adresse | Publication |
 |---|---|---|
 | **PC Windows** | https://corentindebritocanica-cloud.github.io/TIME-WORK/ | GitHub Pages (automatique à chaque push) |
@@ -350,6 +368,7 @@ service cloud.firestore {
 | 2026-10-01 | Temps productif J-1 | Le temps productif de la semaine en cours ne compte plus que les jours **jusqu'à hier** (pointage ET saisies), pour ignorer le pointage rempli à l'avance ; bouton **J-1 / J-0** dans l'encart (J-0 = jusqu'à aujourd'hui, jamais au-delà) et mention « Compté jusqu'au … ». Calcul extrait dans `js/domain/productive.js` (5 tests, 63 au total). Service worker `prodj1`. |
 | 2026-10-01 | Imputées → Affaires | Le code affaire de chaque saisie des Imputées est un lien : il ouvre l'affaire dans Affaires, fait défiler jusqu'à la saisie (au centre, surlignée ~2 s), focus sur son type. `openAffaire(id, entryId)` dans `suivi.js`. Service worker `lien1`. |
 | 2026-10-01 | Onglet Chrono retiré | Onglet **Chronologie** supprimé (inutilisé) : 5 onglets (Tableau · Affaires · Imputées · Pointage · Réglages). `js/views/chrono.js` et l'icône `#i-calendar` supprimés ; l'ancienne adresse `#/suivi/chrono` ouvre le Tableau de bord. Service worker `sanschrono`. |
+| 2026-10-01 | Règle documentation | Encadré **« Règle absolue »** en tête du README : tous les fichiers `.md` (README, UX-UI, GUIDE-PWA-IOS, Problème rencontrés, AUDIT) sont relus et mis à jour dans le même commit après **chaque** modification. Compléments : Problème rencontrés H2–H3, historique du guide iPhone au 01/10. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

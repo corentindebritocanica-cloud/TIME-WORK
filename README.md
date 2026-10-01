@@ -373,7 +373,7 @@ js/firebase.js          Initialisation Firebase (SDK modulaire 12.19, cache Inde
 js/store.js             Store : état en mémoire, écritures ciblées, écoute temps réel, restauration (Annuler)
 js/cloud.js             Connexion, migration, démarrage du store, état de synchro
 js/migrate.js           Conversion de l'ancien format (kv / cache local) avec contrôle des totaux
-js/domain/              Fonctions pures : time (durées, semaines), balance (solde), types (types intégrés + réglages de l'utilisateur), sort (tri des affaires), csv, validate, backup
+js/domain/              Fonctions pures : time (durées, semaines), balance (solde), types (types intégrés + réglages de l'utilisateur), sort (tri des affaires), productive (temps productif J-1 / J-0), csv, validate, backup
 js/ui/                  dom (gabarit html`` échappé par défaut, délégation), dialog, toast, pie, quick (saisie rapide), data (sauvegarde / restauration / import CSV), prefs (flou, animations — par appareil)
 js/views/               suivi (hôte des sections + barre d'onglets flottante + animations) + dashboard, affaires, imputees, pointage, parametres, shared
 tests/domain.test.html  Tests unitaires des fonctions pures

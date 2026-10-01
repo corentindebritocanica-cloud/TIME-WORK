@@ -26,7 +26,7 @@ L'app ne détecte pas le système : la mise en page suit la largeur d'écran
 
 Pas de page d'accueil : l'app s'ouvre directement sur le **Tableau de bord**.
 Tout est dans une seule barre d'onglets flottante (en bas de l'écran) : **Tableau ·
-Affaires · Chrono · Imputées · Pointage · Réglages** ; le titre de la section
+Affaires · Imputées · Pointage · Réglages** ; le titre de la section
 s'affiche en haut à gauche (« Paramètres » pour Réglages). Passer d'un onglet à
 l'autre fait glisser la section depuis le côté de l'onglet choisi. Le bouton rond **Données** de l'en-tête regroupe sauvegarde,
 restauration et import CSV ; le bouton rond voisin déconnecte.
@@ -66,7 +66,7 @@ restauration et import CSV ; le bouton rond voisin déconnecte.
     **Animations entre les onglets**.
 - **Suivi Projet** : gestion des affaires, saisies horaires par type
   (DE, ECA, CD, Réunion, Formation, MEP, Loads CD…), budgets par type,
-  répartition graphique (camemberts), chronologie hebdomadaire, vue
+  répartition graphique (camemberts), vue
   « Heures imputées (semaine) » avec l'écart pointé − imputé. Dans les Imputées, un
   clic sur le **code affaire** d'une saisie ouvre l'affaire dans l'onglet Affaires,
   amène à **cette saisie** (surlignée) et place le curseur sur son type, pour corriger
@@ -349,6 +349,7 @@ service cloud.firestore {
 | 2026-09-30 | 5 thèmes originaux | **Phosphore**, **Blueprint**, **Cyber**, **Moleskine**, **Tableau de bord** (10 thèmes au total, par appareil). Polices propres à chaque thème (VT323 / IBM Plex Mono, Share Tech Mono, Orbitron, Caveat) chargées **seulement** quand le thème est choisi. Moleskine : pages claires, encres AA, tampon « VALIDÉ » quand la semaine atteint 35 h. Contraste mesuré au pixel : **0 défaut** sur chaque thème (~4 400 textes chacun, PC + iPhone). Service worker `themes2`. Problème G4. |
 | 2026-10-01 | Temps productif J-1 | Le temps productif de la semaine en cours ne compte plus que les jours **jusqu'à hier** (pointage ET saisies), pour ignorer le pointage rempli à l'avance ; bouton **J-1 / J-0** dans l'encart (J-0 = jusqu'à aujourd'hui, jamais au-delà) et mention « Compté jusqu'au … ». Calcul extrait dans `js/domain/productive.js` (5 tests, 63 au total). Service worker `prodj1`. |
 | 2026-10-01 | Imputées → Affaires | Le code affaire de chaque saisie des Imputées est un lien : il ouvre l'affaire dans Affaires, fait défiler jusqu'à la saisie (au centre, surlignée ~2 s), focus sur son type. `openAffaire(id, entryId)` dans `suivi.js`. Service worker `lien1`. |
+| 2026-10-01 | Onglet Chrono retiré | Onglet **Chronologie** supprimé (inutilisé) : 5 onglets (Tableau · Affaires · Imputées · Pointage · Réglages). `js/views/chrono.js` et l'icône `#i-calendar` supprimés ; l'ancienne adresse `#/suivi/chrono` ouvre le Tableau de bord. Service worker `sanschrono`. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 
@@ -374,7 +375,7 @@ js/cloud.js             Connexion, migration, démarrage du store, état de sync
 js/migrate.js           Conversion de l'ancien format (kv / cache local) avec contrôle des totaux
 js/domain/              Fonctions pures : time (durées, semaines), balance (solde), types (types intégrés + réglages de l'utilisateur), sort (tri des affaires), csv, validate, backup
 js/ui/                  dom (gabarit html`` échappé par défaut, délégation), dialog, toast, pie, quick (saisie rapide), data (sauvegarde / restauration / import CSV), prefs (flou, animations — par appareil)
-js/views/               suivi (hôte des sections + barre d'onglets flottante + animations) + dashboard, affaires, chrono, imputees, pointage, parametres, shared
+js/views/               suivi (hôte des sections + barre d'onglets flottante + animations) + dashboard, affaires, imputees, pointage, parametres, shared
 tests/domain.test.html  Tests unitaires des fonctions pures
 UX-UI.md                Design « Verre » : règles, jetons, composants, méthode de vérification, historique (+ charte PORTAIL-DUO)
 GUIDE-PWA-IOS.md        iPhone / Safari : règles, pièges, tests (+ guide PWA iOS PORTAIL-DUO)

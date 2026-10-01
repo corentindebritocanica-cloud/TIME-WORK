@@ -1,7 +1,7 @@
 {
     "name": "TIME-WORK — heures et suivi des affaires",
     "short_name": "TIME-WORK",
-    "description": "Pointage CEGID, saisie des heures par affaire, budgets et chronologie.",
+    "description": "Pointage CEGID, saisie des heures par affaire, budgets et heures imputées.",
     "lang": "fr",
     "id": "./",
     "start_url": "./",

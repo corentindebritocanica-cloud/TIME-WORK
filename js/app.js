@@ -1,6 +1,6 @@
 /**
  * Point d'entrée de l'application.
- *  - routage par l'URL : #/suivi/<dashboard|affaires|chrono|imputees|pointage|parametres>
+ *  - routage par l'URL : #/suivi/<dashboard|affaires|imputees|pointage|parametres>
  *    (toute autre adresse, dont les anciennes #/ et #/pointage, est redirigée)
  *  - sections chargées à la demande (import() dynamique), montées/démontées proprement
  *  - rafraîchissement quand un autre poste/onglet modifie les données (sans casser une saisie)
@@ -15,10 +15,10 @@ import { applyTypeConfig } from './domain/types.js';
 import { animationsOn } from './ui/prefs.js';
 
 const loadSuivi = () => import('./views/suivi.js');
-const TABS = ['dashboard', 'affaires', 'chrono', 'imputees', 'pointage', 'parametres'];
+const TABS = ['dashboard', 'affaires', 'imputees', 'pointage', 'parametres'];
 const DEFAULT_TAB = 'dashboard';
 const TITLES = {
-    dashboard: 'Tableau de bord', affaires: 'Par affaire', chrono: 'Chronologie',
+    dashboard: 'Tableau de bord', affaires: 'Par affaire',
     imputees: 'Heures imputées', pointage: 'Pointage CEGID', parametres: 'Paramètres'
 };
 
@@ -129,7 +129,7 @@ function preload() {
     const idle = window.requestIdleCallback ?? (cb => setTimeout(cb, 1500));
     idle(() => {
         [loadSuivi, () => import('./views/dashboard.js'), () => import('./views/affaires.js'),
-         () => import('./views/chrono.js'), () => import('./views/imputees.js'), () => import('./views/pointage.js'),
+         () => import('./views/imputees.js'), () => import('./views/pointage.js'),
          () => import('./views/parametres.js'),
          () => import('./ui/quick.js'), () => import('./ui/data.js')]
             .forEach(load => load().catch(() => {}));

@@ -1,5 +1,5 @@
 /**
- * Vue principale : hôte des 6 sections (tableau de bord, par affaire, chronologie, heures imputées,
+ * Vue principale : hôte des 5 sections (tableau de bord, par affaire, heures imputées,
  * pointage CEGID, paramètres).
  * Chaque section est un module chargé à la demande.
  *
@@ -17,7 +17,6 @@ import { animationsOn } from '../ui/prefs.js';
 const SECTIONS = {
     dashboard: { label: 'Tableau de bord', short: 'Tableau',  icon: 'i-pie',      load: () => import('./dashboard.js') },
     affaires:  { label: 'Par affaire',     short: 'Affaires', icon: 'i-folder',   load: () => import('./affaires.js') },
-    chrono:    { label: 'Chronologie',     short: 'Chrono',   icon: 'i-calendar', load: () => import('./chrono.js') },
     imputees:  { label: 'Heures imputées', short: 'Imputées', icon: 'i-bars',     load: () => import('./imputees.js') },
     pointage:  { label: 'Pointage CEGID',  short: 'Pointage', icon: 'i-clock',    load: () => import('./pointage.js') },
     // « Réglages » dans la pilule (comme Budget) : « Paramètres » ne tient pas sur un iPhone de 375 pt

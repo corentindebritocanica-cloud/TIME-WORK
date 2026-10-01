@@ -6,7 +6,7 @@
  *  - police Unbounded (Google Fonts, design Verre) : cache d'abord (titre et chiffres identiques hors ligne) ;
  *  - Firestore / Auth : jamais interceptés (le SDK gère son propre cache IndexedDB).
  */
-const VERSION = 'tw-2026-10-01-lien1';   // ⚠ à changer à CHAQUE livraison (voir GUIDE-PWA-IOS.md §5)
+const VERSION = 'tw-2026-10-01-sanschrono';   // ⚠ à changer à CHAQUE livraison (voir GUIDE-PWA-IOS.md §5)
 const SHELL = [
     './', './index.html', './css/app.css', './manifest.webmanifest', './icons/tw-verre.svg', './icons/tw-verre-192.png', './icons/tw-verre-apple-180.png',
     './js/app.js', './js/cloud.js', './js/firebase.js', './js/store.js', './js/migrate.js',
@@ -14,7 +14,7 @@ const SHELL = [
     './js/domain/csv.js', './js/domain/backup.js', './js/domain/sort.js', './js/domain/productive.js',
     './js/ui/dom.js', './js/ui/dialog.js', './js/ui/toast.js', './js/ui/pie.js', './js/ui/quick.js', './js/ui/data.js', './js/ui/prefs.js',
     './js/views/pointage.js', './js/views/suivi.js', './js/views/shared.js', './js/views/parametres.js',
-    './js/views/dashboard.js', './js/views/affaires.js', './js/views/chrono.js', './js/views/imputees.js'
+    './js/views/dashboard.js', './js/views/affaires.js', './js/views/imputees.js'
 ];
 const SDK_PREFIX = 'https://www.gstatic.com/firebasejs/';
 const FONT_PREFIXES = ['https://fonts.googleapis.com/', 'https://fonts.gstatic.com/'];

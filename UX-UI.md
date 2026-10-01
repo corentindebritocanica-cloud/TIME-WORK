@@ -45,7 +45,7 @@ Le JavaScript ne pose **aucun style** : il ne fait que poser des classes et des 
 | **Couleurs des types de saisie** (DE, ECA, CD, Loads…) conservées. | « Couleurs de catégories » à sens métier : exception tolérée par la charte §9. Jamais utilisées en décoration. |
 | **Animations de changement d'onglet** (demande de Corentin, 29/09/2026) : la section entre en glissant de 28 px depuis le côté de l'onglet choisi + fondu, 280 ms, `ease-out` ; le titre fond en 240 ms. | La charte (§11.2) réduit au minimum les animations des navigations fréquentes : d'où une entrée **courte, sans rebond, sans sortie**, en `transform` / `opacity` seulement, **désactivable** dans Paramètres et coupée par « Réduire les animations ». Pas d'indicateur qui glisse dans la pilule (§5.5b / §11.8). |
 | **Curseur d'intensité du flou** (Paramètres → Apparence, par appareil) : `--v-flou` de 0 (sans flou) à `blur(60px) saturate(260%)`, **50 = référence** `blur(30px) saturate(180%)`. | Demande de Corentin. PORTAIL-DUO a retiré son curseur « Effet verre » le 28/09 ; TIME-WORK le garde, par appareil (le flou coûte plus cher sur iPhone). Le voile de lisibilité ne dépend pas du curseur : le contraste reste AA à tous les niveaux. |
-| **6 onglets** ; libellé court **« Réglages »** dans la pilule, titre « Paramètres ». | « Paramètres » ne tient pas sur un iPhone de 375–390 pt (Problème F2) ; « Réglages » est le libellé de l'onglet équivalent de Budget. |
+| **5 onglets** (6 jusqu'au 01/10/2026, Chronologie retirée) ; libellé court **« Réglages »** dans la pilule, titre « Paramètres ». | « Paramètres » ne tient pas sur un iPhone de 375–390 pt (Problème F2) ; « Réglages » est le libellé de l'onglet équivalent de Budget. |
 | **Pas de `commun.js` / `verre.css` partagés, pas de View Transitions.** | TIME-WORK est un dépôt séparé (autre hébergement) : le design est recopié dans `css/app.css`, le calage des halos sur l'horloge est un mini-script dans le `<head>` d'`index.html`. |
 
 ---
@@ -78,7 +78,7 @@ Le JavaScript ne pose **aucun style** : il ne fait que poser des classes et des 
 
 ### Icônes (sprite SVG dans `index.html`, trait 2 px comme Budget/Course)
 
-`#i-pie` Tableau de bord · `#i-folder` Par affaire · `#i-calendar` Chronologie · `#i-bars` Heures imputées ·
+`#i-pie` Tableau de bord · `#i-folder` Par affaire · `#i-bars` Heures imputées ·
 `#i-clock` Pointage CEGID · `#i-gear` Paramètres · `#i-plus` saisie rapide · `#i-data` menu Données ·
 `#i-logout` déconnexion · `#i-grip` poignée de déplacement · `#i-eye` / `#i-eye-off` afficher / masquer ·
 `#icon-clock` logo.
@@ -222,6 +222,7 @@ et `VERSION`). Sur iPhone, l'icône n'est relue qu'à l'ajout à l'écran d'accu
 | 30/09/2026 | **5 thèmes originaux** : Phosphore, Blueprint, Cyber, Moleskine, Tableau de bord (10 au total) : voir §7.2. |
 | 01/10/2026 | **Temps productif J-1 / J-0** : paire de puces `.chip[aria-pressed]` (`.prod-jour`) sous la semaine, visible seulement sur la semaine en cours, suivie de « Compté jusqu'au … (hier / aujourd'hui) ». |
 | 01/10/2026 | **Lien Imputées → saisie** : code affaire en `.btn-link` (souligné, accent) ; à l'arrivée, la ligne est centrée et surlignée (`tr.is-cible`, fond `--accent-tint` + filet gauche, s'estompe en 2,4 s ; sans fondu si animations coupées), focus sur le type. |
+| 01/10/2026 | **Onglet Chronologie retiré** (inutilisé) : 5 onglets dans la pilule, plus d'espace par onglet sur iPhone. |
 
 *Mettre à jour ce tableau à chaque évolution de l'interface.*
 

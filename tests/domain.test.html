@@ -21,7 +21,7 @@ import { computeBalance } from '../js/domain/balance.js';
 import { analyzeCSV, parseDate, mapType } from '../js/domain/csv.js';
 import { normalizeData, cleanLoadName, LOAD_RE } from '../js/domain/validate.js';
 import { typeLabel, typeClass, globalType, normalizeTypeConfig, serializeTypeConfig, makeTypeCode, applyTypeConfig,
-         sortTypes, typesFor, defaultType, TYPES, TYPE_CODES } from '../js/domain/types.js';
+         sortTypes, typesFor, defaultType, TYPES, TYPE_CODES, isLoadType, loadName, loadType, affLoadCodes } from '../js/domain/types.js';
 import { flouCSS } from '../js/ui/prefs.js';
 import { sortAffaires } from '../js/domain/sort.js';
 import { computeProductive } from '../js/domain/productive.js';
@@ -89,9 +89,20 @@ eq('normalizeData : Loads filtrés, type invalide → AUTRE', [n.affaires[0].loa
 eq('cleanLoadName', [cleanLoadName(' a b '), LOAD_RE.test('AB_1'), LOAD_RE.test('A-B')], ['AB', true, false]);
 
 // Types
-eq('typeLabel', [typeLabel('DE_NP'), typeLabel('CD_LOAD_B'), typeLabel('XYZ')], ['DE - Tps non prod.', 'CD B', 'XYZ']);
+eq('typeLabel', [typeLabel('DE_NP'), typeLabel('CD_LOAD_B'), typeLabel('XYZ')], ['DE - Tps non prod.', 'CD Load B', 'XYZ']);
 eq('typeClass', [typeClass('DE'), typeClass('CD_LOAD_A'), typeClass('CD_LOAD_K'), typeClass('???')], ['t-DE', 'load-0', 'load-0', 't-AUTRE']);
 eq('globalType', [globalType('CD_LOAD_A'), globalType('ECA')], ['CD', 'ECA']);
+eq('Loads MEP : libellé, famille, cumul global', [typeLabel('MEP_LOAD_A'), globalType('MEP_LOAD_B'), globalType('MEP_A'), isLoadType('MEP_LOAD_A'), loadName('MEP_LOAD_B')],
+   ['MEP Load A', 'MEP', 'MEP_A', true, 'B']);
+eq('Loads : reprise et review ne sont pas cumulés', [globalType('CD_REP'), globalType('REVIEW_CD'), globalType('LANCEMENT_FAB')], ['CD_REP', 'REVIEW_CD', 'LANCEMENT_FAB']);
+eq('Loads : couleur MEP décalée de la couleur CD', [typeClass('CD_LOAD_A'), typeClass('MEP_LOAD_A')], ['load-0', 'load-5']);
+eq('Loads : listes séparées par famille', [affLoadCodes({ loads: ['A'], mepLoads: ['A', 'B'] }), loadType('A', 'MEP'), loadType('B')],
+   [['CD_LOAD_A', 'MEP_LOAD_A', 'MEP_LOAD_B'], 'MEP_LOAD_A', 'CD_LOAD_B']);
+eq('Loads : chaque Load trié juste après son type de base', sortTypes(['FORMATION', 'MEP_LOAD_B', 'CD_LOAD_A', 'MEP', 'DE', 'CD', 'MEP_LOAD_A']),
+   ['DE', 'CD', 'CD_LOAD_A', 'MEP', 'MEP_LOAD_A', 'MEP_LOAD_B', 'FORMATION']);
+eq('normalizeData : Loads MEP nettoyés', normalizeData([{ id: 'x', mepLoads: [' a', 'A', 'b-c'] }], []).affaires[0].mepLoads, ['A']);
+eq('typesFor : Loads CD puis MEP', typesFor({ loads: ['A'], mepLoads: ['B'], budgets: {} }).slice(-2), ['CD_LOAD_A', 'MEP_LOAD_B']);
+eq('makeTypeCode : jamais un préfixe de Load MEP', makeTypeCode('Mep load X', []), 'T_MEP_LOAD_X');
 
 // Types de travail personnalisés (Paramètres → Firestore settings.types)
 const cfg = normalizeTypeConfig([{ code: 'ECA' }, { code: 'DE', hidden: true }, { code: 'ESSAI', label: ' Essai terrain ', color: 3, custom: true },

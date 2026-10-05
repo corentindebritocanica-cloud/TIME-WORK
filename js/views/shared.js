@@ -3,6 +3,24 @@
  */
 import { html } from '../ui/dom.js';
 import { minsToHM } from '../domain/time.js';
+import { TYPES, typeLabel, affLoadGroups } from '../domain/types.js';
+
+/**
+ * Options d'une liste « Type » pour une affaire : types visibles (ordre de Paramètres), puis un
+ * groupe par famille découpée en Loads (« CD — par Load », « MEP — par Load »).
+ * Un type masqué ou un Load retiré déjà utilisé par la saisie reste affiché (sélectionné).
+ * @param {object|null} aff affaire (null : aucune affaire choisie)
+ * @param {string} selected code sélectionné
+ */
+export function typeOptions(aff, selected) {
+    const groups = affLoadGroups(aff);
+    const known = TYPES.some(t => t.code === selected) || groups.some(g => g.codes.includes(selected));
+    return html`
+        ${TYPES.map(t => html`<option value="${t.code}" ${t.code === selected ? 'selected' : ''}>${t.label}</option>`)}
+        ${selected && !known ? html`<option value="${selected}" selected>${typeLabel(selected)}</option>` : ''}
+        ${groups.map(g => html`<optgroup label="${g.fam} — par Load">${g.loads.map((l, i) =>
+            html`<option value="${g.codes[i]}" ${g.codes[i] === selected ? 'selected' : ''}>${g.fam} Load ${l}</option>`)}</optgroup>`)}`;
+}
 
 /**
  * Barre de consommation du budget (vide si aucun budget).

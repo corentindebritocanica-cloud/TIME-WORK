@@ -33,8 +33,9 @@ export function normalizeData(affs, ents) {
             const n = Number(v);
             if (TYPE_RE.test(k) && Number.isFinite(n) && n > 0) budgets[k] = n;
         });
-        const loads = [...new Set((Array.isArray(a.loads) ? a.loads : []).map(cleanLoadName).filter(l => LOAD_RE.test(l)))];
-        return [{ ...a, id, client: str(a.client), num: str(a.num), machine: str(a.machine), loads, budgets,
+        const cleanLoads = v => [...new Set((Array.isArray(v) ? v : []).map(cleanLoadName).filter(l => LOAD_RE.test(l)))];
+        const loads = cleanLoads(a.loads), mepLoads = cleanLoads(a.mepLoads);
+        return [{ ...a, id, client: str(a.client), num: str(a.num), machine: str(a.machine), loads, mepLoads, budgets,
                   productive: !!a.productive, unbilled: !!a.unbilled }];
     });
     const entries = (Array.isArray(ents) ? ents : []).flatMap(e => {

@@ -3,6 +3,7 @@
  *
  * Modèle Firestore (orienté requêtes) :
  *   users/{uid}                 { settings, affaires: { [id]: affaire }, updatedAt }
+ *     affaire = { client, num, machine, loads (Loads CD), mepLoads (Loads MEP), budgets, productive, unbilled, createdAt }
  *   users/{uid}/months/{AAAA-MM} { entries: { [id]: saisie }, days: { [AAAA-MM-JJ]: { h, m, reason } }, updatedAt }
  *
  * Règles :
@@ -13,6 +14,7 @@
  *    d'ailleurs (autre poste, autre onglet) déclenchent une notification `subscribe()`.
  */
 import { db, fsMod } from './firebase.js';
+import { LOAD_FAMILIES } from './domain/types.js';
 
 const {
     doc, collection, onSnapshot, setDoc, writeBatch, deleteField, serverTimestamp, FieldPath
@@ -41,6 +43,7 @@ export function canonAffaire(a) {
     return {
         client: str(a.client), num: str(a.num), machine: str(a.machine),
         loads: Array.isArray(a.loads) ? a.loads.map(String) : [],
+        mepLoads: Array.isArray(a.mepLoads) ? a.mepLoads.map(String) : [],
         budgets: sortObj(budgets),
         productive: !!a.productive, unbilled: !!a.unbilled,
         createdAt: Number(a.createdAt) || 0
@@ -184,9 +187,9 @@ export function stop() {
 /* ─────────────────────────── Lecture ─────────────────────────── */
 /** @returns {object[]} affaires triées par date de création (copies). */
 export function getAffaires() {
-    if (!cacheAff) cacheAff = [...affaires].map(([id, a]) => ({ id, ...a, loads: [...a.loads], budgets: { ...a.budgets } }))
+    if (!cacheAff) cacheAff = [...affaires].map(([id, a]) => ({ id, ...a, loads: [...a.loads], mepLoads: [...a.mepLoads], budgets: { ...a.budgets } }))
         .sort((x, y) => (x.createdAt - y.createdAt) || x.id.localeCompare(y.id));
-    return cacheAff.map(a => ({ ...a, loads: [...a.loads], budgets: { ...a.budgets } }));
+    return cacheAff.map(a => ({ ...a, loads: [...a.loads], mepLoads: [...a.mepLoads], budgets: { ...a.budgets } }));
 }
 /** @returns {object[]} toutes les saisies (copies). */
 export function getEntries() {
@@ -275,17 +278,24 @@ export function deleteEntry(id) {
     commitOps([monthMergeOp(found.mid, { entries: { [id]: deleteField() } })]);
 }
 
-/** Retire un Load d'une affaire : budget supprimé, saisies du Load reclassées en CD (un seul lot). */
-export function removeLoad(affId, load) {
+/**
+ * Retire un Load d'une affaire : budget supprimé, saisies du Load reclassées dans le type de base
+ * de sa famille (CD ou MEP), en un seul lot.
+ * @param {string} affId
+ * @param {string} load nom du Load (A, B…)
+ * @param {'CD'|'MEP'} [fam]
+ */
+export function removeLoad(affId, load, fam = 'CD') {
     const cur = affaires.get(affId); if (!cur) return;
-    const key = 'CD_LOAD_' + load;
+    const f = LOAD_FAMILIES.find(x => x.fam === fam); if (!f) return;
+    const key = f.prefix + load;
     const budgets = { ...cur.budgets }; delete budgets[key];
-    const a = canonAffaire({ ...cur, loads: cur.loads.filter(l => l !== load), budgets });
+    const a = canonAffaire({ ...cur, [f.field]: cur[f.field].filter(l => l !== load), budgets });
     affaires.set(affId, a);
     const byMonth = {};
     months.forEach((mo, mid) => mo.entries.forEach((e, eid) => {
         if (e.affaireId === affId && e.type === key) {
-            const ne = { ...e, type: 'CD' }; mo.entries.set(eid, ne); (byMonth[mid] ||= {})[eid] = ne;
+            const ne = { ...e, type: f.fam }; mo.entries.set(eid, ne); (byMonth[mid] ||= {})[eid] = ne;
         }
     }));
     invalidate();

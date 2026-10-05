@@ -136,6 +136,7 @@ démarrage : c'est ce bug, pas le code. Contournement documenté (non nécessair
 | 30/09/2026 | **10 thèmes** au choix, enregistrés **par appareil** (`localStorage`, l'iPhone peut avoir un autre thème que le PC) et appliqués par le script du `<head>` avant le premier affichage (pas de flash). `theme-color` adaptée au thème (barre d'état). Le flou n'est actif que dans Verre et Aurora (le flou coûte cher sur iPhone). Polices propres à certains thèmes chargées seulement quand le thème est choisi, puis gardées par le service worker : choisir un nouveau thème **une première fois avec du réseau** pour qu'il marche hors ligne. |
 | 01/10/2026 | Temps productif J-1 / J-0 (Tableau). Lien Imputées → saisie dans Affaires : le focus va sur le **menu du type** (`<select>`) et non sur le champ durée, pour ne **pas ouvrir le clavier** de l'iPhone à l'arrivée. |
 | 01/10/2026 | Onglet **Chrono retiré** : **5 onglets** dans la pilule (plus de place par onglet sur 375 pt). Un ancien raccourci `#/suivi/chrono` ouvre le Tableau de bord. Service worker `sanschrono` : fermer / rouvrir l'app une ou deux fois pour la nouvelle version. |
+| 06/10/2026 | Loads MEP (familles de Loads CD / MEP). Rien de spécifique à l'iPhone : la ligne de Loads de chaque famille passe à la ligne sur 375 pt. Service worker `loads-mep` : fermer / rouvrir l'app une ou deux fois pour la nouvelle version. |
 
 *Mettre à jour ce document si une version d'iOS change un comportement décrit ici.*
 

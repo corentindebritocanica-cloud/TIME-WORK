@@ -98,6 +98,9 @@ export function create(el, ctx) {
                     <span class="only-coarse">Maintiens la poignée <b>⋮⋮</b> et glisse pour déplacer un type.</span>
                     <span class="only-fine">Glisse la poignée <b>⋮⋮</b> (ou flèches ↑ ↓ du clavier) pour déplacer un type.</span>
                     Un type masqué n'est plus proposé à la saisie ; ses heures restent comptées.</p>
+                <p class="settings-help"><b>Loads :</b> CD et MEP se découpent par lot dans chaque affaire (Suivi → affaire → Loads),
+                    avec un budget par Load. Au tableau de bord, « CD Load A » est compté dans <b>CD</b> et « MEP Load A » dans <b>MEP</b>
+                    (les reprises et reviews restent à part).</p>
                 <ol class="type-list" data-role="types" aria-label="Types de travail, dans l'ordre">
                     ${list.map((t, i) => row(t, u, i, list.length))}
                 </ol>

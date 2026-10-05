@@ -223,6 +223,7 @@ et `VERSION`). Sur iPhone, l'icône n'est relue qu'à l'ajout à l'écran d'accu
 | 01/10/2026 | **Temps productif J-1 / J-0** : paire de puces `.chip[aria-pressed]` (`.prod-jour`) sous la semaine, visible seulement sur la semaine en cours, suivie de « Compté jusqu'au … (hier / aujourd'hui) ». |
 | 01/10/2026 | **Lien Imputées → saisie** : code affaire en `.btn-link` (souligné, accent) ; à l'arrivée, la ligne est centrée et surlignée (`tr.is-cible`, fond `--accent-tint` + filet gauche, s'estompe en 2,4 s ; sans fondu si animations coupées), focus sur le type. |
 | 01/10/2026 | **Onglet Chronologie retiré** (inutilisé) : 5 onglets dans la pilule, plus d'espace par onglet sur iPhone. |
+| 06/10/2026 | **Loads lisibles** : un Load est toujours affiché « CD Load A » / « MEP Load A », trié juste après son type de base ; listes « Type » groupées (« CD — par Load », « MEP — par Load ») ; tuile en pointillés « Σ Loads CD / MEP » placée après le dernier Load de la famille (cumul informatif, non ajouté au total) ; réglages de l'affaire : une ligne par famille (pastille CD / MEP, Loads, champ, « + Load CD / MEP ») + phrase d'explication ; légende du tableau de bord « CD dont Loads … » ; palette des Loads MEP décalée de 5 rangs pour ne pas confondre CD Load A et MEP Load A. |
 
 *Mettre à jour ce tableau à chaque évolution de l'interface.*
 

@@ -116,7 +116,7 @@ export function analyzeCSV(text, affaires, entries) {
             entry.affaireId = aff.id;
         } else {
             const key = codeAff.toUpperCase() + '||' + client.toUpperCase();
-            if (!newAff.has(key)) newAff.set(key, { tempId: 'new_' + newAff.size, client, num: codeAff, machine: '', loads: [], budgets: {} });
+            if (!newAff.has(key)) newAff.set(key, { tempId: 'new_' + newAff.size, client, num: codeAff, machine: '', loads: [], mepLoads: [], budgets: {} });
             entry.tempAffId = newAff.get(key).tempId;
         }
         res.newEntries.push(entry);

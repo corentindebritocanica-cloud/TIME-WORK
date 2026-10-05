@@ -2,7 +2,8 @@
  * Saisie rapide (Ctrl+K) : affaire → type → date → durée → Entrée.
  */
 import { html, mount as render, $ } from './dom.js';
-import { TYPES, typeLabel, loadType, defaultType } from '../domain/types.js';
+import { TYPES, typeLabel, affLoadCodes, defaultType } from '../domain/types.js';
+import { typeOptions } from '../views/shared.js';
 import { parseDuration, todayISO, fmtNum, minsToHM, minsToDec } from '../domain/time.js';
 
 let last = { affaireId: null, type: null };
@@ -26,8 +27,6 @@ export async function quickEntry(ctx) {
     const prev = affaires.find(a => a.id === last.affaireId);
     let added = null;
 
-    const typeOpts = (aff, sel) => html`${TYPES.map(t => html`<option value="${t.code}" ${t.code === sel ? 'selected' : ''}>${t.label}</option>`)}
-        ${aff?.loads.length ? html`<optgroup label="Loads CD">${aff.loads.map(l => html`<option value="${loadType(l)}" ${loadType(l) === sel ? 'selected' : ''}>CD Load ${l}</option>`)}</optgroup>` : ''}`;
 
     /** Affaire correspondant au texte saisi (libellé exact, ou recherche unique). */
     function resolve(text) {
@@ -56,7 +55,7 @@ export async function quickEntry(ctx) {
                     <small class="field-hint" aria-live="polite"></small></label>
                 <datalist id="qe-affs">${affaires.map(a => html`<option value="${affLabel(a)}"></option>`)}</datalist>
                 <div class="field-row">
-                    <label class="field"><span>Type</span><select class="control" name="type">${typeOpts(prev, last.type || defaultType())}</select></label>
+                    <label class="field"><span>Type</span><select class="control" name="type">${typeOptions(prev, last.type || defaultType())}</select></label>
                     <label class="field"><span>Date</span><input type="date" class="control" name="date" value="${todayISO()}"></label>
                     <label class="field"><span>Durée</span><input class="control num w-sm" name="time" placeholder="ex : 2:30" maxlength="6" autocomplete="off" ${prev ? 'autofocus' : ''}>
                         <small class="field-hint" aria-live="polite"></small></label>
@@ -68,7 +67,7 @@ export async function quickEntry(ctx) {
             (prev ? time : aff).focus();
             aff.addEventListener('change', () => {
                 const res = resolve(aff.value);
-                if (res.aff) { aff.value = affLabel(res.aff); hint(aff, '', false); const t = type.value; render(type, typeOpts(res.aff, t)); }
+                if (res.aff) { aff.value = affLabel(res.aff); hint(aff, '', false); const t = type.value; render(type, typeOptions(res.aff, t)); }
             }, { signal });
             time.addEventListener('input', () => {
                 const v = time.value.trim(); if (!v) return hint(time, '', false);
@@ -83,7 +82,7 @@ export async function quickEntry(ctx) {
             const p = parseDuration(time.value);
             if ('error' in p) { hint(time, p.error, true); time.focus(); return false; }
             if (!date.value) { date.classList.add('is-invalid'); date.focus(); return false; }
-            const validTypes = [...TYPES.map(t => t.code), ...res.aff.loads.map(loadType)];
+            const validTypes = [...TYPES.map(t => t.code), ...affLoadCodes(res.aff)];
             const t = validTypes.includes(type.value) ? type.value : defaultType();
             added = store.addEntry({ affaireId: res.aff.id, date: date.value, type: t, minutes: p.minutes });
             last = { affaireId: res.aff.id, type: t };

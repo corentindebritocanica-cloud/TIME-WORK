@@ -4,7 +4,7 @@
  */
 import { html, mount as render, on } from '../ui/dom.js';
 import { pie, bindPieHover } from '../ui/pie.js';
-import { typeLabel, typeClass, globalType, sortTypes } from '../domain/types.js';
+import { typeLabel, typeClass, globalType, sortTypes, isLoadType } from '../domain/types.js';
 import { todayISO, mondayOf, addDays, workWeek, isoWeek, fmtShort, fmtNum, minsToHM } from '../domain/time.js';
 import { budgetBar } from './shared.js';
 import { computeProductive } from '../domain/productive.js';
@@ -39,9 +39,14 @@ export function create(el, ctx) {
         const info = !r ? 'Toutes les données'
             : (r.from !== '0000-01-01' ? fmtNum(r.from) : '…') + ' → ' + (r.to !== '9999-12-31' ? fmtNum(r.to) : '…');
 
-        const byType = {};
-        entries.forEach(e => { const t = globalType(e.type); byType[t] = (byType[t] || 0) + e.minutes; });
-        const pieData = sortTypes(Object.keys(byType)).map(t => ({ key: t, label: typeLabel(t), mins: byType[t], cls: typeClass(t) }));
+        // Vue globale : chaque Load est cumulé dans sa famille (CD, MEP) ; la part des Loads reste affichée.
+        const byType = {}, viaLoads = {};
+        entries.forEach(e => {
+            const t = globalType(e.type);
+            byType[t] = (byType[t] || 0) + e.minutes;
+            if (isLoadType(e.type)) viaLoads[t] = (viaLoads[t] || 0) + e.minutes;
+        });
+        const pieData = sortTypes(Object.keys(byType)).map(t => ({ key: t, label: typeLabel(t), mins: byType[t], cls: typeClass(t), loads: viaLoads[t] || 0 }));
 
         render(el, html`
             <section class="panel" aria-label="Période">
@@ -69,7 +74,7 @@ export function create(el, ctx) {
                     <div class="pie-block">
                         ${pie(pieData, { size: 220, scope: 'g', center: minsToHM(total), sub: 'TOTAL', label: 'Répartition des heures par type' })}
                         <ul class="legend" aria-label="Légende">${pieData.map((d, i) => html`
-                            <li class="legend-item ${d.cls}" data-lk="g-${i}"><span class="dot"></span><span class="legend-label">${d.label}</span>
+                            <li class="legend-item ${d.cls}" data-lk="g-${i}" ${d.loads ? html`title="Dont ${minsToHM(d.loads)} saisies sur des Loads ${d.key}"` : ''}><span class="dot"></span><span class="legend-label">${d.label}${d.loads ? html` <small class="legend-sub">dont Loads ${minsToHM(d.loads)}</small>` : ''}</span>
                                 <span class="legend-pct">${Math.round(d.mins / total * 100)} %</span><span class="legend-hm">${minsToHM(d.mins)}</span></li>`)}</ul>
                     </div>
                     ${prodBox(affaires, all)}

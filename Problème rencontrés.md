@@ -476,6 +476,32 @@ règles iPhone : [`GUIDE-PWA-IOS.md`](./GUIDE-PWA-IOS.md).
 
 ---
 
+## 2026-10-06 — Loads MEP et lisibilité des Loads : problèmes rencontrés
+
+#### I1. MEP découpées par des types personnalisés au lieu de Loads
+- **Symptôme** : les MEP par lot étaient saisies avec des types personnalisés « MEP A » / « MEP B » (créés dans Paramètres), alors que les CD utilisent les Loads (`CD_LOAD_A`…). Au tableau de bord, CD cumulait ses Loads mais MEP s'affichait en 3 morceaux (MEP 19h30, MEP A 9h00, MEP B 8h57) ; les types « MEP A / B » étaient aussi proposés sur toutes les affaires.
+- **Cause** : le mécanisme des Loads était codé en dur pour la seule famille CD (`LOAD_PREFIX = 'CD_LOAD_'`, `globalType` → `'CD'`, champ `loads` de l'affaire).
+- **Solution** : table `LOAD_FAMILIES` dans `js/domain/types.js` (CD → champ `loads`, préfixe `CD_LOAD_` ; MEP → champ `mepLoads`, préfixe `MEP_LOAD_`). Chaque famille a **sa propre liste de Loads** (budgets séparés : CD Load A ≠ MEP Load A, choix de Corentin). `globalType`, `typeLabel`, `typeClass`, `typesFor`, `sortTypes`, `removeLoad`, la validation et l'import passent tous par cette table. Seuls les Loads sont cumulés dans la famille (choix de Corentin) : reprises, reviews et « Lancement FAB » restent des types à part.
+- **Données** : migration ponctuelle de l'affaire DAIICHI (AC 00002655) via le SDK Admin — 5 saisies `MEP_A` / `MEP_B` → `MEP_LOAD_A` / `MEP_LOAD_B`, budgets `MEP_A` (8 h) / `MEP_B` (11 h) renommés, `mepLoads: ["A","B"]` ; types personnalisés `MEP_A` / `MEP_B` retirés de `settings.types` (plus aucune saisie dessus). Totaux vérifiés avant / après.
+- **Statut** : corrigé le 2026-10-06.
+
+#### I2. Une ancienne version de l'app aurait effacé les Loads MEP
+- **Symptôme possible** : `canonAffaire()` de l'ancienne version ne connaît pas `mepLoads` ; en modifiant une affaire, elle réécrit l'affaire entière (`affaires.<id>`) sans ce champ.
+- **Solution** : publier le code **avant** de migrer les données, et changer `VERSION` du service worker (`loads-mep`) pour que chaque poste charge la nouvelle version. Les règles Firestore ne filtrent pas les champs internes d'une affaire : rien à republier.
+- **Statut** : maîtrisé (ordre de livraison respecté).
+
+#### I3. « CD Load A » et « MEP Load A » de la même couleur
+- **Cause** : la couleur d'un Load dépend de sa lettre (palette `load-0` … `load-9`).
+- **Solution** : palette décalée de 5 rangs pour la famille MEP (`MEP_LOAD_A` → `load-5`).
+- **Statut** : corrigé.
+
+#### I4. Libellé « CD B » peu explicite
+- **Symptôme** : un Load s'affichait « CD B » dans les légendes et tuiles, mais « CD Load B » dans les listes.
+- **Solution** : libellé unique « CD Load B » / « MEP Load B » partout (test unitaire mis à jour).
+- **Statut** : corrigé.
+
+---
+
 ## Lancement en mode application (Edge)
 
 Raccourci Windows utilisé (champ *Cible*) :

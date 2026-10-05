@@ -5,10 +5,10 @@
  */
 import { html, mount as render, on, $, $$, toElement } from '../ui/dom.js';
 import { pie, bindPieHover } from '../ui/pie.js';
-import { TYPES, typeLabel, typeClass, typesFor, sortTypes, loadType, defaultType } from '../domain/types.js';
+import { typeLabel, typeClass, typesFor, sortTypes, loadFamily, affLoadGroups, loadsOf, LOAD_FAMILIES, defaultType } from '../domain/types.js';
 import { parseDuration, todayISO, fmtNum, minsToHM, minsToDec } from '../domain/time.js';
 import { LOAD_RE, cleanLoadName } from '../domain/validate.js';
-import { budgetBar, minutesByType } from './shared.js';
+import { budgetBar, minutesByType, typeOptions } from './shared.js';
 import { focus } from './suivi.js';
 import { sortAffaires } from '../domain/sort.js';
 
@@ -17,12 +17,6 @@ const SORTS = [['created', 'Création'], ['num', 'Code affaire'], ['client', 'Cl
 
 const openIds = new Set();     // affaires ouvertes (conservé entre deux rendus)
 let query = '';
-
-/** Options de type : types visibles (ordre de Paramètres) + Loads ; un type masqué déjà utilisé reste affiché. */
-const typeOptions = (aff, selected) => html`
-    ${TYPES.map(t => html`<option value="${t.code}" ${t.code === selected ? 'selected' : ''}>${t.label}</option>`)}
-    ${selected && !TYPES.some(t => t.code === selected) && !aff.loads.some(l => loadType(l) === selected) ? html`<option value="${selected}" selected>${typeLabel(selected)}</option>` : ''}
-    ${aff.loads.length ? html`<optgroup label="Loads CD">${aff.loads.map(l => html`<option value="${loadType(l)}" ${loadType(l) === selected ? 'selected' : ''}>CD Load ${l}</option>`)}</optgroup>` : ''}`;
 
 /**
  * @param {HTMLElement} el
@@ -64,8 +58,13 @@ export function create(el, ctx) {
         const mpt = minutesByType(ae);
         const types = sortTypes(Object.keys(mpt));
         const bud = a.budgets;
-        const loadKeys = a.loads.map(loadType);
-        const cdMin = loadKeys.reduce((s, k) => s + (mpt[k] || 0), 0), cdBud = loadKeys.reduce((s, k) => s + (bud[k] || 0), 0);
+        const groups = affLoadGroups(a);
+        /** Cumul d'une famille (Loads seulement) : affiché juste après son dernier Load. */
+        const famTotals = new Map(groups.map(g => [g.fam, {
+            min: g.codes.reduce((s, k) => s + (mpt[k] || 0), 0), bud: g.codes.reduce((s, k) => s + (bud[k] || 0), 0)
+        }]));
+        const lastLoadOf = new Map();
+        types.forEach(t => { const f = loadFamily(t); if (f) lastLoadOf.set(f.fam, t); });
         const pieData = types.map(t => ({ key: t, label: typeLabel(t), mins: mpt[t], cls: typeClass(t) }));
         const scope = 'a' + a.id.replace(/[^A-Za-z0-9]/g, '');
         return html`
@@ -81,12 +80,11 @@ export function create(el, ctx) {
                     </div>
                 </form>
                 ${tot ? html`<div class="type-tiles">
-                    ${types.map(t => { const over = bud[t] > 0 && mpt[t] > bud[t] * 60; return html`
-                        <div class="tile ${typeClass(t)}"><span class="tile-label">${typeLabel(t)}</span><span class="tile-value">${minsToHM(mpt[t])}</span>
-                            ${bud[t] ? html`<span class="tile-sub ${over ? 'danger' : ''}">${Math.round(mpt[t] / (bud[t] * 60) * 100)} % / ${bud[t]} h</span>` : ''}</div>`; })}
-                    ${loadKeys.length >= 2 && (cdMin || cdBud) ? html`
-                        <div class="tile t-CD is-derived" title="Cumul des Loads CD (informatif, non ajouté au total)"><span class="tile-label">CD (total loads)</span><span class="tile-value">${minsToHM(cdMin)}</span>
-                            <span class="tile-sub">${cdBud ? Math.round(cdMin / (cdBud * 60) * 100) + ' % / ' + cdBud + ' h' : 'cumul loads'}</span></div>` : ''}
+                    ${types.map(t => { const over = bud[t] > 0 && mpt[t] > bud[t] * 60, f = loadFamily(t), ft = f && lastLoadOf.get(f.fam) === t ? famTotals.get(f.fam) : null; return html`
+                        <div class="tile ${typeClass(t)} ${f ? 'is-load' : ''}"><span class="tile-label">${typeLabel(t)}</span><span class="tile-value">${minsToHM(mpt[t])}</span>
+                            ${bud[t] ? html`<span class="tile-sub ${over ? 'danger' : ''}">${Math.round(mpt[t] / (bud[t] * 60) * 100)} % / ${bud[t]} h</span>` : ''}</div>
+                        ${ft ? html`<div class="tile t-${f.fam} is-derived" title="Cumul des Loads ${f.fam} de l'affaire (informatif, non ajouté au total). Au tableau de bord, ces heures sont comptées dans « ${f.fam} »."><span class="tile-label">Σ Loads ${f.fam}</span><span class="tile-value">${minsToHM(ft.min)}</span>
+                            <span class="tile-sub ${ft.bud && ft.min > ft.bud * 60 ? 'danger' : ''}">${ft.bud ? Math.round(ft.min / (ft.bud * 60) * 100) + ' % / ' + ft.bud + ' h' : 'cumul des Loads'}</span></div>` : ''}`; })}
                     <div class="tile is-accent c-accent"><span class="tile-label">Total</span><span class="tile-value">${minsToHM(tot)}</span></div>
                 </div>` : ''}
                 <div class="aff-content">
@@ -121,16 +119,20 @@ export function create(el, ctx) {
                         <label class="check" title="Les heures de cette affaire ne comptent pas dans la semaine de travail"><input type="checkbox" data-action="aff-flag" data-flag="unbilled" ${a.unbilled ? 'checked' : ''}> Temps non comptabilisé</label>
                     </div>
                     <div>
-                        <h3 class="label">Loads CD</h3>
-                        <div class="loads">
-                            ${a.loads.map(l => html`<span class="badge load-chip ${typeClass(loadType(l))}">Load ${l}<button type="button" data-action="del-load" data-load="${l}" aria-label="Supprimer le Load ${l}">✕</button></span>`)}
-                            <input class="control sm w-sm" data-action="load-input" placeholder="Ex : A" maxlength="10" aria-label="Nom du nouveau Load">
-                            <button type="button" class="btn btn-ghost btn-sm" data-action="add-load">+ Load</button>
-                        </div>
+                        <h3 class="label">Loads</h3>
+                        <p class="settings-help loads-help">Découpe CD ou MEP par lot : chaque Load a son propre budget.
+                            Au tableau de bord, les heures des Loads sont cumulées dans « CD » ou « MEP ».</p>
+                        ${LOAD_FAMILIES.map(f => html`
+                        <div class="loads" data-fam="${f.fam}" role="group" aria-label="Loads ${f.fam}">
+                            <span class="badge t-${f.fam} loads-fam">${f.fam}</span>
+                            ${loadsOf(a, f.fam).map(l => html`<span class="badge load-chip ${typeClass(f.prefix + l)}">Load ${l}<button type="button" data-action="del-load" data-load="${l}" aria-label="Supprimer le Load ${f.fam} ${l}">✕</button></span>`)}
+                            <input class="control sm w-sm" data-action="load-input" placeholder="Ex : A" maxlength="10" aria-label="Nom du nouveau Load ${f.fam}">
+                            <button type="button" class="btn btn-ghost btn-sm" data-action="add-load">+ Load ${f.fam}</button>
+                        </div>`)}
                     </div>
                     <div>
                         <h3 class="label">Budgets par type (heures allouées)</h3>
-                        <div class="budgets">${typesFor(a).map(t => html`
+                        <div class="budgets">${sortTypes(typesFor(a)).map(t => html`
                             <label class="budget"><span class="badge ${typeClass(t)}">${typeLabel(t)}</span>
                                 <input type="number" class="control sm" min="0" step="1" placeholder="—" data-action="budget" data-type="${t}" value="${bud[t] || ''}" aria-label="Budget ${typeLabel(t)} (heures)"></label>`)}</div>
                     </div>
@@ -157,6 +159,7 @@ export function create(el, ctx) {
                     <label class="field"><span>Code affaire</span><input class="control w-md" name="num" placeholder="Ex : AF-2026-001"></label>
                     <label class="field"><span>Machine</span><input class="control w-sm" name="machine" placeholder="Ex : M-001"></label>
                     <label class="field"><span>Loads CD (optionnel)</span><input class="control w-sm" name="loads" placeholder="Ex : A, B, C"></label>
+                    <label class="field"><span>Loads MEP (optionnel)</span><input class="control w-sm" name="mepLoads" placeholder="Ex : A, B"></label>
                     <button type="submit" class="btn btn-primary">+ Créer</button>
                     <small class="field-hint err" data-role="new-err" role="alert"></small>
                 </form>
@@ -265,35 +268,47 @@ export function create(el, ctx) {
     function createAffaire(form) {
         const f = Object.fromEntries(new FormData(form));
         const err = $('[data-role="new-err"]', form);
-        const loads = String(f.loads || '').split(',').map(cleanLoadName).filter(Boolean);
-        const bad = loads.filter(l => !LOAD_RE.test(l));
         err.textContent = '';
-        form.elements.loads.classList.toggle('is-invalid', bad.length > 0);
-        if (bad.length) { err.textContent = 'Load invalide : ' + bad.join(', ') + ' (A-Z, 0-9, _ ; 10 caractères max).'; form.elements.loads.focus(); return; }
+        /** Loads saisis pour une famille (champ « A, B, C »), ou null si l'un est invalide (erreur affichée). */
+        const parseLoads = (field, fam) => {
+            const list = String(f[field] || '').split(',').map(cleanLoadName).filter(Boolean);
+            const bad = list.filter(l => !LOAD_RE.test(l));
+            form.elements[field].classList.toggle('is-invalid', bad.length > 0);
+            if (!bad.length) return [...new Set(list)];
+            err.textContent = `Load ${fam} invalide : ${bad.join(', ')} (A-Z, 0-9, _ ; 10 caractères max).`;
+            form.elements[field].focus();
+            return null;
+        };
+        const loads = parseLoads('loads', 'CD'); if (!loads) return;
+        const mepLoads = parseLoads('mepLoads', 'MEP'); if (!mepLoads) return;
         if (!f.client.trim() && !f.num.trim()) { err.textContent = 'Renseigne au moins un client ou un code affaire.'; form.elements.client.focus(); return; }
-        const a = store.createAffaire({ client: f.client.trim(), num: f.num.trim(), machine: f.machine.trim(), loads: [...new Set(loads)], budgets: {} });
+        const a = store.createAffaire({ client: f.client.trim(), num: f.num.trim(), machine: f.machine.trim(), loads, mepLoads, budgets: {} });
         openIds.add(a.id); focus.affaireId = a.id;
         draw();
         ctx.toast(`Affaire « ${a.num || a.client} » créée.`);
         $('#aff-' + CSS.escape(a.id) + ' [name="time"]', el)?.focus();
     }
 
+    /** Famille (CD, MEP) du groupe de Loads contenant l'élément. */
+    const famOf = node => LOAD_FAMILIES.find(f => f.fam === node.closest('[data-fam]')?.dataset.fam) || LOAD_FAMILIES[0];
+
     function addLoad(btn) {
-        const a = affOf(btn), input = $('[data-action="load-input"]', btn.closest('.loads'));
+        const a = affOf(btn), f = famOf(btn), input = $('[data-action="load-input"]', btn.closest('.loads'));
         const l = cleanLoadName(input.value);
         if (!l) { input.focus(); return; }
         if (!LOAD_RE.test(l)) { ctx.toast('Load invalide : A-Z, 0-9, _ ; 10 caractères max.', { kind: 'error' }); input.classList.add('is-invalid'); input.focus(); return; }
-        if (a.loads.includes(l)) { ctx.toast(`Le Load ${l} existe déjà.`, { kind: 'error' }); return; }
-        store.updateAffaire(a.id, { loads: [...a.loads, l] });
+        const cur = loadsOf(a, f.fam);
+        if (cur.includes(l)) { ctx.toast(`Le Load ${f.fam} ${l} existe déjà.`, { kind: 'error' }); return; }
+        store.updateAffaire(a.id, { [f.field]: [...cur, l] });
         redrawOne(a.id);
-        $('#aff-' + CSS.escape(a.id) + ' [data-action="load-input"]', el)?.focus();
+        $('#aff-' + CSS.escape(a.id) + ` [data-fam="${f.fam}"] [data-action="load-input"]`, el)?.focus();
     }
 
     async function delLoad(btn) {
-        const a = affOf(btn), l = btn.dataset.load;
-        const n = entriesOf(a.id).filter(e => e.type === loadType(l)).length;
-        if (!await ctx.confirmAction(`Supprimer le Load ${l} ?`, `Son budget est supprimé${n ? ` et ses ${n} saisie(s) passent en « CD »` : ''}.`, 'Supprimer', true)) return;
-        store.removeLoad(a.id, l);
+        const a = affOf(btn), f = famOf(btn), l = btn.dataset.load;
+        const n = entriesOf(a.id).filter(e => e.type === f.prefix + l).length;
+        if (!await ctx.confirmAction(`Supprimer le Load ${f.fam} ${l} ?`, `Son budget est supprimé${n ? ` et ses ${n} saisie(s) passent en « ${f.fam} »` : ''}.`, 'Supprimer', true)) return;
+        store.removeLoad(a.id, l, f.fam);
         redrawOne(a.id);
     }
 

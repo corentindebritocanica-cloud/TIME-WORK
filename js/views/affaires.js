@@ -287,7 +287,7 @@ export function create(el, ctx) {
         const loads = parseLoads('loads', 'CD'); if (!loads) return;
         const mepLoads = parseLoads('mepLoads', 'MEP'); if (!mepLoads) return;
         if (!f.client.trim() && !f.num.trim()) { err.textContent = 'Renseigne au moins un client ou un code affaire.'; form.elements.client.focus(); return; }
-        const a = store.createAffaire({ client: f.client.trim(), num: f.num.trim(), machine: f.machine.trim(), loads, mepLoads, budgets: {} });
+        const a = store.createAffaire({ client: f.client.trim(), num: f.num.trim(), machine: f.machine.trim(), loads, mepLoads, budgets: {}, productive: true });
         openIds.add(a.id); focus.affaireId = a.id;
         draw();
         ctx.toast(`Affaire « ${a.num || a.client} » créée.`);

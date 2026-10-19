@@ -513,3 +513,15 @@ Raccourci Windows utilisé (champ *Cible*) :
 Si une ancienne version s'affiche après une mise à jour : **Ctrl+F5**.
 
 Depuis le lot 3, l'app peut aussi être **installée comme PWA** (Edge → ⋯ → Applications → Installer TIME-WORK), voir le README.
+
+## 2026-10-19 — Renommage Loads → Racks + codes GPAO
+
+### 1. Nom « Load A / Load B » erroné, code GPAO manquant
+- **Constat** : les lots étaient nommés « CD Load A », « MEP Load B »… alors que le nom métier est « Rack 1 », « Rack 2 », et chaque Rack doit porter un code GPAO.
+- **Solution** : préfixes `CD_RACK_` / `MEP_RACK_`, numéros 1-999 (`LOAD_RE`), champ `affaires.<id>.gpao` (`{ "1": "6007514603" }`, commun à CD et MEP, car DAIICHI utilise le même code pour CD et MEP). Lecture tolérante des anciennes données (lettre → numéro) dans `canonAffaire` / `canonEntry` / `normalizeData`, puis migration Firestore des affaires, budgets et saisies.
+- **Statut** : résolu.
+
+### 2. Accès GitHub refusé au démarrage de la session
+- **Constat** : l'appel direct à l'API avec le jeton du projet a répondu « GitHub access to this repository is not enabled for this session ».
+- **Solution** : rattacher le dépôt à la session avec l'outil `add_repo` (accès push), puis cloner. Le jeton n'est pas nécessaire une fois le dépôt rattaché.
+- **Statut** : résolu.

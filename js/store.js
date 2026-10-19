@@ -3,7 +3,7 @@
  *
  * Modèle Firestore (orienté requêtes) :
  *   users/{uid}                 { settings, affaires: { [id]: affaire }, updatedAt }
- *     affaire = { client, num, machine, loads (Loads CD), mepLoads (Loads MEP), budgets, productive, unbilled, createdAt }
+ *     affaire = { client, num, machine, loads (Racks CD : '1', '2'…), mepLoads (Racks MEP), gpao ({ rack: code GPAO }), budgets, productive, unbilled, createdAt }
  *   users/{uid}/months/{AAAA-MM} { entries: { [id]: saisie }, days: { [AAAA-MM-JJ]: { h, m, reason } }, updatedAt }
  *
  * Règles :
@@ -15,6 +15,7 @@
  */
 import { db, fsMod } from './firebase.js';
 import { LOAD_FAMILIES } from './domain/types.js';
+import { legacyRack, legacyTypeCode, cleanGpao, LOAD_RE } from './domain/validate.js';
 
 const {
     doc, collection, onSnapshot, setDoc, writeBatch, deleteField, serverTimestamp, FieldPath
@@ -39,11 +40,14 @@ const sig = v => JSON.stringify(v, (k, val) =>
 /** Forme canonique d'une affaire (celle écrite dans Firestore et gardée en mémoire). */
 export function canonAffaire(a) {
     const budgets = {};
-    Object.entries(a.budgets || {}).forEach(([k, v]) => { const n = Number(v); if (n > 0) budgets[k] = n; });
+    Object.entries(a.budgets || {}).forEach(([k, v]) => { const n = Number(v); if (n > 0) budgets[legacyTypeCode(k)] = n; });
+    // Anciennes données : Loads « A, B… » lus comme Racks « 1, 2… » (convertis aussi en base par la migration)
+    const racks = v => [...new Set((Array.isArray(v) ? v : []).map(legacyRack).filter(l => LOAD_RE.test(l)))];
     return {
         client: str(a.client), num: str(a.num), machine: str(a.machine),
-        loads: Array.isArray(a.loads) ? a.loads.map(String) : [],
-        mepLoads: Array.isArray(a.mepLoads) ? a.mepLoads.map(String) : [],
+        loads: racks(a.loads),
+        mepLoads: racks(a.mepLoads),
+        gpao: sortObj(cleanGpao(a.gpao)),
         budgets: sortObj(budgets),
         productive: !!a.productive, unbilled: !!a.unbilled,
         createdAt: Number(a.createdAt) || 0
@@ -53,7 +57,7 @@ export function canonAffaire(a) {
 /** Forme canonique d'une saisie. */
 export function canonEntry(e) {
     return {
-        affaireId: str(e.affaireId), date: str(e.date), type: str(e.type),
+        affaireId: str(e.affaireId), date: str(e.date), type: legacyTypeCode(str(e.type)),
         minutes: Math.round(Number(e.minutes)) || 0, createdAt: Number(e.createdAt) || 0
     };
 }
@@ -279,10 +283,10 @@ export function deleteEntry(id) {
 }
 
 /**
- * Retire un Load d'une affaire : budget supprimé, saisies du Load reclassées dans le type de base
+ * Retire un Rack d'une affaire : budget supprimé (et code GPAO si l'autre famille n'utilise plus ce Rack), saisies du Load reclassées dans le type de base
  * de sa famille (CD ou MEP), en un seul lot.
  * @param {string} affId
- * @param {string} load nom du Load (A, B…)
+ * @param {string} load numéro du Rack (1, 2…)
  * @param {'CD'|'MEP'} [fam]
  */
 export function removeLoad(affId, load, fam = 'CD') {
@@ -290,7 +294,10 @@ export function removeLoad(affId, load, fam = 'CD') {
     const f = LOAD_FAMILIES.find(x => x.fam === fam); if (!f) return;
     const key = f.prefix + load;
     const budgets = { ...cur.budgets }; delete budgets[key];
-    const a = canonAffaire({ ...cur, [f.field]: cur[f.field].filter(l => l !== load), budgets });
+    const next = { ...cur, [f.field]: cur[f.field].filter(l => l !== load), budgets };
+    const stillUsed = [...next.loads, ...next.mepLoads].includes(load);
+    if (!stillUsed) { next.gpao = { ...cur.gpao }; delete next.gpao[load]; }
+    const a = canonAffaire(next);
     affaires.set(affId, a);
     const byMonth = {};
     months.forEach((mo, mid) => mo.entries.forEach((e, eid) => {

@@ -39,20 +39,21 @@ export const BUILTIN_TYPES = [
 const BUILTIN = new Map(BUILTIN_TYPES.map(t => [t.code, t.label]));
 
 /**
- * Familles « par Load » : un type de base (CD, MEP) peut être découpé, PAR AFFAIRE, en Loads.
- *   - chaque famille a SA liste de Loads sur l'affaire (`field`) et donc ses propres budgets
- *     (ex. CD Load A = 10 h, MEP Load A = 15 h) ;
- *   - code d'une saisie : `<prefix><Load>` (CD_LOAD_A, MEP_LOAD_B…) ;
- *   - vues globales (tableau de bord) : un Load se cumule dans le type de base de sa famille.
+ * Familles « par Rack » (anciennement « Load ») : un type de base (CD, MEP) peut être découpé, PAR AFFAIRE, en Racks.
+ *   - chaque famille a SA liste de Racks sur l'affaire (`field`) et donc ses propres budgets
+ *     (ex. CD Rack 1 = 10 h, MEP Rack 1 = 15 h) ;
+ *   - code d'une saisie : `<prefix><Rack>` (CD_RACK_1, MEP_RACK_2…) ;
+ *   - vues globales (tableau de bord) : un Rack se cumule dans le type de base de sa famille.
+ *   - le code GPAO d'un Rack est porté par l'affaire (`gpao[numéro]`), commun à CD et MEP.
  *     Les autres types de la famille (reprise, review…) ne sont PAS cumulés.
  */
 export const LOAD_FAMILIES = Object.freeze([
-    Object.freeze({ fam: 'CD',  field: 'loads',    prefix: 'CD_LOAD_' }),
-    Object.freeze({ fam: 'MEP', field: 'mepLoads', prefix: 'MEP_LOAD_' })
+    Object.freeze({ fam: 'CD',  field: 'loads',    prefix: 'CD_RACK_' }),
+    Object.freeze({ fam: 'MEP', field: 'mepLoads', prefix: 'MEP_RACK_' })
 ]);
 const FAMILY = new Map(LOAD_FAMILIES.map(f => [f.fam, f]));
-/** Compatibilité : préfixe historique des Loads CD. */
-export const LOAD_PREFIX = 'CD_LOAD_';
+/** Préfixe des Racks CD (anciennement « Loads » : CD_LOAD_A → CD_RACK_1). */
+export const LOAD_PREFIX = 'CD_RACK_';
 const LOAD_PALETTE_SIZE = 10;
 /** Nombre de couleurs proposées pour un type personnalisé (classes pal-0 … pal-9). */
 export const CUSTOM_COLORS = 10;
@@ -63,11 +64,11 @@ const CODE_RE = /^[A-Z0-9_]{1,40}$/;
 export const loadFamily = code => typeof code === 'string' ? LOAD_FAMILIES.find(f => code.startsWith(f.prefix)) || null : null;
 /** Type « Load » (CD ou MEP) ? */
 export const isLoadType = code => loadFamily(code) !== null;
-/** Nom du Load d'un code (CD_LOAD_A → « A »), ou '' si ce n'est pas un Load. */
+/** Nom du Load d'un code (CD_RACK_1 → « 1 »), ou '' si ce n'est pas un Load. */
 export const loadName = code => { const f = loadFamily(code); return f ? code.slice(f.prefix.length) : ''; };
 /**
  * Code de type d'un Load.
- * @param {string} load nom du Load (A, B…)
+ * @param {string} load numéro du Rack (1, 2…)
  * @param {'CD'|'MEP'} [fam]
  */
 export const loadType = (load, fam = 'CD') => FAMILY.get(fam).prefix + load;
@@ -175,7 +176,7 @@ export function typeLabel(code) {
     const t = byCode.get(code);
     if (t) return t.label;
     const f = loadFamily(code);
-    if (f) return f.fam + ' Load ' + code.slice(f.prefix.length);
+    if (f) return f.fam + ' Rack ' + code.slice(f.prefix.length);
     return code || '?';
 }
 
@@ -185,8 +186,8 @@ export function typeClass(code) {
     if (t) return t.custom ? 'pal-' + t.color : 't-' + code;
     const f = loadFamily(code);
     if (f) {
-        // Palette décalée pour MEP : « CD Load A » et « MEP Load A » ne partagent pas la même couleur.
-        const c = (code.charCodeAt(f.prefix.length) || 65) - 65 + (f.fam === 'MEP' ? LOAD_PALETTE_SIZE / 2 : 0);
+        // Palette décalée pour MEP : « CD Rack 1 » et « MEP Rack 1 » ne partagent pas la même couleur.
+        const c = (parseInt(code.slice(f.prefix.length), 10) || 1) - 1 + (f.fam === 'MEP' ? LOAD_PALETTE_SIZE / 2 : 0);
         return 'load-' + ((c % LOAD_PALETTE_SIZE) + LOAD_PALETTE_SIZE) % LOAD_PALETTE_SIZE;
     }
     return 't-AUTRE';
@@ -199,12 +200,12 @@ export function typesFor(aff) {
     return list;
 }
 
-/** Vues globales : un Load se cumule dans le type de base de sa famille (CD_LOAD_A → CD, MEP_LOAD_B → MEP). */
+/** Vues globales : un Load se cumule dans le type de base de sa famille (CD_RACK_1 → CD, MEP_RACK_2 → MEP). */
 export const globalType = code => loadFamily(code)?.fam ?? code;
 
 /**
  * Trie une liste de codes selon l'ordre choisi ; chaque Load est placé juste après le type de base
- * de sa famille (CD, CD Load A, CD Load B, …). Codes inconnus à la fin.
+ * de sa famille (CD, CD Rack 1, CD Rack 2, …). Codes inconnus à la fin.
  */
 export function sortTypes(codes) {
     const order = new Map(all.map((t, i) => [t.code, i]));
@@ -213,5 +214,5 @@ export function sortTypes(codes) {
         if (f) return order.has(f.fam) ? order.get(f.fam) + 0.5 : 999;
         return order.has(c) ? order.get(c) : 1000;
     };
-    return [...codes].sort((a, b) => rank(a) - rank(b) || String(a).localeCompare(String(b)));
+    return [...codes].sort((a, b) => rank(a) - rank(b) || String(a).localeCompare(String(b), 'fr', { numeric: true }));
 }

@@ -1,13 +1,13 @@
 /**
  * Suivi — par affaire : création, recherche, et pour chaque affaire (accordéon <details>
  * dont le contenu n'est construit qu'à l'ouverture) : saisie d'heures, totaux par type,
- * saisies modifiables, répartition, réglages (code, client, machine, productif, Loads, budgets).
+ * saisies modifiables, répartition, réglages (code, client, machine, productif, Racks + codes GPAO, budgets).
  */
 import { html, mount as render, on, $, $$, toElement } from '../ui/dom.js';
 import { pie, bindPieHover } from '../ui/pie.js';
-import { typeLabel, typeClass, typesFor, sortTypes, loadFamily, affLoadGroups, loadsOf, LOAD_FAMILIES, defaultType } from '../domain/types.js';
+import { typeLabel, typeClass, typesFor, sortTypes, loadFamily, loadName, affLoadGroups, loadsOf, LOAD_FAMILIES, defaultType } from '../domain/types.js';
 import { parseDuration, todayISO, fmtNum, minsToHM, minsToDec } from '../domain/time.js';
-import { LOAD_RE, cleanLoadName } from '../domain/validate.js';
+import { LOAD_RE, GPAO_RE, cleanLoadName } from '../domain/validate.js';
 import { budgetBar, minutesByType, typeOptions } from './shared.js';
 import { focus } from './suivi.js';
 import { sortAffaires } from '../domain/sort.js';
@@ -59,7 +59,7 @@ export function create(el, ctx) {
         const types = sortTypes(Object.keys(mpt));
         const bud = a.budgets;
         const groups = affLoadGroups(a);
-        /** Cumul d'une famille (Loads seulement) : affiché juste après son dernier Load. */
+        /** Cumul d'une famille (Racks seulement) : affiché juste après son dernier Rack. */
         const famTotals = new Map(groups.map(g => [g.fam, {
             min: g.codes.reduce((s, k) => s + (mpt[k] || 0), 0), bud: g.codes.reduce((s, k) => s + (bud[k] || 0), 0)
         }]));
@@ -82,9 +82,10 @@ export function create(el, ctx) {
                 ${tot ? html`<div class="type-tiles">
                     ${types.map(t => { const over = bud[t] > 0 && mpt[t] > bud[t] * 60, f = loadFamily(t), ft = f && lastLoadOf.get(f.fam) === t ? famTotals.get(f.fam) : null; return html`
                         <div class="tile ${typeClass(t)} ${f ? 'is-load' : ''}"><span class="tile-label">${typeLabel(t)}</span><span class="tile-value">${minsToHM(mpt[t])}</span>
+                            ${f && a.gpao[loadName(t)] ? html`<span class="tile-sub" title="Code GPAO">GPAO ${a.gpao[loadName(t)]}</span>` : ''}
                             ${bud[t] ? html`<span class="tile-sub ${over ? 'danger' : ''}">${Math.round(mpt[t] / (bud[t] * 60) * 100)} % / ${bud[t]} h</span>` : ''}</div>
-                        ${ft ? html`<div class="tile t-${f.fam} is-derived" title="Cumul des Loads ${f.fam} de l'affaire (informatif, non ajouté au total). Au tableau de bord, ces heures sont comptées dans « ${f.fam} »."><span class="tile-label">Σ Loads ${f.fam}</span><span class="tile-value">${minsToHM(ft.min)}</span>
-                            <span class="tile-sub ${ft.bud && ft.min > ft.bud * 60 ? 'danger' : ''}">${ft.bud ? Math.round(ft.min / (ft.bud * 60) * 100) + ' % / ' + ft.bud + ' h' : 'cumul des Loads'}</span></div>` : ''}`; })}
+                        ${ft ? html`<div class="tile t-${f.fam} is-derived" title="Cumul des Racks ${f.fam} de l'affaire (informatif, non ajouté au total). Au tableau de bord, ces heures sont comptées dans « ${f.fam} »."><span class="tile-label">Σ Racks ${f.fam}</span><span class="tile-value">${minsToHM(ft.min)}</span>
+                            <span class="tile-sub ${ft.bud && ft.min > ft.bud * 60 ? 'danger' : ''}">${ft.bud ? Math.round(ft.min / (ft.bud * 60) * 100) + ' % / ' + ft.bud + ' h' : 'cumul des Racks'}</span></div>` : ''}`; })}
                     <div class="tile is-accent c-accent"><span class="tile-label">Total</span><span class="tile-value">${minsToHM(tot)}</span></div>
                 </div>` : ''}
                 <div class="aff-content">
@@ -119,16 +120,20 @@ export function create(el, ctx) {
                         <label class="check" title="Les heures de cette affaire ne comptent pas dans la semaine de travail"><input type="checkbox" data-action="aff-flag" data-flag="unbilled" ${a.unbilled ? 'checked' : ''}> Temps non comptabilisé</label>
                     </div>
                     <div>
-                        <h3 class="label">Loads</h3>
-                        <p class="settings-help loads-help">Découpe CD ou MEP par lot : chaque Load a son propre budget.
-                            Au tableau de bord, les heures des Loads sont cumulées dans « CD » ou « MEP ».</p>
+                        <h3 class="label">Racks</h3>
+                        <p class="settings-help loads-help">Découpe CD ou MEP par rack : chaque Rack a son propre budget et son code GPAO
+                            (commun à CD et MEP pour un même numéro). Au tableau de bord, les heures des Racks sont cumulées dans « CD » ou « MEP ».</p>
                         ${LOAD_FAMILIES.map(f => html`
-                        <div class="loads" data-fam="${f.fam}" role="group" aria-label="Loads ${f.fam}">
+                        <div class="loads" data-fam="${f.fam}" role="group" aria-label="Racks ${f.fam}">
                             <span class="badge t-${f.fam} loads-fam">${f.fam}</span>
-                            ${loadsOf(a, f.fam).map(l => html`<span class="badge load-chip ${typeClass(f.prefix + l)}">Load ${l}<button type="button" data-action="del-load" data-load="${l}" aria-label="Supprimer le Load ${f.fam} ${l}">✕</button></span>`)}
-                            <input class="control sm w-sm" data-action="load-input" placeholder="Ex : A" maxlength="10" aria-label="Nom du nouveau Load ${f.fam}">
-                            <button type="button" class="btn btn-ghost btn-sm" data-action="add-load">+ Load ${f.fam}</button>
+                            ${loadsOf(a, f.fam).map(l => html`<span class="badge load-chip ${typeClass(f.prefix + l)}">Rack ${l}<button type="button" data-action="del-load" data-load="${l}" aria-label="Supprimer le Rack ${f.fam} ${l}">✕</button></span>`)}
+                            <input class="control sm w-sm" data-action="load-input" placeholder="Ex : 1" maxlength="3" inputmode="numeric" aria-label="Numéro du nouveau Rack ${f.fam}">
+                            <button type="button" class="btn btn-ghost btn-sm" data-action="add-load">+ Rack ${f.fam}</button>
                         </div>`)}
+                        ${(() => { const racks = [...new Set([...loadsOf(a, 'CD'), ...loadsOf(a, 'MEP')])].sort((x, y) => x - y); return racks.length ? html`
+                        <div class="loads gpao-list" role="group" aria-label="Codes GPAO des Racks">
+                            ${racks.map(r => html`<label class="field gpao-field"><span>GPAO Rack ${r}</span><input class="control sm w-md" data-action="gpao" data-rack="${r}" value="${a.gpao[r] || ''}" placeholder="Code GPAO" maxlength="30" autocomplete="off"></label>`)}
+                        </div>` : ''; })()}
                     </div>
                     <div>
                         <h3 class="label">Budgets par type (heures allouées)</h3>
@@ -158,8 +163,8 @@ export function create(el, ctx) {
                     <label class="field"><span>Client</span><input class="control w-md" name="client" placeholder="Nom du client" list="clients"></label>
                     <label class="field"><span>Code affaire</span><input class="control w-md" name="num" placeholder="Ex : AF-2026-001"></label>
                     <label class="field"><span>Machine</span><input class="control w-sm" name="machine" placeholder="Ex : M-001"></label>
-                    <label class="field"><span>Loads CD (optionnel)</span><input class="control w-sm" name="loads" placeholder="Ex : A, B, C"></label>
-                    <label class="field"><span>Loads MEP (optionnel)</span><input class="control w-sm" name="mepLoads" placeholder="Ex : A, B"></label>
+                    <label class="field"><span>Racks CD (optionnel)</span><input class="control w-sm" name="loads" placeholder="Ex : 1, 2, 3"></label>
+                    <label class="field"><span>Racks MEP (optionnel)</span><input class="control w-sm" name="mepLoads" placeholder="Ex : 1, 2"></label>
                     <button type="submit" class="btn btn-primary">+ Créer</button>
                     <small class="field-hint err" data-role="new-err" role="alert"></small>
                 </form>
@@ -269,13 +274,13 @@ export function create(el, ctx) {
         const f = Object.fromEntries(new FormData(form));
         const err = $('[data-role="new-err"]', form);
         err.textContent = '';
-        /** Loads saisis pour une famille (champ « A, B, C »), ou null si l'un est invalide (erreur affichée). */
+        /** Racks saisis pour une famille (champ « 1, 2, 3 »), ou null si l'un est invalide (erreur affichée). */
         const parseLoads = (field, fam) => {
             const list = String(f[field] || '').split(',').map(cleanLoadName).filter(Boolean);
             const bad = list.filter(l => !LOAD_RE.test(l));
             form.elements[field].classList.toggle('is-invalid', bad.length > 0);
             if (!bad.length) return [...new Set(list)];
-            err.textContent = `Load ${fam} invalide : ${bad.join(', ')} (A-Z, 0-9, _ ; 10 caractères max).`;
+            err.textContent = `Rack ${fam} invalide : ${bad.join(', ')} (numéros 1 à 999).`;
             form.elements[field].focus();
             return null;
         };
@@ -289,16 +294,16 @@ export function create(el, ctx) {
         $('#aff-' + CSS.escape(a.id) + ' [name="time"]', el)?.focus();
     }
 
-    /** Famille (CD, MEP) du groupe de Loads contenant l'élément. */
+    /** Famille (CD, MEP) du groupe de Racks contenant l'élément. */
     const famOf = node => LOAD_FAMILIES.find(f => f.fam === node.closest('[data-fam]')?.dataset.fam) || LOAD_FAMILIES[0];
 
     function addLoad(btn) {
         const a = affOf(btn), f = famOf(btn), input = $('[data-action="load-input"]', btn.closest('.loads'));
         const l = cleanLoadName(input.value);
         if (!l) { input.focus(); return; }
-        if (!LOAD_RE.test(l)) { ctx.toast('Load invalide : A-Z, 0-9, _ ; 10 caractères max.', { kind: 'error' }); input.classList.add('is-invalid'); input.focus(); return; }
+        if (!LOAD_RE.test(l)) { ctx.toast('Rack invalide : numéro de 1 à 999.', { kind: 'error' }); input.classList.add('is-invalid'); input.focus(); return; }
         const cur = loadsOf(a, f.fam);
-        if (cur.includes(l)) { ctx.toast(`Le Load ${f.fam} ${l} existe déjà.`, { kind: 'error' }); return; }
+        if (cur.includes(l)) { ctx.toast(`Le Rack ${f.fam} ${l} existe déjà.`, { kind: 'error' }); return; }
         store.updateAffaire(a.id, { [f.field]: [...cur, l] });
         redrawOne(a.id);
         $('#aff-' + CSS.escape(a.id) + ` [data-fam="${f.fam}"] [data-action="load-input"]`, el)?.focus();
@@ -307,7 +312,7 @@ export function create(el, ctx) {
     async function delLoad(btn) {
         const a = affOf(btn), f = famOf(btn), l = btn.dataset.load;
         const n = entriesOf(a.id).filter(e => e.type === f.prefix + l).length;
-        if (!await ctx.confirmAction(`Supprimer le Load ${f.fam} ${l} ?`, `Son budget est supprimé${n ? ` et ses ${n} saisie(s) passent en « ${f.fam} »` : ''}.`, 'Supprimer', true)) return;
+        if (!await ctx.confirmAction(`Supprimer le Rack ${f.fam} ${l} ?`, `Son budget est supprimé${n ? ` et ses ${n} saisie(s) passent en « ${f.fam} »` : ''}.`, 'Supprimer', true)) return;
         store.removeLoad(a.id, l, f.fam);
         redrawOne(a.id);
     }
@@ -341,6 +346,13 @@ export function create(el, ctx) {
         'entry-type': s => { store.updateEntry(s.closest('tr').dataset.entry, { type: s.value }); redrawOne(affOf(s).id); },
         'entry-time': editTime,
         'aff-field': i => { const a = affOf(i); if (a[i.dataset.field] === i.value.trim()) return; store.updateAffaire(a.id, { [i.dataset.field]: i.value.trim() }); redrawOne(a.id); ctx.toast('Affaire mise à jour.'); },
+        gpao: i => {
+            const a = affOf(i), rack = i.dataset.rack, v = i.value.trim(), gpao = { ...a.gpao };
+            if (v && !GPAO_RE.test(v)) { ctx.toast('Code GPAO invalide (lettres, chiffres, . _ - ; 30 caractères max).', { kind: 'error' }); i.classList.add('is-invalid'); i.focus(); return; }
+            if ((gpao[rack] || '') === v) return;
+            if (v) gpao[rack] = v; else delete gpao[rack];
+            store.updateAffaire(a.id, { gpao }); redrawOne(a.id); ctx.toast(`Code GPAO du Rack ${rack} enregistré.`);
+        },
         'aff-flag': c => {
             const a = affOf(c), flag = c.dataset.flag, other = flag === 'productive' ? 'unbilled' : 'productive';
             store.updateAffaire(a.id, c.checked ? { [flag]: true, [other]: false } : { [flag]: false }); redrawOne(a.id);
@@ -353,6 +365,7 @@ export function create(el, ctx) {
     }, ac.signal);
     on(el, 'keydown', {
         'entry-time': (i, e) => { if (e.key === 'Enter') { e.preventDefault(); i.blur(); } },
+        gpao: (i, e) => { if (e.key === 'Enter') { e.preventDefault(); i.blur(); } },
         'load-input': (i, e) => { if (e.key === 'Enter') { e.preventDefault(); addLoad(i); } },
         budget: (i, e) => { if (e.key === 'Enter') { e.preventDefault(); i.blur(); } }
     }, ac.signal);

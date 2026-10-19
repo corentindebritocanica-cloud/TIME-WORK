@@ -84,13 +84,14 @@ restauration et import CSV ; le bouton rond voisin déconnecte.
     **Animations entre les onglets**.
 - **Suivi Projet** : gestion des affaires, saisies horaires par type
   (DE, ECA, CD, Réunion, Formation, MEP…), budgets par type,
-  **Loads** : CD et MEP se découpent par lot dans chaque affaire (« CD Load A »,
-  « MEP Load B »…), avec **une liste de Loads par famille** et **un budget par Load**
-  (ex. CD Load A = 10 h, MEP Load A = 15 h). Dans l'affaire, une tuile en pointillés
-  « Σ Loads CD / MEP » donne le cumul des Loads et de leurs budgets. Au **tableau de
-  bord**, chaque Load est **cumulé dans sa famille** (CD ou MEP, mention « dont Loads … ») ;
-  les reprises et reviews restent des types à part. Supprimer un Load reclasse ses
-  saisies dans CD ou MEP.
+  **Racks** (anciennement « Loads ») : CD et MEP se découpent par rack dans chaque affaire
+  (« CD Rack 1 », « MEP Rack 2 »…), avec **une liste de Racks par famille**, **un budget par Rack**
+  (ex. CD Rack 1 = 10 h, MEP Rack 1 = 15 h) et **un code GPAO par Rack** (saisi dans
+  Affaires → réglages → Racks ; commun à CD et MEP pour un même numéro, affiché dans la tuile
+  et dans le menu « Type »). Dans l'affaire, une tuile en pointillés « Σ Racks CD / MEP » donne
+  le cumul des Racks et de leurs budgets. Au **tableau de bord**, chaque Rack est **cumulé dans
+  sa famille** (CD ou MEP, mention « dont Racks … ») ; les reprises et reviews restent des types
+  à part. Supprimer un Rack reclasse ses saisies dans CD ou MEP.
   répartition graphique (camemberts), vue
   « Heures imputées (semaine) » avec l'écart pointé − imputé. Dans les Imputées, un
   clic sur le **code affaire** d'une saisie ouvre l'affaire dans l'onglet Affaires,
@@ -194,11 +195,11 @@ Si Firestore ne répond pas au bout de 15 s, un bouton **Recharger** apparaît.
 
 ```
 users/{uid}
-  affaires   : { [id]: { client, num, machine, loads[] (Loads CD), mepLoads[] (Loads MEP), budgets{}, productive, unbilled, createdAt } }
+  affaires   : { [id]: { client, num, machine, loads[] (Racks CD : "1", "2"…), mepLoads[] (Racks MEP), gpao{ "1": code GPAO… }, budgets{}, productive, unbilled, createdAt } }
   settings   : { dashFilter, affSort: { by: created|num|client|machine, dir: asc|desc }, types: [ { code, hidden? } | { code, label, color, custom: true, hidden? } ] }
   migratedAt : date de conversion depuis l'ancien format (champ kv supprimé)
 users/{uid}/months/{AAAA-MM}
-  entries    : { [id]: { affaireId, date, type, minutes, createdAt } }   type : code du type, ou CD_LOAD_<Load> / MEP_LOAD_<Load>
+  entries    : { [id]: { affaireId, date, type, minutes, createdAt } }   type : code du type, ou CD_RACK_<n°> / MEP_RACK_<n°>
   days       : { "AAAA-MM-JJ": { h, m, reason: null | "ferie" | "conge" } }
 ```
 
@@ -377,6 +378,7 @@ service cloud.firestore {
 | 2026-10-01 | Onglet Chrono retiré | Onglet **Chronologie** supprimé (inutilisé) : 5 onglets (Tableau · Affaires · Imputées · Pointage · Réglages). `js/views/chrono.js` et l'icône `#i-calendar` supprimés ; l'ancienne adresse `#/suivi/chrono` ouvre le Tableau de bord. Service worker `sanschrono`. |
 | 2026-10-01 | Règle documentation | Encadré **« Règle absolue »** en tête du README : tous les fichiers `.md` (README, UX-UI, GUIDE-PWA-IOS, Problème rencontrés, AUDIT) sont relus et mis à jour dans le même commit après **chaque** modification. Compléments : Problème rencontrés H2–H3, historique du guide iPhone au 01/10. |
 | 2026-10-06 | Loads MEP + lisibilité | **Les MEP se découpent en Loads comme les CD** (`MEP_LOAD_A`…), avec une **liste de Loads propre à chaque famille** sur l'affaire (`loads` = CD, nouveau champ `mepLoads` = MEP) et donc des budgets séparés. Règle unique dans `js/domain/types.js` (`LOAD_FAMILIES`) : au tableau de bord, chaque Load est cumulé dans sa famille (CD / MEP) — reprises, reviews et Lancement FAB restent à part. **Plus clair dans l'app** : listes « Type » avec un groupe « CD — par Load » et « MEP — par Load » ; Loads triés juste après leur type de base (tuiles, légendes, budgets) ; tuile « Σ Loads CD / MEP » (cumul + % du budget des Loads) ; réglages de l'affaire avec une ligne de Loads par famille et une phrase d'explication ; création d'affaire avec « Loads CD » et « Loads MEP » ; légende du tableau de bord « CD dont Loads … » ; libellés « CD Load A » partout ; couleurs des Loads MEP décalées de celles des Loads CD ; explication de la règle dans Paramètres → Types de travail. **Données migrées** : affaire DAIICHI (AC 00002655) — saisies `MEP_A` / `MEP_B` → `MEP_LOAD_A` / `MEP_LOAD_B`, budgets renommés, `mepLoads: [A, B]` ; types personnalisés « MEP A » / « MEP B » retirés des Paramètres. 71 tests (9 nouveaux). Service worker `loads-mep`. Problèmes I1 à I4. |
+| 2026-10-19 | Loads → Racks + code GPAO | **Les « Loads » deviennent des « Racks »** numérotés 1, 2, 3… (`CD_RACK_1`, `MEP_RACK_2`…, libellé « CD Rack 1 »). **Un code GPAO par Rack** et par affaire (`affaires.<id>.gpao`, commun à CD et MEP), saisi dans Affaires → Racks, affiché dans la tuile et le menu « Type ». Données existantes migrées A→1, B→2, C→3 (4 affaires : DAIICHI, J&J USA, JCR PHARMA, KIRSCH) ; lecture tolérante des anciens codes (`legacyRack`, `legacyTypeCode`) pour les sauvegardes JSON anciennes. Cache PWA : `tw-2026-10-19-racks-gpao`. Tests : 73 OK. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

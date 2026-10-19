@@ -137,6 +137,7 @@ démarrage : c'est ce bug, pas le code. Contournement documenté (non nécessair
 | 01/10/2026 | Temps productif J-1 / J-0 (Tableau). Lien Imputées → saisie dans Affaires : le focus va sur le **menu du type** (`<select>`) et non sur le champ durée, pour ne **pas ouvrir le clavier** de l'iPhone à l'arrivée. |
 | 01/10/2026 | Onglet **Chrono retiré** : **5 onglets** dans la pilule (plus de place par onglet sur 375 pt). Un ancien raccourci `#/suivi/chrono` ouvre le Tableau de bord. Service worker `sanschrono` : fermer / rouvrir l'app une ou deux fois pour la nouvelle version. |
 | 06/10/2026 | Loads MEP (familles de Loads CD / MEP). Rien de spécifique à l'iPhone : la ligne de Loads de chaque famille passe à la ligne sur 375 pt. Service worker `loads-mep` : fermer / rouvrir l'app une ou deux fois pour la nouvelle version. |
+| 19/10/2026 | Loads → Racks + GPAO. Cache du service worker passé à `tw-2026-10-19-racks-gpao` : la PWA se met à jour au prochain lancement (Ctrl+F5 sinon). Rien de spécifique à l'iPhone. |
 
 *Mettre à jour ce document si une version d'iOS change un comportement décrit ici.*
 

@@ -39,7 +39,7 @@ export function create(el, ctx) {
         const info = !r ? 'Toutes les données'
             : (r.from !== '0000-01-01' ? fmtNum(r.from) : '…') + ' → ' + (r.to !== '9999-12-31' ? fmtNum(r.to) : '…');
 
-        // Vue globale : chaque Load est cumulé dans sa famille (CD, MEP) ; la part des Loads reste affichée.
+        // Vue globale : chaque Rack est cumulé dans sa famille (CD, MEP) ; la part des Racks reste affichée.
         const byType = {}, viaLoads = {};
         entries.forEach(e => {
             const t = globalType(e.type);
@@ -74,7 +74,7 @@ export function create(el, ctx) {
                     <div class="pie-block">
                         ${pie(pieData, { size: 220, scope: 'g', center: minsToHM(total), sub: 'TOTAL', label: 'Répartition des heures par type' })}
                         <ul class="legend" aria-label="Légende">${pieData.map((d, i) => html`
-                            <li class="legend-item ${d.cls}" data-lk="g-${i}" ${d.loads ? html`title="Dont ${minsToHM(d.loads)} saisies sur des Loads ${d.key}"` : ''}><span class="dot"></span><span class="legend-label">${d.label}${d.loads ? html` <small class="legend-sub">dont Loads ${minsToHM(d.loads)}</small>` : ''}</span>
+                            <li class="legend-item ${d.cls}" data-lk="g-${i}" ${d.loads ? html`title="Dont ${minsToHM(d.loads)} saisies sur des Racks ${d.key}"` : ''}><span class="dot"></span><span class="legend-label">${d.label}${d.loads ? html` <small class="legend-sub">dont Racks ${minsToHM(d.loads)}</small>` : ''}</span>
                                 <span class="legend-pct">${Math.round(d.mins / total * 100)} %</span><span class="legend-hm">${minsToHM(d.mins)}</span></li>`)}</ul>
                     </div>
                     ${prodBox(affaires, all)}

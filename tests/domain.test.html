@@ -19,7 +19,7 @@
 import { parseDuration, minsToHM, minsToDec, isoWeek, mondayOf, addDays, workWeek } from '../js/domain/time.js';
 import { computeBalance } from '../js/domain/balance.js';
 import { analyzeCSV, parseDate, mapType } from '../js/domain/csv.js';
-import { normalizeData, cleanLoadName, LOAD_RE } from '../js/domain/validate.js';
+import { normalizeData, cleanLoadName, LOAD_RE, legacyRack, legacyTypeCode, cleanGpao } from '../js/domain/validate.js';
 import { typeLabel, typeClass, globalType, normalizeTypeConfig, serializeTypeConfig, makeTypeCode, applyTypeConfig,
          sortTypes, typesFor, defaultType, TYPES, TYPE_CODES, isLoadType, loadName, loadType, affLoadCodes } from '../js/domain/types.js';
 import { flouCSS } from '../js/ui/prefs.js';
@@ -82,41 +82,43 @@ eq('CSV : date jj/mm/aa', parseDate('1/9/26'), '2026-09-01');
 eq('CSV : type vide → AUTRE, inconnu → null', [mapType(''), mapType('zzz')], ['AUTRE', null]);
 
 // Validation
-const n = normalizeData([{ id: 17, client: 'C', loads: ['a', '<svg/onload=x>', 'b'] }, { id: '1);alert(1)//' }],
+const n = normalizeData([{ id: 17, client: 'C', loads: ['a', '<svg/onload=x>', 'b', 'rack 3'] }, { id: '1);alert(1)//' }],
                         [{ id: 'e1', affaireId: 17, date: '2026-09-29', type: '<img>', minutes: '90' }, { id: 2, affaireId: 17, date: 'x', minutes: 1 }]);
 eq('normalizeData : ids en chaînes, éléments invalides ignorés', [n.affaires.map(a => a.id), n.entries.map(e => e.id), n.dropped], [['17'], ['e1'], 2]);
-eq('normalizeData : Loads filtrés, type invalide → AUTRE', [n.affaires[0].loads, n.entries[0].type, n.entries[0].affaireId], [['A', 'B'], 'AUTRE', '17']);
-eq('cleanLoadName', [cleanLoadName(' a b '), LOAD_RE.test('AB_1'), LOAD_RE.test('A-B')], ['AB', true, false]);
+eq('normalizeData : Loads filtrés, type invalide → AUTRE', [n.affaires[0].loads, n.entries[0].type, n.entries[0].affaireId], [['1', '2', '3'], 'AUTRE', '17']);
+eq('cleanLoadName / LOAD_RE', [cleanLoadName(' Rack 12 '), LOAD_RE.test('7'), LOAD_RE.test('A'), LOAD_RE.test('0')], ['12', true, false, false]);
+eq('migration Load → Rack', [legacyRack('b'), legacyTypeCode('CD_LOAD_C'), legacyTypeCode('MEP_LOAD_A'), legacyTypeCode('CD_REP')], ['2', 'CD_RACK_3', 'MEP_RACK_1', 'CD_REP']);
+eq('cleanGpao', cleanGpao({ 1: ' 6007514603 ', 2: 'bad code', AB: '1', B: 'G2' }), { 1: '6007514603', 2: 'G2' });
 
 // Types
-eq('typeLabel', [typeLabel('DE_NP'), typeLabel('CD_LOAD_B'), typeLabel('XYZ')], ['DE - Tps non prod.', 'CD Load B', 'XYZ']);
-eq('typeClass', [typeClass('DE'), typeClass('CD_LOAD_A'), typeClass('CD_LOAD_K'), typeClass('???')], ['t-DE', 'load-0', 'load-0', 't-AUTRE']);
-eq('globalType', [globalType('CD_LOAD_A'), globalType('ECA')], ['CD', 'ECA']);
-eq('Loads MEP : libellé, famille, cumul global', [typeLabel('MEP_LOAD_A'), globalType('MEP_LOAD_B'), globalType('MEP_A'), isLoadType('MEP_LOAD_A'), loadName('MEP_LOAD_B')],
-   ['MEP Load A', 'MEP', 'MEP_A', true, 'B']);
+eq('typeLabel', [typeLabel('DE_NP'), typeLabel('CD_RACK_2'), typeLabel('XYZ')], ['DE - Tps non prod.', 'CD Rack 2', 'XYZ']);
+eq('typeClass', [typeClass('DE'), typeClass('CD_RACK_1'), typeClass('CD_RACK_11'), typeClass('???')], ['t-DE', 'load-0', 'load-0', 't-AUTRE']);
+eq('globalType', [globalType('CD_RACK_1'), globalType('ECA')], ['CD', 'ECA']);
+eq('Loads MEP : libellé, famille, cumul global', [typeLabel('MEP_RACK_1'), globalType('MEP_RACK_2'), globalType('MEP_A'), isLoadType('MEP_RACK_1'), loadName('MEP_RACK_2')],
+   ['MEP Rack 1', 'MEP', 'MEP_A', true, '2']);
 eq('Loads : reprise et review ne sont pas cumulés', [globalType('CD_REP'), globalType('REVIEW_CD'), globalType('LANCEMENT_FAB')], ['CD_REP', 'REVIEW_CD', 'LANCEMENT_FAB']);
-eq('Loads : couleur MEP décalée de la couleur CD', [typeClass('CD_LOAD_A'), typeClass('MEP_LOAD_A')], ['load-0', 'load-5']);
-eq('Loads : listes séparées par famille', [affLoadCodes({ loads: ['A'], mepLoads: ['A', 'B'] }), loadType('A', 'MEP'), loadType('B')],
-   [['CD_LOAD_A', 'MEP_LOAD_A', 'MEP_LOAD_B'], 'MEP_LOAD_A', 'CD_LOAD_B']);
-eq('Loads : chaque Load trié juste après son type de base', sortTypes(['FORMATION', 'MEP_LOAD_B', 'CD_LOAD_A', 'MEP', 'DE', 'CD', 'MEP_LOAD_A']),
-   ['DE', 'CD', 'CD_LOAD_A', 'MEP', 'MEP_LOAD_A', 'MEP_LOAD_B', 'FORMATION']);
-eq('normalizeData : Loads MEP nettoyés', normalizeData([{ id: 'x', mepLoads: [' a', 'A', 'b-c'] }], []).affaires[0].mepLoads, ['A']);
-eq('typesFor : Loads CD puis MEP', typesFor({ loads: ['A'], mepLoads: ['B'], budgets: {} }).slice(-2), ['CD_LOAD_A', 'MEP_LOAD_B']);
-eq('makeTypeCode : jamais un préfixe de Load MEP', makeTypeCode('Mep load X', []), 'T_MEP_LOAD_X');
+eq('Loads : couleur MEP décalée de la couleur CD', [typeClass('CD_RACK_1'), typeClass('MEP_RACK_1')], ['load-0', 'load-5']);
+eq('Loads : listes séparées par famille', [affLoadCodes({ loads: ['1'], mepLoads: ['1', '2'] }), loadType('1', 'MEP'), loadType('2')],
+   [['CD_RACK_1', 'MEP_RACK_1', 'MEP_RACK_2'], 'MEP_RACK_1', 'CD_RACK_2']);
+eq('Loads : chaque Load trié juste après son type de base', sortTypes(['FORMATION', 'MEP_RACK_10', 'CD_RACK_1', 'MEP', 'DE', 'CD', 'MEP_RACK_2']),
+   ['DE', 'CD', 'CD_RACK_1', 'MEP', 'MEP_RACK_2', 'MEP_RACK_10', 'FORMATION']);
+eq('normalizeData : Loads MEP nettoyés', normalizeData([{ id: 'x', mepLoads: [' a', 'A', 'b-c', '2'] }], []).affaires[0].mepLoads, ['1', '2']);
+eq('typesFor : Loads CD puis MEP', typesFor({ loads: ['1'], mepLoads: ['2'], budgets: {} }).slice(-2), ['CD_RACK_1', 'MEP_RACK_2']);
+eq('makeTypeCode : jamais un préfixe de Rack MEP', makeTypeCode('Mep rack 1', []), 'T_MEP_RACK_1');
 
 // Types de travail personnalisés (Paramètres → Firestore settings.types)
 const cfg = normalizeTypeConfig([{ code: 'ECA' }, { code: 'DE', hidden: true }, { code: 'ESSAI', label: ' Essai terrain ', color: 3, custom: true },
-    { code: 'ECA' }, { code: 'bad code' }, { code: 'CD_LOAD_X', label: 'x', custom: true }, { code: 'VIDE', label: '  ', custom: true }, { code: 'C9', label: 'Coul', color: 42, custom: true }]);
+    { code: 'ECA' }, { code: 'bad code' }, { code: 'CD_RACK_X', label: 'x', custom: true }, { code: 'VIDE', label: '  ', custom: true }, { code: 'C9', label: 'Coul', color: 42, custom: true }]);
 eq('types : ordre gardé, doublons / invalides ignorés, intégrés manquants ajoutés', [cfg.slice(0, 4).map(t => t.code), cfg.length], [['ECA', 'DE', 'ESSAI', 'C9'], 4 + 19]);
 eq('types : libellé nettoyé, couleur hors palette → 0, masquage', [cfg[2].label, cfg[2].color, cfg[3].color, cfg[1].hidden], ['Essai terrain', 3, 0, true]);
 eq('types : format enregistré minimal', serializeTypeConfig(cfg.slice(0, 3)), [{ code: 'ECA' }, { code: 'DE', hidden: true }, { code: 'ESSAI', label: 'Essai terrain', color: 3, custom: true }]);
-eq('makeTypeCode : accents, espaces, collisions', [makeTypeCode('Essai terrain', []), makeTypeCode('Réunion client', []), makeTypeCode('Essai terrain', ['ESSAI_TERRAIN']), makeTypeCode('Code', []), makeTypeCode('!!!', []), makeTypeCode('cd load x', [])],
-   ['ESSAI_TERRAIN', 'REUNION_CLIENT', 'ESSAI_TERRAIN_2', 'CODE_2', 'TYPE', 'T_CD_LOAD_X']);
+eq('makeTypeCode : accents, espaces, collisions', [makeTypeCode('Essai terrain', []), makeTypeCode('Réunion client', []), makeTypeCode('Essai terrain', ['ESSAI_TERRAIN']), makeTypeCode('Code', []), makeTypeCode('!!!', []), makeTypeCode('cd rack x', [])],
+   ['ESSAI_TERRAIN', 'REUNION_CLIENT', 'ESSAI_TERRAIN_2', 'CODE_2', 'TYPE', 'T_CD_RACK_X']);
 applyTypeConfig(serializeTypeConfig(cfg));
 eq('types appliqués : visibles, ordre, défaut, couleur', [TYPES[0].code, TYPES.some(t => t.code === 'DE'), TYPE_CODES.includes('DE'), defaultType(), typeLabel('ESSAI'), typeClass('ESSAI')],
    ['ECA', false, true, 'ECA', 'Essai terrain', 'pal-3']);
 eq('types appliqués : tri selon l\'ordre choisi', sortTypes(['CD', 'ESSAI', 'ECA', 'ZZZ']), ['ECA', 'ESSAI', 'CD', 'ZZZ']);
-eq('types appliqués : budget d\'un type masqué conservé', typesFor({ loads: ['A'], budgets: { DE: 4 } }).slice(-2), ['CD_LOAD_A', 'DE']);
+eq('types appliqués : budget d\'un type masqué conservé', typesFor({ loads: ['1'], budgets: { DE: 4 } }).slice(-2), ['CD_RACK_1', 'DE']);
 eq('CSV : type personnalisé reconnu par libellé et par code', [mapType('essai terrain'), mapType('ESSAI'), mapType('Essai-terrain')], ['ESSAI', 'ESSAI', 'ESSAI']);
 applyTypeConfig(null);
 eq('types : retour à la table intégrée', [TYPES.length, TYPES[0].code, typeLabel('ESSAI'), mapType('essai terrain')], [21, 'DE', 'ESSAI', null]);

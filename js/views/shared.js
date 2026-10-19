@@ -7,8 +7,8 @@ import { TYPES, typeLabel, affLoadGroups } from '../domain/types.js';
 
 /**
  * Options d'une liste « Type » pour une affaire : types visibles (ordre de Paramètres), puis un
- * groupe par famille découpée en Loads (« CD — par Load », « MEP — par Load »).
- * Un type masqué ou un Load retiré déjà utilisé par la saisie reste affiché (sélectionné).
+ * groupe par famille découpée en Racks (« CD — par Rack », « MEP — par Rack »).
+ * Un type masqué ou un Rack retiré déjà utilisé par la saisie reste affiché (sélectionné).
  * @param {object|null} aff affaire (null : aucune affaire choisie)
  * @param {string} selected code sélectionné
  */
@@ -18,8 +18,8 @@ export function typeOptions(aff, selected) {
     return html`
         ${TYPES.map(t => html`<option value="${t.code}" ${t.code === selected ? 'selected' : ''}>${t.label}</option>`)}
         ${selected && !known ? html`<option value="${selected}" selected>${typeLabel(selected)}</option>` : ''}
-        ${groups.map(g => html`<optgroup label="${g.fam} — par Load">${g.loads.map((l, i) =>
-            html`<option value="${g.codes[i]}" ${g.codes[i] === selected ? 'selected' : ''}>${g.fam} Load ${l}</option>`)}</optgroup>`)}`;
+        ${groups.map(g => html`<optgroup label="${g.fam} — par Rack">${g.loads.map((l, i) =>
+            html`<option value="${g.codes[i]}" ${g.codes[i] === selected ? 'selected' : ''}>${g.fam} Rack ${l}${aff.gpao?.[l] ? ' · ' + aff.gpao[l] : ''}</option>`)}</optgroup>`)}`;
 }
 
 /**

@@ -226,6 +226,7 @@ et `VERSION`). Sur iPhone, l'icône n'est relue qu'à l'ajout à l'écran d'accu
 | 06/10/2026 | **Loads lisibles** : un Load est toujours affiché « CD Load A » / « MEP Load A », trié juste après son type de base ; listes « Type » groupées (« CD — par Load », « MEP — par Load ») ; tuile en pointillés « Σ Loads CD / MEP » placée après le dernier Load de la famille (cumul informatif, non ajouté au total) ; réglages de l'affaire : une ligne par famille (pastille CD / MEP, Loads, champ, « + Load CD / MEP ») + phrase d'explication ; légende du tableau de bord « CD dont Loads … » ; palette des Loads MEP décalée de 5 rangs pour ne pas confondre CD Load A et MEP Load A. |
 | 19/10/2026 | **Loads → Racks + GPAO** : libellés « CD Rack 1 » / « MEP Rack 1 » (numéros, plus de lettres) ; dans Affaires → réglages → Racks, une ligne « GPAO Rack N » (champ texte) par numéro de Rack ; code GPAO affiché dans la tuile du Rack et dans le menu « Type » (« CD Rack 1 · 6007514603 »). Couleur d'un Rack : `load-(n−1)`. |
 | 19/10/2026 | **Nouvelle affaire** : case « Temps productif » cochée par défaut (réglable ensuite dans l'affaire). |
+| 21/10/2026 | **Imputées** : colonne « Code GPAO » entre « Code affaire » et « Type » (« — » si la saisie n'est pas sur un Rack). |
 
 *Mettre à jour ce tableau à chaque évolution de l'interface.*
 

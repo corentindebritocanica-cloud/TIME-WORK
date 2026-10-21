@@ -6,7 +6,7 @@ import { html, mount as render, on, $ } from '../ui/dom.js';
 import {
     todayISO, mondayOf, addDays, workWeek, isoWeek, fmtShort, fmtWeekday, fmtWeekdayShort, minsToHM, minsToDec, signedHM
 } from '../domain/time.js';
-import { typeLabel, typeClass } from '../domain/types.js';
+import { typeLabel, typeClass, isLoadType, loadName } from '../domain/types.js';
 
 let weekOffset = 0;
 const closedDays = new Set();
@@ -73,10 +73,11 @@ export function create(el, ctx) {
                     <div class="acc-body table-wrap">
                         ${byDay[d].length ? html`<table class="table">
                             <caption class="sr-only">Saisies du ${fmtWeekday(d)} ${fmtShort(d)}</caption>
-                            <thead><tr><th>Client</th><th>Code affaire</th><th>Type</th><th class="num">Heures</th><th class="num">Décimal</th></tr></thead>
+                            <thead><tr><th>Client</th><th>Code affaire</th><th>Code GPAO</th><th>Type</th><th class="num">Heures</th><th class="num">Décimal</th></tr></thead>
                             <tbody>${byDay[d].map(e => { const a = affById.get(e.affaireId) || {}; return html`
                                 <tr><td class="strong">${a.client || '—'}</td><td>${a.id ? html`<button type="button" class="btn-link" data-action="open-entry" data-aff="${a.id}" data-entry="${e.id}"
                                         title="Modifier cette saisie dans Affaires">${a.num || a.client || '(sans N°)'}</button>` : '—'}</td>
+                                    <td class="nowrap">${(isLoadType(e.type) && a.gpao?.[loadName(e.type)]) || '—'}</td>
                                     <td><span class="badge ${typeClass(e.type)}">${typeLabel(e.type)}</span></td>
                                     <td class="num strong">${minsToHM(e.minutes)}</td><td class="num dec">${minsToDec(e.minutes)}</td></tr>`; })}</tbody>
                         </table>` : html`<p class="empty">Aucune saisie</p>`}

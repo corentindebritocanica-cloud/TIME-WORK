@@ -139,6 +139,7 @@ démarrage : c'est ce bug, pas le code. Contournement documenté (non nécessair
 | 06/10/2026 | Loads MEP (familles de Loads CD / MEP). Rien de spécifique à l'iPhone : la ligne de Loads de chaque famille passe à la ligne sur 375 pt. Service worker `loads-mep` : fermer / rouvrir l'app une ou deux fois pour la nouvelle version. |
 | 19/10/2026 | Loads → Racks + GPAO. Cache du service worker passé à `tw-2026-10-19-racks-gpao` : la PWA se met à jour au prochain lancement (Ctrl+F5 sinon). Rien de spécifique à l'iPhone. |
 | 19/10/2026 | Temps productif coché par défaut à la création d'une affaire. Cache SW `tw-2026-10-19-productif-defaut`. Rien de spécifique à l'iPhone. |
+| 21/10/2026 | Colonne Code GPAO dans Imputées (tableau défilant horizontalement sur iPhone, comme les autres colonnes). Cache SW `tw-2026-10-21-imputees-gpao`. |
 
 *Mettre à jour ce document si une version d'iOS change un comportement décrit ici.*
 

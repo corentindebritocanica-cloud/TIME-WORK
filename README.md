@@ -385,6 +385,7 @@ service cloud.firestore {
 | 2026-10-19 | Temps productif par défaut | Une **nouvelle affaire** est créée avec « Temps productif » **coché** (décochable ensuite). Les affaires existantes ne changent pas. Cache PWA : `tw-2026-10-19-productif-defaut`. |
 | 2026-10-21 | Code GPAO dans Imputées | Nouvelle colonne **Code GPAO** entre « Code affaire » et « Type » dans le tableau des saisies de l'onglet Imputées (code du Rack de la saisie, « — » pour les autres types). Cache PWA : `tw-2026-10-21-imputees-gpao`. |
 | 2026-11-02 | Types « sans budget » | Nouveau réglage par type dans Paramètres (icône jauge) : un type **sans budget** reste proposé à la saisie mais n'est plus listé dans « Budgets par type » d'une affaire ; un menu **« + Ajouter un type… »** permet de l'y ajouter à la main pour une affaire précise. Un budget déjà saisi reste affiché. Champ `noBudget` dans `settings.types` (Firestore). Fichiers : `js/domain/types.js`, `js/views/parametres.js`, `js/views/affaires.js`, `index.html` (icônes), tests. |
+| 2026-11-02 | Saisies repliées | Onglet **Par affaire** : seules les **4 saisies les plus récentes** sont affichées ; les autres sont repliées sous une ligne **« N saisies plus anciennes »** (accordéon, `aria-expanded`). L'état déplié est conservé pendant la session. Fichiers : `js/views/affaires.js`, `css/app.css`. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

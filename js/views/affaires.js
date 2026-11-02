@@ -16,6 +16,8 @@ import { sortAffaires } from '../domain/sort.js';
 const SORTS = [['created', 'Création'], ['num', 'Code affaire'], ['client', 'Client'], ['machine', 'Machine']];
 
 const openIds = new Set();     // affaires ouvertes (conservé entre deux rendus)
+const olderOpen = new Set();   // affaires dont les saisies anciennes sont dépliées
+const RECENT_ENTRIES = 4;      // saisies récentes toujours visibles ; les autres sont repliées
 const extraBud = new Map();    // affaire → types « sans budget » ajoutés à la main dans ses budgets (session)
 let query = '';
 
@@ -53,6 +55,14 @@ export function create(el, ctx) {
     }
 
     /* ───────────── Contenu d'un accordéon ───────────── */
+    const entryRow = a => e => html`
+        <tr data-entry="${e.id}">
+            <td class="nowrap">${fmtNum(e.date)}</td>
+            <td><select class="control sm entry-type" data-action="entry-type" aria-label="Type de la saisie du ${fmtNum(e.date)}">${typeOptions(a, e.type)}</select></td>
+            <td><input class="control sm num entry-time" data-action="entry-time" value="${minsToHM(e.minutes)}" data-prev="${minsToHM(e.minutes)}" aria-label="Durée de la saisie du ${fmtNum(e.date)}"></td>
+            <td><button type="button" class="btn-icon danger" data-action="del-entry" aria-label="Supprimer la saisie du ${fmtNum(e.date)}">✕</button></td>
+        </tr>`;
+
     function body(a) {
         const ae = entriesOf(a.id);
         const tot = ae.reduce((s, e) => s + e.minutes, 0);
@@ -94,13 +104,12 @@ export function create(el, ctx) {
                         <table class="table">
                             <caption class="sr-only">Saisies de l'affaire ${a.num || a.client}</caption>
                             <thead><tr><th>Date</th><th>Type</th><th>Temps</th><th><span class="sr-only">Actions</span></th></tr></thead>
-                            <tbody>${ae.length ? ae.map(e => html`
-                                <tr data-entry="${e.id}">
-                                    <td class="nowrap">${fmtNum(e.date)}</td>
-                                    <td><select class="control sm entry-type" data-action="entry-type" aria-label="Type de la saisie du ${fmtNum(e.date)}">${typeOptions(a, e.type)}</select></td>
-                                    <td><input class="control sm num entry-time" data-action="entry-time" value="${minsToHM(e.minutes)}" data-prev="${minsToHM(e.minutes)}" aria-label="Durée de la saisie du ${fmtNum(e.date)}"></td>
-                                    <td><button type="button" class="btn-icon danger" data-action="del-entry" aria-label="Supprimer la saisie du ${fmtNum(e.date)}">✕</button></td>
-                                </tr>`) : html`<tr><td colspan="4" class="empty">Aucune saisie pour cette affaire</td></tr>`}</tbody>
+                            <tbody>${ae.length ? ae.slice(0, RECENT_ENTRIES).map(entryRow(a)) : html`<tr><td colspan="4" class="empty">Aucune saisie pour cette affaire</td></tr>`}</tbody>
+                            ${ae.length > RECENT_ENTRIES ? html`
+                            <tbody><tr><td colspan="4" class="more-cell">
+                                <button type="button" class="more-toggle" data-action="more-entries" aria-expanded="${String(olderOpen.has(a.id))}" aria-controls="more-${a.id}">
+                                    <span class="chev" aria-hidden="true">▸</span>${ae.length - RECENT_ENTRIES} saisie${ae.length - RECENT_ENTRIES > 1 ? 's' : ''} plus ancienne${ae.length - RECENT_ENTRIES > 1 ? 's' : ''}</button></td></tr></tbody>
+                            <tbody id="more-${a.id}" ${olderOpen.has(a.id) ? '' : 'hidden'}>${ae.slice(RECENT_ENTRIES).map(entryRow(a))}</tbody>` : ''}
                         </table>
                     </div>
                     ${tot ? html`<div class="pie-block">
@@ -333,7 +342,15 @@ export function create(el, ctx) {
         $(`[data-action="sort"][data-sort="${by}"]`, el)?.focus();
     }
 
-    on(el, 'click', { sort: setSort, 'del-aff': deleteAffaire, 'del-entry': deleteEntry, 'add-load': addLoad, 'del-load': delLoad }, ac.signal);
+    function toggleOlder(btn) {
+        const a = affOf(btn); if (!a) return;
+        const open = btn.getAttribute('aria-expanded') !== 'true';
+        btn.setAttribute('aria-expanded', String(open));
+        const tb = $('#more-' + CSS.escape(a.id), el); if (tb) tb.hidden = !open;
+        if (open) olderOpen.add(a.id); else olderOpen.delete(a.id);
+    }
+
+    on(el, 'click', { 'more-entries': toggleOlder, sort: setSort, 'del-aff': deleteAffaire, 'del-entry': deleteEntry, 'add-load': addLoad, 'del-load': delLoad }, ac.signal);
     el.addEventListener('submit', ev => {
         ev.preventDefault();
         if (ev.target.dataset.role === 'new-aff') createAffaire(ev.target);

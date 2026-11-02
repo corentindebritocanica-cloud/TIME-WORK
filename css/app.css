@@ -706,6 +706,12 @@
         & .badge { justify-content: center; max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; }
         & .control { text-align: center; inline-size: 100%; min-width: 0; } }
 
+    .more-cell { padding: 0; }
+    .more-toggle { display: flex; align-items: center; gap: var(--sp-2); inline-size: 100%; padding: 8px 4px; color: var(--text-2); font-size: var(--fs-md); text-align: start; cursor: pointer;
+        & .chev { display: inline-block; transition: transform .15s; }
+        &[aria-expanded="true"] .chev { transform: rotate(90deg); }
+        &:hover { color: var(--text); } }
+
     .notice { padding: 10px 14px; border-radius: var(--r-sm); background: var(--accent-soft); border: 1px solid rgba(var(--accent-rgb), .4); font-size: var(--fs-md); &.warn { background: var(--warn-soft); border-color: rgba(255,184,0,.55); } }
     .scroll-list { max-block-size: 160px; overflow-y: auto; padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-6); border-radius: var(--r-sm); background: var(--v-soft); border: 1px solid var(--v-hair); font-size: var(--fs-sm); }
     .quick { display: grid; gap: var(--sp-3); }

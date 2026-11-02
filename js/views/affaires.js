@@ -5,7 +5,7 @@
  */
 import { html, mount as render, on, $, $$, toElement } from '../ui/dom.js';
 import { pie, bindPieHover } from '../ui/pie.js';
-import { typeLabel, typeClass, typesFor, budgetAddable, inFamily, sortTypes, loadFamily, loadName, affLoadGroups, loadsOf, LOAD_FAMILIES, defaultType } from '../domain/types.js';
+import { typeLabel, typeClass, TYPES, NO_BUDGET, inFamily, sortTypes, loadFamily, loadName, affLoadGroups, affLoadCodes, loadsOf, LOAD_FAMILIES, defaultType } from '../domain/types.js';
 import { parseDuration, todayISO, fmtNum, minsToHM, minsToDec } from '../domain/time.js';
 import { LOAD_RE, GPAO_RE, cleanLoadName } from '../domain/validate.js';
 import { budgetBar, minutesByType, typeOptions } from './shared.js';
@@ -18,7 +18,6 @@ const SORTS = [['created', 'Création'], ['num', 'Code affaire'], ['client', 'Cl
 const openIds = new Set();     // affaires ouvertes (conservé entre deux rendus)
 const olderOpen = new Set();   // affaires dont les saisies anciennes sont dépliées
 const RECENT_ENTRIES = 4;      // saisies récentes toujours visibles ; les autres sont repliées
-const extraBud = new Map();    // affaire → types « sans budget » ajoutés à la main dans ses budgets (session)
 let query = '';
 
 /**
@@ -146,49 +145,17 @@ export function create(el, ctx) {
             </div>`;
     }
 
-    /** Budgets, Racks et codes GPAO réunis dans UN tableau : une ligne par type, colonnes alignées (type · GPAO · budget · action). */
+    /** Racks (nombre) et budgets (types · heures) : deux boutons qui ouvrent chacun une petite fenêtre. */
+    const rackNumbers = a => [...new Set([...loadsOf(a, 'CD'), ...loadsOf(a, 'MEP')])].sort((x, y) => x - y);
     function budgetBlock(a) {
-        const bud = a.budgets;
-        const list = sortTypes([...typesFor(a), ...(extraBud.get(a.id) || [])]);
-        const hasRacks = list.some(t => loadFamily(t));
-        const addedFam = new Set();
-        const budInput = t => html`<input type="number" class="control sm num c-bud" min="0" step="1" placeholder="—" data-action="budget" data-type="${t}" value="${bud[t] || ''}" aria-label="Budget ${typeLabel(t)} (heures)">`;
-        const addRow = f => { addedFam.add(f.fam); return html`
-            <div class="bud-add loads" data-fam="${f.fam}" role="group" aria-label="Ajouter un Rack ${f.fam}">
-                <input class="control sm w-sm" data-action="load-input" placeholder="N° Rack" maxlength="3" inputmode="numeric" aria-label="Numéro du nouveau Rack ${f.fam}">
-                <button type="button" class="btn btn-ghost btn-sm" data-action="add-load">+ Rack ${f.fam}</button>
-            </div>`; };
-        const rows = list.map((t, i) => {
-            const rf = loadFamily(t), fam = rf || LOAD_FAMILIES.find(f => f.fam === t);
-            const l = rf ? loadName(t) : '';
-            const row = rf ? html`
-                <div class="bud-row is-rack" data-fam="${rf.fam}">
-                    <span class="badge c-name ${typeClass(t)}">${typeLabel(t)}</span>
-                    <input class="control sm c-gpao" data-action="gpao" data-rack="${l}" value="${a.gpao[l] || ''}" placeholder="Code GPAO" maxlength="30" autocomplete="off" aria-label="Code GPAO du Rack ${l}">
-                    ${budInput(t)}
-                    <button type="button" class="btn-icon danger c-act" data-action="del-load" data-load="${l}" aria-label="Supprimer le Rack ${rf.fam} ${l}" title="Supprimer ce Rack">✕</button>
-                </div>` : html`
-                <div class="bud-row">
-                    <span class="badge c-name ${typeClass(t)}">${typeLabel(t)}</span><span class="c-gpao"></span>${budInput(t)}<span class="c-act"></span>
-                </div>`;
-            const nextIsRack = fam && loadFamily(list[i + 1])?.fam === fam.fam;
-            return html`${row}${fam && !nextIsRack && !addedFam.has(fam.fam) ? addRow(fam) : ''}`;
-        });
-        const rest = LOAD_FAMILIES.filter(f => !addedFam.has(f.fam)).map(addRow);
-        const extra = extraBud.get(a.id) || new Set(), opts = budgetAddable(a).filter(t => !extra.has(t.code));
+        const nR = rackNumbers(a).length, nB = Object.keys(a.budgets).length, hB = Object.values(a.budgets).reduce((t, h) => t + h, 0);
         return html`
-                    <section class="bud" aria-label="Budgets, Racks et codes GPAO">
-                        <div class="bud-head"><h3 class="label">Budgets &amp; Racks</h3>
-                            <span class="bud-hint">Heures allouées par type · un Rack = budget + code GPAO (commun à CD et MEP)</span></div>
-                        <div class="bud-table">
-                            <div class="bud-row bud-cols" aria-hidden="true"><span class="c-name"></span><span class="c-gpao">${hasRacks ? 'GPAO' : ''}</span><span class="c-bud">Budget (h)</span><span class="c-act"></span></div>
-                            ${rows}${rest}
+                    <section class="bud" aria-label="Racks et budgets">
+                        <h3 class="label">Racks &amp; Budgets</h3>
+                        <div class="bud-actions">
+                            <button type="button" class="btn btn-ghost" data-action="open-racks">Racks <span class="bud-count">${nR || 'aucun'}</span></button>
+                            <button type="button" class="btn btn-ghost" data-action="open-budgets">Budgets <span class="bud-count">${nB ? nB + ' type' + (nB > 1 ? 's' : '') + ' · ' + hB + ' h' : 'aucun'}</span></button>
                         </div>
-                        ${opts.length ? html`
-                        <select class="control sm w-lg budget-add" data-action="budget-add" aria-label="Ajouter un type au budget de cette affaire">
-                            <option value="">+ Ajouter un type…</option>
-                            ${opts.map(t => html`<option value="${t.code}">${t.label}</option>`)}
-                        </select>` : ''}
                     </section>`;
     }
 
@@ -330,37 +297,151 @@ export function create(el, ctx) {
             form.elements[field].focus();
             return null;
         };
-        const loads = parseLoads('loads', 'CD'); if (!loads) return;
-        const mepLoads = parseLoads('mepLoads', 'MEP'); if (!mepLoads) return;
+        const loads0 = parseLoads('loads', 'CD'); if (!loads0) return;
+        const mepLoads0 = parseLoads('mepLoads', 'MEP'); if (!mepLoads0) return;
+        const racks = [...new Set([...loads0, ...mepLoads0])].sort((x, y) => x - y);   // un Rack existe en CD ET en MEP
         if (!f.client.trim() && !f.num.trim()) { err.textContent = 'Renseigne au moins un client ou un code affaire.'; form.elements.client.focus(); return; }
-        const a = store.createAffaire({ client: f.client.trim(), num: f.num.trim(), machine: f.machine.trim(), loads, mepLoads, budgets: {}, productive: true });
+        const a = store.createAffaire({ client: f.client.trim(), num: f.num.trim(), machine: f.machine.trim(), loads: racks, mepLoads: racks, budgets: {}, productive: true });
         openIds.add(a.id); focus.affaireId = a.id;
         draw();
         ctx.toast(`Affaire « ${a.num || a.client} » créée.`);
         $('#aff-' + CSS.escape(a.id) + ' [name="time"]', el)?.focus();
     }
 
-    /** Famille (CD, MEP) du groupe de Racks contenant l'élément. */
-    const famOf = node => LOAD_FAMILIES.find(f => f.fam === node.closest('[data-fam]')?.dataset.fam) || LOAD_FAMILIES[0];
+    /* ───────────── Fenêtres Racks / Budgets (modifications appliquées au fil de l'eau) ───────────── */
+    const curAff = id => store.getAffaires().find(x => x.id === id);
+    const popErr = (root, msg) => { const e = $('[data-role="pop-err"]', root); if (e) e.textContent = msg || ''; };
+    const popBody = root => $('[data-role="pop-body"]', root);
+    const CLOSE = [{ id: 'ok', label: 'Fermer', kind: 'primary' }];
+    /** Entrée : valide le champ d'ajout ; ailleurs, simple validation du champ (jamais de fermeture de la fenêtre). */
+    const enterKey = (root, signal, addSel, add) => root.addEventListener('keydown', ev => {
+        if (ev.key !== 'Enter' || !(ev.target instanceof HTMLInputElement)) return;
+        ev.preventDefault();
+        if (ev.target.closest(addSel)) add(); else ev.target.blur();
+    }, { signal });
 
-    function addLoad(btn) {
-        const a = affOf(btn), f = famOf(btn), input = $('[data-action="load-input"]', btn.closest('.loads'));
-        const l = cleanLoadName(input.value);
-        if (!l) { input.focus(); return; }
-        if (!LOAD_RE.test(l)) { ctx.toast('Rack invalide : numéro de 1 à 999.', { kind: 'error' }); input.classList.add('is-invalid'); input.focus(); return; }
-        const cur = loadsOf(a, f.fam);
-        if (cur.includes(l)) { ctx.toast(`Le Rack ${f.fam} ${l} existe déjà.`, { kind: 'error' }); return; }
-        store.updateAffaire(a.id, { [f.field]: [...cur, l] });
-        redrawOne(a.id);
-        $('#aff-' + CSS.escape(a.id) + ` [data-fam="${f.fam}"] [data-action="load-input"]`, el)?.focus();
+    /** Racks : un numéro crée « CD Rack n » ET « MEP Rack n » avec le même code GPAO ; les budgets restent propres à chacun. */
+    async function racksDialog(a0) {
+        if (!a0) return;
+        const id = a0.id;
+        { const a = curAff(id), all = rackNumbers(a);   // règle : un Rack existe toujours en CD et en MEP
+          if (loadsOf(a, 'CD').length !== all.length || loadsOf(a, 'MEP').length !== all.length) store.updateAffaire(id, { loads: all, mepLoads: all }); }
+        let pending = null;
+        const paint = root => {
+            const a = curAff(id), racks = rackNumbers(a);
+            index();
+            render(popBody(root), html`
+                <p class="dlg-text">Un Rack crée « CD Rack n » et « MEP Rack n » avec le même code GPAO. Les budgets se règlent séparément.</p>
+                ${racks.length ? html`<ul class="rack-list">${racks.map(n => {
+                    const cnt = entriesOf(id).filter(e => LOAD_FAMILIES.some(f => e.type === f.prefix + n)).length;
+                    return html`<li class="rack-row" data-rack="${n}">
+                        <span class="badge t-CD">Rack ${n}</span>
+                        <input class="control sm" data-act="gpao" value="${a.gpao[n] || ''}" placeholder="Code GPAO" maxlength="30" autocomplete="off" aria-label="Code GPAO du Rack ${n}">
+                        ${pending === n ? html`<span class="rack-confirm">Supprimer ? <small>${cnt ? cnt + ' saisie' + (cnt > 1 ? 's' : '') + ' → CD / MEP' : 'budgets retirés'}</small>
+                            <button type="button" class="btn btn-danger btn-sm" data-act="del-yes">Oui</button><button type="button" class="btn btn-ghost btn-sm" data-act="del-no">Non</button></span>`
+                          : html`<button type="button" class="btn-icon danger" data-act="del" aria-label="Supprimer le Rack ${n}" title="Supprimer ce Rack (CD et MEP)">✕</button>`}
+                    </li>`; })}</ul>` : html`<p class="empty">Aucun Rack pour cette affaire.</p>`}
+                <div class="rack-add">
+                    <input class="control sm w-sm" name="n" placeholder="N° Rack" maxlength="3" inputmode="numeric" aria-label="Numéro du nouveau Rack">
+                    <input class="control sm w-md" name="g" placeholder="Code GPAO (option)" maxlength="30" autocomplete="off" aria-label="Code GPAO du nouveau Rack">
+                    <button type="button" class="btn btn-primary btn-sm" data-act="add">+ Ajouter</button>
+                </div>
+                <small class="field-hint err" data-role="pop-err" role="alert"></small>`);
+        };
+        const addRack = root => {
+            const nI = $('[name="n"]', root), gI = $('[name="g"]', root), n = cleanLoadName(nI.value), g = gI.value.trim();
+            if (!LOAD_RE.test(n)) { popErr(root, 'Numéro de Rack invalide (1 à 999).'); nI.focus(); return; }
+            if (g && !GPAO_RE.test(g)) { popErr(root, 'Code GPAO invalide (lettres, chiffres, . _ - ; 30 caractères max).'); gI.focus(); return; }
+            const a = curAff(id), have = rackNumbers(a);
+            if (have.includes(n)) { popErr(root, `Le Rack ${n} existe déjà.`); nI.focus(); return; }
+            const all = [...have, n].sort((x, y) => x - y), gpao = { ...a.gpao };
+            if (g) gpao[n] = g;
+            store.updateAffaire(id, { loads: all, mepLoads: all, gpao });
+            paint(root); $('[name="n"]', root)?.focus();
+        };
+        await ctx.ask({
+            title: 'Racks de l\'affaire', size: 'm', buttons: CLOSE, body: html`<div data-role="pop-body"></div>`,
+            onOpen: (root, signal) => {
+                paint(root);
+                root.addEventListener('click', ev => {
+                    const b = ev.target.closest('[data-act]'); if (!b) return;
+                    const n = b.closest('[data-rack]')?.dataset.rack;
+                    if (b.dataset.act === 'add') addRack(root);
+                    else if (b.dataset.act === 'del') { pending = n; paint(root); }
+                    else if (b.dataset.act === 'del-no') { pending = null; paint(root); }
+                    else if (b.dataset.act === 'del-yes') { pending = null; store.removeLoad(id, n, 'CD'); store.removeLoad(id, n, 'MEP'); paint(root); }
+                }, { signal });
+                root.addEventListener('change', ev => {
+                    const i = ev.target.closest('[data-act="gpao"]'); if (!i) return;
+                    const rack = i.closest('[data-rack]').dataset.rack, v = i.value.trim(), gpao = { ...curAff(id).gpao };
+                    if (v && !GPAO_RE.test(v)) { popErr(root, 'Code GPAO invalide (lettres, chiffres, . _ - ; 30 caractères max).'); i.classList.add('is-invalid'); return; }
+                    i.classList.remove('is-invalid'); popErr(root, '');
+                    if ((gpao[rack] || '') === v) return;
+                    if (v) gpao[rack] = v; else delete gpao[rack];
+                    store.updateAffaire(id, { gpao });
+                }, { signal });
+                enterKey(root, signal, '.rack-add', () => addRack(root));
+            }
+        });
+        redrawOne(id);
     }
 
-    async function delLoad(btn) {
-        const a = affOf(btn), f = famOf(btn), l = btn.dataset.load;
-        const n = entriesOf(a.id).filter(e => e.type === f.prefix + l).length;
-        if (!await ctx.confirmAction(`Supprimer le Rack ${f.fam} ${l} ?`, `Son budget est supprimé${n ? ` et ses ${n} saisie(s) passent en « ${f.fam} »` : ''}.`, 'Supprimer', true)) return;
-        store.removeLoad(a.id, l, f.fam);
-        redrawOne(a.id);
+    /** Budgets : liste déroulante des types + heures ; seuls les types budgétés sont listés. */
+    async function budgetsDialog(a0) {
+        if (!a0) return;
+        const id = a0.id;
+        const total = b => Object.values(b).reduce((t, h) => t + h, 0);
+        const paint = root => {
+            const a = curAff(id), bud = a.budgets, have = sortTypes(Object.keys(bud)), taken = new Set(have);
+            const opts = sortTypes([...TYPES.map(t => t.code), ...affLoadCodes(a)]).filter(c => !taken.has(c));
+            const main = opts.filter(c => !NO_BUDGET.has(c)), other = opts.filter(c => NO_BUDGET.has(c));
+            const opt = c => html`<option value="${c}">${typeLabel(c)}</option>`;
+            render(popBody(root), html`
+                <div class="bud-add-row">
+                    <select class="control sm" name="type" aria-label="Type de travail à budgéter">
+                        <option value="">Choisir un type…</option>
+                        ${main.map(opt)}
+                        ${other.length ? html`<optgroup label="Sans budget par défaut">${other.map(opt)}</optgroup>` : ''}
+                    </select>
+                    <input type="number" class="control sm num" name="h" min="1" step="1" placeholder="Heures" aria-label="Heures allouées">
+                    <button type="button" class="btn btn-primary btn-sm" data-act="add">Ajouter</button>
+                </div>
+                <small class="field-hint err" data-role="pop-err" role="alert"></small>
+                ${have.length ? html`<ul class="bud-list">${have.map(t => html`<li class="bud-item">
+                        <span class="badge ${typeClass(t)}">${typeLabel(t)}</span>
+                        <input type="number" class="control sm num" min="0" step="1" data-act="set" data-type="${t}" value="${bud[t]}" aria-label="Budget ${typeLabel(t)} (heures)">
+                        <span class="muted">h</span>
+                        <button type="button" class="btn-icon danger" data-act="del" data-type="${t}" aria-label="Retirer le budget ${typeLabel(t)}" title="Retirer ce budget">✕</button>
+                    </li>`)}</ul>
+                    <p class="bud-total">Total : <b data-role="bud-total">${total(bud)} h</b></p>` : html`<p class="empty">Aucun budget défini : choisis un type et un nombre d'heures.</p>`}`);
+        };
+        const addBud = root => {
+            const sel = $('[name="type"]', root), hI = $('[name="h"]', root), t = sel.value, h = Math.round(+hI.value);
+            if (!t) { popErr(root, 'Choisis un type de travail.'); sel.focus(); return; }
+            if (!(h > 0)) { popErr(root, 'Indique un nombre d\'heures (1 ou plus).'); hI.focus(); return; }
+            store.updateAffaire(id, { budgets: { ...curAff(id).budgets, [t]: h } });
+            paint(root); $('[name="type"]', root)?.focus();
+        };
+        await ctx.ask({
+            title: 'Budgets de l\'affaire', size: 'm', buttons: CLOSE, body: html`<div data-role="pop-body"></div>`,
+            onOpen: (root, signal) => {
+                paint(root);
+                root.addEventListener('click', ev => {
+                    const b = ev.target.closest('[data-act]'); if (!b) return;
+                    if (b.dataset.act === 'add') addBud(root);
+                    else if (b.dataset.act === 'del') { const budgets = { ...curAff(id).budgets }; delete budgets[b.dataset.type]; store.updateAffaire(id, { budgets }); paint(root); }
+                }, { signal });
+                root.addEventListener('change', ev => {
+                    const i = ev.target.closest('[data-act="set"]'); if (!i) return;
+                    const n = Math.max(0, Math.round(+i.value || 0)), budgets = { ...curAff(id).budgets };
+                    if (n > 0) budgets[i.dataset.type] = n; else delete budgets[i.dataset.type];
+                    store.updateAffaire(id, { budgets });
+                    if (n > 0) { const t = $('[data-role="bud-total"]', root); if (t) t.textContent = total(budgets) + ' h'; } else paint(root);
+                }, { signal });
+                enterKey(root, signal, '.bud-add-row', () => addBud(root));
+            }
+        });
+        redrawOne(id);
     }
 
     /* ───────────── Événements (délégués) ───────────── */
@@ -381,7 +462,7 @@ export function create(el, ctx) {
         if (open) olderOpen.add(a.id); else olderOpen.delete(a.id);
     }
 
-    on(el, 'click', { 'more-entries': toggleOlder, sort: setSort, 'del-aff': deleteAffaire, 'del-entry': deleteEntry, 'add-load': addLoad, 'del-load': delLoad }, ac.signal);
+    on(el, 'click', { 'more-entries': toggleOlder, sort: setSort, 'del-aff': deleteAffaire, 'del-entry': deleteEntry, 'open-racks': b => racksDialog(affOf(b)), 'open-budgets': b => budgetsDialog(affOf(b)) }, ac.signal);
     el.addEventListener('submit', ev => {
         ev.preventDefault();
         if (ev.target.dataset.role === 'new-aff') createAffaire(ev.target);
@@ -400,36 +481,13 @@ export function create(el, ctx) {
         'entry-type': s => { store.updateEntry(s.closest('tr').dataset.entry, { type: s.value }); redrawOne(affOf(s).id); },
         'entry-time': editTime,
         'aff-field': i => { const a = affOf(i); if (a[i.dataset.field] === i.value.trim()) return; store.updateAffaire(a.id, { [i.dataset.field]: i.value.trim() }); redrawOne(a.id); ctx.toast('Affaire mise à jour.'); },
-        gpao: i => {
-            const a = affOf(i), rack = i.dataset.rack, v = i.value.trim(), gpao = { ...a.gpao };
-            if (v && !GPAO_RE.test(v)) { ctx.toast('Code GPAO invalide (lettres, chiffres, . _ - ; 30 caractères max).', { kind: 'error' }); i.classList.add('is-invalid'); i.focus(); return; }
-            if ((gpao[rack] || '') === v) return;
-            if (v) gpao[rack] = v; else delete gpao[rack];
-            store.updateAffaire(a.id, { gpao }); redrawOne(a.id); ctx.toast(`Code GPAO du Rack ${rack} enregistré.`);
-        },
         'aff-flag': c => {
             const a = affOf(c), flag = c.dataset.flag, other = flag === 'productive' ? 'unbilled' : 'productive';
             store.updateAffaire(a.id, c.checked ? { [flag]: true, [other]: false } : { [flag]: false }); redrawOne(a.id);
-        },
-        'budget-add': s => {
-            const a = affOf(s), code = s.value;
-            if (!a || !code) return;
-            if (!extraBud.has(a.id)) extraBud.set(a.id, new Set());
-            extraBud.get(a.id).add(code);
-            redrawOne(a.id);
-            $(`#aff-${CSS.escape(a.id)} [data-action="budget"][data-type="${CSS.escape(code)}"]`, el)?.focus();
-        },
-        budget: i => {
-            const a = affOf(i), n = Math.max(0, Math.round(+i.value || 0)), budgets = { ...a.budgets };
-            if (n > 0) budgets[i.dataset.type] = n; else delete budgets[i.dataset.type];
-            store.updateAffaire(a.id, { budgets }); redrawOne(a.id);
         }
     }, ac.signal);
     on(el, 'keydown', {
-        'entry-time': (i, e) => { if (e.key === 'Enter') { e.preventDefault(); i.blur(); } },
-        gpao: (i, e) => { if (e.key === 'Enter') { e.preventDefault(); i.blur(); } },
-        'load-input': (i, e) => { if (e.key === 'Enter') { e.preventDefault(); addLoad(i); } },
-        budget: (i, e) => { if (e.key === 'Enter') { e.preventDefault(); i.blur(); } }
+        'entry-time': (i, e) => { if (e.key === 'Enter') { e.preventDefault(); i.blur(); } }
     }, ac.signal);
     // Construction paresseuse du contenu à l'ouverture
     el.addEventListener('toggle', ev => {

@@ -90,8 +90,9 @@ restauration et import CSV ; le bouton rond voisin déconnecte.
   **Racks** (anciennement « Loads ») : CD et MEP se découpent par rack dans chaque affaire
   (« CD Rack 1 », « MEP Rack 2 »…), avec **une liste de Racks par famille**, **un budget par Rack**
   (ex. CD Rack 1 = 10 h, MEP Rack 1 = 15 h) et **un code GPAO par Rack** (saisi dans
-  Affaires → réglages → **Budgets & Racks** ; commun à CD et MEP pour un même numéro, affiché
-  dans le menu « Type »). Dans l'affaire, une tuile en pointillés « Σ Racks CD / MEP » donne
+  Affaires → réglages → **Racks & Budgets** ; commun à CD et MEP pour un même numéro, affiché
+  dans le menu « Type »). **Créer le Rack n crée automatiquement « CD Rack n » et « MEP Rack n »**
+  avec le même code GPAO (budgets réglés séparément) ; le supprimer retire les deux. Dans l'affaire, une tuile en pointillés « Σ Racks CD / MEP » donne
   le cumul du temps et du budget de **tous les types contenant « CD »** (CD, CD - reprise,
   Review CD, Racks CD), idem pour MEP ; CD et MEP restent séparés ; informatif, non ajouté au total.
   Cette tuile **remplace** les tuiles des types qu'elle cumule (seule la Σ est affichée) ; au **survol**
@@ -392,6 +393,7 @@ service cloud.firestore {
 | 2026-11-02 | Σ Racks par famille | La tuile **Σ Racks CD** (resp. **MEP**) d'une affaire cumule désormais le temps ET le budget de **tous les types dont le code contient le mot CD** (resp. MEP) : CD, CD - reprise, Review CD, CD Rack n… (`inFamily()` dans `js/domain/types.js`). CD et MEP restent séparés. Le total de l'affaire et le tableau de bord sont inchangés. |
 | 2026-11-02 | Σ remplace les tuiles | Dans une affaire ayant des Racks, la tuile **Σ Racks CD / MEP** remplace les tuiles des types CD (resp. MEP) qu'elle cumule. Détail (type, temps utilisé, budget) en **info-bulle** au survol, au focus clavier ou au toucher (Popover API `popover="manual"`, positionné en `fixed` pour ne pas être rogné par l'accordéon). Fichiers : `js/views/affaires.js`, `css/app.css`. |
 | 2026-11-02 | Budgets & Racks en un tableau | Dans les réglages d'une affaire, les blocs « Racks », « GPAO » et « Budgets par type » (3 zones éparpillées) sont **réunis en un seul tableau** : une ligne par type, colonnes alignées **Type · GPAO · Budget (h) · ✕**. Les Racks sont indentés sous leur famille (CD / MEP) avec leur code GPAO et leur budget sur la même ligne ; une ligne discrète « N° Rack + Rack CD/MEP » sous chaque famille ajoute un Rack ; le menu « + Ajouter un type… » reste sous le tableau. Le long texte d'aide est remplacé par une ligne de rappel. Sur écran étroit (≤ 28 rem) le code GPAO passe sous le nom du Rack. Fichiers : `js/views/affaires.js` (`budgetBlock`), `css/app.css`. Aucune donnée modifiée. |
+| 2026-11-02 | Racks & Budgets en fenêtres | Le tableau précédent est **remplacé** : dans les réglages d'une affaire, deux boutons **Racks (n)** et **Budgets (n types · h)** ouvrent chacun une **petite fenêtre**. *Racks* : liste des numéros avec code GPAO modifiable, ajout (n° + GPAO) et suppression avec confirmation en ligne ; **un Rack créé existe en CD et en MEP** (même GPAO ; les anciennes affaires sont complétées à l'ouverture de la fenêtre) ; même règle à la création d'une affaire. *Budgets* : **liste déroulante des types** + heures ; seuls les types budgétés sont listés (modifiables, retirables), total en bas ; les types « sans budget » sont rangés sous « Sans budget par défaut ». Les modifications s'appliquent au fil de l'eau, l'affaire est rafraîchie à la fermeture. Fichiers : `js/views/affaires.js` (`racksDialog`, `budgetsDialog`), `css/app.css`. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

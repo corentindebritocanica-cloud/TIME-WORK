@@ -81,7 +81,7 @@ export function create(el, ctx) {
                             aria-label="${t.hidden ? 'Afficher' : 'Masquer'} ${t.label}" title="${t.hidden ? 'Afficher dans les listes' : 'Masquer des listes'}">
                         <svg class="ico" aria-hidden="true"><use href="${t.hidden ? '#i-eye-off' : '#i-eye'}"/></svg></button>
                     <button type="button" class="btn-icon" data-action="toggle-budget" aria-pressed="${String(!t.noBudget)}"
-                            aria-label="${t.noBudget ? 'Proposer un budget pour' : 'Retirer des budgets'} ${t.label}" title="${t.noBudget ? 'Proposer dans « Budgets par type » des affaires' : 'Ne pas proposer dans « Budgets par type » (ajout manuel possible par affaire)'}">
+                            aria-label="${t.noBudget ? 'Proposer un budget pour' : 'Retirer des budgets'} ${t.label}" title="${t.noBudget ? 'Ranger avec les types budgétables dans la fenêtre Budgets des affaires' : 'Ranger à part (« Sans budget par défaut ») dans la liste déroulante des budgets'}">
                         <svg class="ico" aria-hidden="true"><use href="${t.noBudget ? '#i-budget-off' : '#i-budget'}"/></svg></button>
                     ${t.custom ? html`<button type="button" class="btn-icon danger" data-action="delete" aria-label="Supprimer ${t.label}" title="Supprimer">✕</button>` : ''}
                 </span>
@@ -101,8 +101,8 @@ export function create(el, ctx) {
                     <span class="only-coarse">Maintiens la poignée <b>⋮⋮</b> et glisse pour déplacer un type.</span>
                     <span class="only-fine">Glisse la poignée <b>⋮⋮</b> (ou flèches ↑ ↓ du clavier) pour déplacer un type.</span>
                     Un type masqué n'est plus proposé à la saisie ; ses heures restent comptées.
-                    <b>Sans budget</b> (icône jauge) : le type reste proposé à la saisie mais n'apparaît plus dans « Budgets par type » ;
-                    tu peux l'y ajouter à la main, affaire par affaire.</p>
+                    <b>Sans budget</b> (icône jauge) : le type reste proposé à la saisie mais est rangé à part (« Sans budget par défaut »)
+                    dans la liste déroulante de la fenêtre Budgets d'une affaire ; tu peux quand même lui allouer des heures.</p>
                 <p class="settings-help"><b>Racks :</b> CD et MEP se découpent par rack dans chaque affaire (Suivi → affaire → Racks),
                     avec un budget et un code GPAO par Rack. Au tableau de bord, « CD Rack 1 » est compté dans <b>CD</b> et « MEP Rack 1 » dans <b>MEP</b>
                     (les reprises et reviews restent à part).</p>
@@ -186,7 +186,7 @@ export function create(el, ctx) {
         if (!t) return;
         t.noBudget = !t.noBudget;
         commit(list); draw();
-        ctx.toast(`« ${t.label} » ${t.noBudget ? 'retiré des budgets par défaut (ajout manuel possible par affaire)' : 'de nouveau proposé dans les budgets'}.`);
+        ctx.toast(`« ${t.label} » ${t.noBudget ? 'rangé à part dans la liste des budgets' : 'de nouveau rangé avec les types budgétables'}.`);
     }
 
     async function remove(btn) {

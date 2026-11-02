@@ -70,13 +70,26 @@ export function create(el, ctx) {
         const types = sortTypes(Object.keys(mpt));
         const bud = a.budgets;
         const groups = affLoadGroups(a);
-        /** Cumul d'une famille (Racks seulement) : affiché juste après son dernier Rack. */
+        /** Cumul d'une famille (CD / MEP) : temps et budget de tous ses types ; remplace leurs tuiles (détail en info-bulle). */
         const sumFam = (obj, fam) => Object.entries(obj).reduce((s, [k, v]) => inFamily(k, fam) ? s + v : s, 0);
         const famTotals = new Map(groups.map(g => [g.fam, { min: sumFam(mpt, g.fam), bud: sumFam(bud, g.fam) }]));
-        const lastLoadOf = new Map();
-        types.forEach(t => { const f = loadFamily(t); if (f) lastLoadOf.set(f.fam, t); });
+        const famOfType = t => groups.find(g => inFamily(t, g.fam))?.fam;
+        const shownFam = new Set();
         const pieData = types.map(t => ({ key: t, label: typeLabel(t), mins: mpt[t], cls: typeClass(t) }));
         const scope = 'a' + a.id.replace(/[^A-Za-z0-9]/g, '');
+        const sigmaTile = fam => {
+            const ft = famTotals.get(fam), id = `pop-${scope}-${fam}`, over = ft.bud && ft.min > ft.bud * 60;
+            const members = sortTypes([...new Set([...Object.keys(mpt), ...Object.keys(bud)])].filter(k => inFamily(k, fam)));
+            return html`<div class="tile t-${fam} is-derived has-pop" tabindex="0" aria-describedby="${id}">
+                <span class="tile-label">Σ Racks ${fam}</span><span class="tile-value">${minsToHM(ft.min)}</span>
+                <span class="tile-sub ${over ? 'danger' : ''}">${ft.bud ? Math.round(ft.min / (ft.bud * 60) * 100) + ' % / ' + ft.bud + ' h' : 'cumul des types ' + fam}</span>
+                <div class="tile-pop" id="${id}" popover="manual" role="tooltip">
+                    <div class="pop-row pop-head"><span>Type ${fam}</span><span>Utilisé</span><span>Budget</span></div>
+                    ${members.map(k => { const m = mpt[k] || 0, b = bud[k] || 0; return html`
+                    <div class="pop-row"><span class="pop-type"><span class="dot ${typeClass(k)}" aria-hidden="true"></span>${typeLabel(k)}</span>
+                        <span class="num ${b && m > b * 60 ? 'danger' : ''}">${minsToHM(m)}</span><span class="num">${b ? b + ' h' : '—'}</span></div>`; })}
+                </div></div>`;
+        };
         return html`
             <div class="acc-body">
                 <form class="entry-form" data-role="entry-form" novalidate>
@@ -90,12 +103,11 @@ export function create(el, ctx) {
                     </div>
                 </form>
                 ${tot ? html`<div class="type-tiles">
-                    ${types.map(t => { const over = bud[t] > 0 && mpt[t] > bud[t] * 60, f = loadFamily(t), ft = f && lastLoadOf.get(f.fam) === t ? famTotals.get(f.fam) : null; return html`
+                    ${types.map(t => { const fam = famOfType(t); if (fam) { if (shownFam.has(fam)) return ''; shownFam.add(fam); return sigmaTile(fam); }
+                        const over = bud[t] > 0 && mpt[t] > bud[t] * 60, f = loadFamily(t); return html`
                         <div class="tile ${typeClass(t)} ${f ? 'is-load' : ''}"><span class="tile-label">${typeLabel(t)}</span><span class="tile-value">${minsToHM(mpt[t])}</span>
                             ${f && a.gpao[loadName(t)] ? html`<span class="tile-sub" title="Code GPAO">GPAO ${a.gpao[loadName(t)]}</span>` : ''}
-                            ${bud[t] ? html`<span class="tile-sub ${over ? 'danger' : ''}">${Math.round(mpt[t] / (bud[t] * 60) * 100)} % / ${bud[t]} h</span>` : ''}</div>
-                        ${ft ? html`<div class="tile t-${f.fam} is-derived" title="Cumul de tous les types « ${f.fam} » de l'affaire (${f.fam}, reprises, reviews, Racks), temps et budget (informatif, non ajouté au total)."><span class="tile-label">Σ Racks ${f.fam}</span><span class="tile-value">${minsToHM(ft.min)}</span>
-                            <span class="tile-sub ${ft.bud && ft.min > ft.bud * 60 ? 'danger' : ''}">${ft.bud ? Math.round(ft.min / (ft.bud * 60) * 100) + ' % / ' + ft.bud + ' h' : 'cumul des types ' + f.fam}</span></div>` : ''}`; })}
+                            ${bud[t] ? html`<span class="tile-sub ${over ? 'danger' : ''}">${Math.round(mpt[t] / (bud[t] * 60) * 100)} % / ${bud[t]} h</span>` : ''}</div>`; })}
                     <div class="tile is-accent c-accent"><span class="tile-label">Total</span><span class="tile-value">${minsToHM(tot)}</span></div>
                 </div>` : ''}
                 <div class="aff-content">
@@ -409,6 +421,25 @@ export function create(el, ctx) {
         } else openIds.delete(d.dataset.id);
     }, { capture: true, signal: ac.signal });
     bindPieHover(el, ac.signal);
+
+    /* Info-bulle des tuiles Σ (Popover API : hors du clipping des accordéons ; survol, focus clavier ou toucher) */
+    const popOf = n => n instanceof Element ? n.closest('.has-pop') : null;
+    function showPop(tile) {
+        const pop = $('.tile-pop', tile);
+        if (!pop || pop.matches(':popover-open')) return;
+        pop.showPopover();
+        const r = tile.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+        pop.style.left = Math.max(8, Math.min(r.left, innerWidth - 8 - w)) + 'px';
+        pop.style.top = (r.bottom + 6 + h > innerHeight ? Math.max(8, r.top - 6 - h) : r.bottom + 6) + 'px';
+    }
+    const hidePop = tile => { const pop = $('.tile-pop', tile); if (pop?.matches(':popover-open')) pop.hidePopover(); };
+    const enter = e => { const t = popOf(e.target); if (t && !t.contains(e.relatedTarget)) showPop(t); };
+    const leave = e => { const t = popOf(e.target); if (t && !t.contains(e.relatedTarget)) hidePop(t); };
+    el.addEventListener('pointerover', enter, { signal: ac.signal });
+    el.addEventListener('pointerout', leave, { signal: ac.signal });
+    el.addEventListener('focusin', enter, { signal: ac.signal });
+    el.addEventListener('focusout', leave, { signal: ac.signal });
+    addEventListener('scroll', () => $$('.tile-pop:popover-open', el).forEach(p => p.hidePopover()), { capture: true, passive: true, signal: ac.signal });
 
     draw();
     return {

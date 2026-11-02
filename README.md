@@ -93,7 +93,9 @@ restauration et import CSV ; le bouton rond voisin déconnecte.
   Affaires → réglages → Racks ; commun à CD et MEP pour un même numéro, affiché dans la tuile
   et dans le menu « Type »). Dans l'affaire, une tuile en pointillés « Σ Racks CD / MEP » donne
   le cumul du temps et du budget de **tous les types contenant « CD »** (CD, CD - reprise,
-  Review CD, Racks CD), idem pour MEP ; CD et MEP restent séparés ; informatif, non ajouté au total. Au **tableau de bord**, chaque Rack est **cumulé dans
+  Review CD, Racks CD), idem pour MEP ; CD et MEP restent séparés ; informatif, non ajouté au total.
+  Cette tuile **remplace** les tuiles des types qu'elle cumule (seule la Σ est affichée) ; au **survol**
+  (ou focus clavier / toucher) une info-bulle liste chaque type avec son temps utilisé et son budget. Au **tableau de bord**, chaque Rack est **cumulé dans
   sa famille** (CD ou MEP, mention « dont Racks … ») ; les reprises et reviews restent des types
   à part. Supprimer un Rack reclasse ses saisies dans CD ou MEP.
   répartition graphique (camemberts), vue
@@ -388,6 +390,7 @@ service cloud.firestore {
 | 2026-11-02 | Types « sans budget » | Nouveau réglage par type dans Paramètres (icône jauge) : un type **sans budget** reste proposé à la saisie mais n'est plus listé dans « Budgets par type » d'une affaire ; un menu **« + Ajouter un type… »** permet de l'y ajouter à la main pour une affaire précise. Un budget déjà saisi reste affiché. Champ `noBudget` dans `settings.types` (Firestore). Fichiers : `js/domain/types.js`, `js/views/parametres.js`, `js/views/affaires.js`, `index.html` (icônes), tests. |
 | 2026-11-02 | Saisies repliées | Onglet **Par affaire** : seules les **4 saisies les plus récentes** sont affichées ; les autres sont repliées sous une ligne **« N saisies plus anciennes »** (accordéon, `aria-expanded`). L'état déplié est conservé pendant la session. Fichiers : `js/views/affaires.js`, `css/app.css`. |
 | 2026-11-02 | Σ Racks par famille | La tuile **Σ Racks CD** (resp. **MEP**) d'une affaire cumule désormais le temps ET le budget de **tous les types dont le code contient le mot CD** (resp. MEP) : CD, CD - reprise, Review CD, CD Rack n… (`inFamily()` dans `js/domain/types.js`). CD et MEP restent séparés. Le total de l'affaire et le tableau de bord sont inchangés. |
+| 2026-11-02 | Σ remplace les tuiles | Dans une affaire ayant des Racks, la tuile **Σ Racks CD / MEP** remplace les tuiles des types CD (resp. MEP) qu'elle cumule. Détail (type, temps utilisé, budget) en **info-bulle** au survol, au focus clavier ou au toucher (Popover API `popover="manual"`, positionné en `fixed` pour ne pas être rogné par l'accordéon). Fichiers : `js/views/affaires.js`, `css/app.css`. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

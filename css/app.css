@@ -689,6 +689,18 @@
     .type-tiles .tile { padding: var(--sp-3) var(--sp-2); }
     .type-tiles .tile-value { font-size: var(--fs-lg); letter-spacing: -.4px; }
     .type-tiles .tile.is-derived { border-style: dashed; }
+    .type-tiles .tile.has-pop { cursor: help; }
+    .tile-pop {
+        position: fixed; inset: auto; margin: 0; padding: var(--sp-3); inline-size: max-content; min-inline-size: 15rem; max-inline-size: min(26rem, calc(100vw - 16px));
+        text-align: start; pointer-events: none; color: var(--text); font-size: var(--fs-sm);
+        background: var(--v-glass-modal); -webkit-backdrop-filter: var(--v-flou); backdrop-filter: var(--v-flou);
+        border: 1px solid var(--v-edge); border-radius: var(--r-lg); box-shadow: var(--v-reflet), 0 20px 50px var(--v-ombre);
+        &:popover-open { display: grid; gap: var(--sp-1); }
+    }
+    .pop-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--sp-4); align-items: center;
+        & .num { text-align: end; font-variant-numeric: tabular-nums; }
+        & .pop-type { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; } }
+    .pop-head { font-size: var(--fs-xs); font-weight: var(--fw-heavy); text-transform: uppercase; letter-spacing: var(--tracking-caps); color: var(--text-2); padding-block-end: var(--sp-1); border-bottom: 1px solid var(--v-hair); & span:not(:first-child) { text-align: end; } }
     .aff-content { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
     @container (max-width: 860px) { .aff-content { grid-template-columns: 1fr; } }
     .entry-type { min-inline-size: 140px; }

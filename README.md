@@ -92,7 +92,7 @@ restauration et import CSV ; le bouton rond voisin déconnecte.
   (ex. CD Rack 1 = 10 h, MEP Rack 1 = 15 h) et **un code GPAO par Rack** (saisi dans
   Affaires → réglages → **Racks & Budgets** ; commun à CD et MEP pour un même numéro, affiché
   dans le menu « Type »). **Créer le Rack n crée automatiquement « CD Rack n » et « MEP Rack n »**
-  avec le même code GPAO (budgets réglés séparément) ; le supprimer retire les deux. Dans l'affaire, une tuile en pointillés « Σ Racks CD / MEP » donne
+  avec le même code GPAO (budgets réglés séparément) ; le supprimer retire les deux. Les Racks ne se saisissent plus à la création de l'affaire : ils se renseignent ensuite via le bouton « Racks ». Dans l'affaire, une tuile en pointillés « Σ Racks CD / MEP » donne
   le cumul du temps et du budget de **tous les types contenant « CD »** (CD, CD - reprise,
   Review CD, Racks CD), idem pour MEP ; CD et MEP restent séparés ; informatif, non ajouté au total.
   Cette tuile **remplace** les tuiles des types qu'elle cumule (seule la Σ est affichée) ; au **survol**
@@ -396,6 +396,7 @@ service cloud.firestore {
 | 2026-11-02 | Racks & Budgets en fenêtres | Le tableau précédent est **remplacé** : dans les réglages d'une affaire, deux boutons **Racks (n)** et **Budgets (n types · h)** ouvrent chacun une **petite fenêtre**. *Racks* : liste des numéros avec code GPAO modifiable, ajout (n° + GPAO) et suppression avec confirmation en ligne ; **un Rack créé existe en CD et en MEP** (même GPAO ; les anciennes affaires sont complétées à l'ouverture de la fenêtre) ; même règle à la création d'une affaire. *Budgets* : **liste déroulante des types** + heures ; seuls les types budgétés sont listés (modifiables, retirables), total en bas ; les types « sans budget » sont rangés sous « Sans budget par défaut ». Les modifications s'appliquent au fil de l'eau, l'affaire est rafraîchie à la fermeture. Fichiers : `js/views/affaires.js` (`racksDialog`, `budgetsDialog`), `css/app.css`. |
 | 2026-11-02 | Fenêtres : espacement | Retouche visuelle des fenêtres Racks / Budgets : zones aérées et séparées (liste en carte à lignes, bloc d'ajout teinté avec libellé). Fichiers : `js/views/affaires.js`, `css/app.css`. |
 | 2026-11-02 | Info-bulle Σ alignée | Colonnes Utilisé / Budget alignées sur toutes les lignes de l'info-bulle (CSS `subgrid`), pour les tuiles Σ CD et Σ MEP. Fichier : `css/app.css`. |
+| 2026-11-02 | Nouvelle affaire sans Racks | Les champs « Racks CD » et « Racks MEP » sont **retirés du formulaire de création** d'affaire ; les Racks se renseignent après coup, dans les réglages de l'affaire (bouton Racks). Fichier : `js/views/affaires.js`. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

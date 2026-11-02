@@ -176,8 +176,6 @@ export function create(el, ctx) {
                     <label class="field"><span>Client</span><input class="control w-md" name="client" placeholder="Nom du client" list="clients"></label>
                     <label class="field"><span>Code affaire</span><input class="control w-md" name="num" placeholder="Ex : AF-2026-001"></label>
                     <label class="field"><span>Machine</span><input class="control w-sm" name="machine" placeholder="Ex : M-001"></label>
-                    <label class="field"><span>Racks CD (optionnel)</span><input class="control w-sm" name="loads" placeholder="Ex : 1, 2, 3"></label>
-                    <label class="field"><span>Racks MEP (optionnel)</span><input class="control w-sm" name="mepLoads" placeholder="Ex : 1, 2"></label>
                     <button type="submit" class="btn btn-primary">+ Créer</button>
                     <small class="field-hint err" data-role="new-err" role="alert"></small>
                 </form>
@@ -287,21 +285,8 @@ export function create(el, ctx) {
         const f = Object.fromEntries(new FormData(form));
         const err = $('[data-role="new-err"]', form);
         err.textContent = '';
-        /** Racks saisis pour une famille (champ « 1, 2, 3 »), ou null si l'un est invalide (erreur affichée). */
-        const parseLoads = (field, fam) => {
-            const list = String(f[field] || '').split(',').map(cleanLoadName).filter(Boolean);
-            const bad = list.filter(l => !LOAD_RE.test(l));
-            form.elements[field].classList.toggle('is-invalid', bad.length > 0);
-            if (!bad.length) return [...new Set(list)];
-            err.textContent = `Rack ${fam} invalide : ${bad.join(', ')} (numéros 1 à 999).`;
-            form.elements[field].focus();
-            return null;
-        };
-        const loads0 = parseLoads('loads', 'CD'); if (!loads0) return;
-        const mepLoads0 = parseLoads('mepLoads', 'MEP'); if (!mepLoads0) return;
-        const racks = [...new Set([...loads0, ...mepLoads0])].sort((x, y) => x - y);   // un Rack existe en CD ET en MEP
         if (!f.client.trim() && !f.num.trim()) { err.textContent = 'Renseigne au moins un client ou un code affaire.'; form.elements.client.focus(); return; }
-        const a = store.createAffaire({ client: f.client.trim(), num: f.num.trim(), machine: f.machine.trim(), loads: racks, mepLoads: racks, budgets: {}, productive: true });
+        const a = store.createAffaire({ client: f.client.trim(), num: f.num.trim(), machine: f.machine.trim(), loads: [], mepLoads: [], budgets: {}, productive: true });
         openIds.add(a.id); focus.affaireId = a.id;
         draw();
         ctx.toast(`Affaire « ${a.num || a.client} » créée.`);

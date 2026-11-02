@@ -539,3 +539,9 @@ Depuis le lot 3, l'app peut aussi être **installée comme PWA** (Edge → ⋯ �
 - **Solution** : conteneur `.pop-body` en grille avec son propre `gap`, liste en carte à filets, bloc d'ajout teinté.
 - **Statut** : résolu (à valider visuellement).
 
+### 3. Chiffres décalés dans l'info-bulle des tuiles Σ
+- **Constat** : les colonnes « Utilisé » et « Budget » ne tombaient pas à la même place d'une ligne à l'autre.
+- **Cause** : chaque ligne était sa propre grille avec des colonnes `auto` : largeur recalculée selon le contenu de la ligne.
+- **Solution** : une grille parente à 3 colonnes et des lignes en `subgrid` (colonnes partagées) ; nombres alignés à droite.
+- **Statut** : résolu (à valider visuellement).
+

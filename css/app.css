@@ -695,9 +695,9 @@
         text-align: start; pointer-events: none; color: var(--text); font-size: var(--fs-sm);
         background: var(--v-glass-modal); -webkit-backdrop-filter: var(--v-flou); backdrop-filter: var(--v-flou);
         border: 1px solid var(--v-edge); border-radius: var(--r-lg); box-shadow: var(--v-reflet), 0 20px 50px var(--v-ombre);
-        &:popover-open { display: grid; gap: var(--sp-1); }
+        &:popover-open { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--sp-1) var(--sp-4); }   /* colonnes communes à toutes les lignes (subgrid) : chiffres alignés */
     }
-    .pop-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--sp-4); align-items: center;
+    .pop-row { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: center;
         & .num { text-align: end; font-variant-numeric: tabular-nums; }
         & .pop-type { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; } }
     .pop-head { font-size: var(--fs-xs); font-weight: var(--fw-heavy); text-transform: uppercase; letter-spacing: var(--tracking-caps); color: var(--text-2); padding-block-end: var(--sp-1); border-bottom: 1px solid var(--v-hair); & span:not(:first-child) { text-align: end; } }

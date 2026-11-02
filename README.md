@@ -66,7 +66,10 @@ restauration et import CSV ; le bouton rond voisin déconnecte.
   - **Types de travail** : ajouter ses propres types (nom + couleur), les
     **réordonner par glisser-déposer** (poignée ⋮⋮, au doigt ou à la souris ;
     flèches ↑ ↓ au clavier), masquer un type (il n'est plus proposé à la saisie,
-    ses heures restent comptées), supprimer un type personnalisé inutilisé,
+    ses heures restent comptées), le retirer des **budgets** (icône jauge « Sans
+    budget » : il reste proposé à la saisie mais n'apparaît plus dans « Budgets par
+    type » des affaires, où on peut l'ajouter à la main via « + Ajouter un type… »),
+    supprimer un type personnalisé inutilisé,
     revenir à l'ordre par défaut. Enregistré **dans Firestore** et synchronisé en
     direct entre PC et iPhone ; l'ordre est utilisé partout (listes, légendes,
     budgets). Les types personnalisés sont reconnus à l'import CSV (par nom ou
@@ -381,6 +384,7 @@ service cloud.firestore {
 | 2026-10-19 | Loads → Racks + code GPAO | **Les « Loads » deviennent des « Racks »** numérotés 1, 2, 3… (`CD_RACK_1`, `MEP_RACK_2`…, libellé « CD Rack 1 »). **Un code GPAO par Rack** et par affaire (`affaires.<id>.gpao`, commun à CD et MEP), saisi dans Affaires → Racks, affiché dans la tuile et le menu « Type ». Données existantes migrées A→1, B→2, C→3 (4 affaires : DAIICHI, J&J USA, JCR PHARMA, KIRSCH) ; lecture tolérante des anciens codes (`legacyRack`, `legacyTypeCode`) pour les sauvegardes JSON anciennes. Cache PWA : `tw-2026-10-19-racks-gpao`. Tests : 73 OK. |
 | 2026-10-19 | Temps productif par défaut | Une **nouvelle affaire** est créée avec « Temps productif » **coché** (décochable ensuite). Les affaires existantes ne changent pas. Cache PWA : `tw-2026-10-19-productif-defaut`. |
 | 2026-10-21 | Code GPAO dans Imputées | Nouvelle colonne **Code GPAO** entre « Code affaire » et « Type » dans le tableau des saisies de l'onglet Imputées (code du Rack de la saisie, « — » pour les autres types). Cache PWA : `tw-2026-10-21-imputees-gpao`. |
+| 2026-11-02 | Types « sans budget » | Nouveau réglage par type dans Paramètres (icône jauge) : un type **sans budget** reste proposé à la saisie mais n'est plus listé dans « Budgets par type » d'une affaire ; un menu **« + Ajouter un type… »** permet de l'y ajouter à la main pour une affaire précise. Un budget déjà saisi reste affiché. Champ `noBudget` dans `settings.types` (Firestore). Fichiers : `js/domain/types.js`, `js/views/parametres.js`, `js/views/affaires.js`, `index.html` (icônes), tests. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

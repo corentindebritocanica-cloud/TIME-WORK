@@ -5,7 +5,7 @@
  */
 import { html, mount as render, on, $, $$, toElement } from '../ui/dom.js';
 import { pie, bindPieHover } from '../ui/pie.js';
-import { typeLabel, typeClass, typesFor, sortTypes, loadFamily, loadName, affLoadGroups, loadsOf, LOAD_FAMILIES, defaultType } from '../domain/types.js';
+import { typeLabel, typeClass, typesFor, budgetAddable, sortTypes, loadFamily, loadName, affLoadGroups, loadsOf, LOAD_FAMILIES, defaultType } from '../domain/types.js';
 import { parseDuration, todayISO, fmtNum, minsToHM, minsToDec } from '../domain/time.js';
 import { LOAD_RE, GPAO_RE, cleanLoadName } from '../domain/validate.js';
 import { budgetBar, minutesByType, typeOptions } from './shared.js';
@@ -16,6 +16,7 @@ import { sortAffaires } from '../domain/sort.js';
 const SORTS = [['created', 'Création'], ['num', 'Code affaire'], ['client', 'Client'], ['machine', 'Machine']];
 
 const openIds = new Set();     // affaires ouvertes (conservé entre deux rendus)
+const extraBud = new Map();    // affaire → types « sans budget » ajoutés à la main dans ses budgets (session)
 let query = '';
 
 /**
@@ -137,9 +138,14 @@ export function create(el, ctx) {
                     </div>
                     <div>
                         <h3 class="label">Budgets par type (heures allouées)</h3>
-                        <div class="budgets">${sortTypes(typesFor(a)).map(t => html`
+                        <div class="budgets">${sortTypes([...typesFor(a), ...(extraBud.get(a.id) || [])]).map(t => html`
                             <label class="budget"><span class="badge ${typeClass(t)}">${typeLabel(t)}</span>
                                 <input type="number" class="control sm" min="0" step="1" placeholder="—" data-action="budget" data-type="${t}" value="${bud[t] || ''}" aria-label="Budget ${typeLabel(t)} (heures)"></label>`)}</div>
+                        ${(() => { const extra = extraBud.get(a.id) || new Set(), opts = budgetAddable(a).filter(t => !extra.has(t.code)); return opts.length ? html`
+                        <select class="control sm w-lg budget-add" data-action="budget-add" aria-label="Ajouter un type au budget de cette affaire">
+                            <option value="">+ Ajouter un type…</option>
+                            ${opts.map(t => html`<option value="${t.code}">${t.label}</option>`)}
+                        </select>` : ''; })()}
                     </div>
                     <div class="toolbar"><button type="button" class="btn btn-ghost btn-sm danger" data-action="del-aff">Supprimer l'affaire…</button></div>
                 </div>
@@ -356,6 +362,14 @@ export function create(el, ctx) {
         'aff-flag': c => {
             const a = affOf(c), flag = c.dataset.flag, other = flag === 'productive' ? 'unbilled' : 'productive';
             store.updateAffaire(a.id, c.checked ? { [flag]: true, [other]: false } : { [flag]: false }); redrawOne(a.id);
+        },
+        'budget-add': s => {
+            const a = affOf(s), code = s.value;
+            if (!a || !code) return;
+            if (!extraBud.has(a.id)) extraBud.set(a.id, new Set());
+            extraBud.get(a.id).add(code);
+            redrawOne(a.id);
+            $(`#aff-${CSS.escape(a.id)} [data-action="budget"][data-type="${CSS.escape(code)}"]`, el)?.focus();
         },
         budget: i => {
             const a = affOf(i), n = Math.max(0, Math.round(+i.value || 0)), budgets = { ...a.budgets };

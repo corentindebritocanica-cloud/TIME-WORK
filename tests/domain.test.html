@@ -21,7 +21,7 @@ import { computeBalance } from '../js/domain/balance.js';
 import { analyzeCSV, parseDate, mapType } from '../js/domain/csv.js';
 import { normalizeData, cleanLoadName, LOAD_RE, legacyRack, legacyTypeCode, cleanGpao } from '../js/domain/validate.js';
 import { typeLabel, typeClass, globalType, normalizeTypeConfig, serializeTypeConfig, makeTypeCode, applyTypeConfig,
-         sortTypes, typesFor, defaultType, TYPES, TYPE_CODES, isLoadType, loadName, loadType, affLoadCodes } from '../js/domain/types.js';
+         sortTypes, typesFor, budgetAddable, defaultType, TYPES, TYPE_CODES, isLoadType, loadName, loadType, affLoadCodes } from '../js/domain/types.js';
 import { flouCSS } from '../js/ui/prefs.js';
 import { sortAffaires } from '../js/domain/sort.js';
 import { computeProductive } from '../js/domain/productive.js';
@@ -120,6 +120,11 @@ eq('types appliqués : visibles, ordre, défaut, couleur', [TYPES[0].code, TYPES
 eq('types appliqués : tri selon l\'ordre choisi', sortTypes(['CD', 'ESSAI', 'ECA', 'ZZZ']), ['ECA', 'ESSAI', 'CD', 'ZZZ']);
 eq('types appliqués : budget d\'un type masqué conservé', typesFor({ loads: ['1'], budgets: { DE: 4 } }).slice(-2), ['CD_RACK_1', 'DE']);
 eq('CSV : type personnalisé reconnu par libellé et par code', [mapType('essai terrain'), mapType('ESSAI'), mapType('Essai-terrain')], ['ESSAI', 'ESSAI', 'ESSAI']);
+// « Sans budget » : type non proposé dans les budgets d'une affaire, mais ajoutable à la main
+applyTypeConfig([{ code: 'DE' }, { code: 'ECA', noBudget: true }, { code: 'REUNION', noBudget: true, hidden: true }]);
+eq('sans budget : exclu de typesFor, budget existant conservé', [typesFor({ budgets: {} }).includes('ECA'), typesFor({ budgets: { ECA: 3 } }).includes('ECA'), typesFor({ budgets: {} }).includes('DE')], [false, true, true]);
+eq('sans budget : budgetAddable = visibles sans budget non affichés', [budgetAddable({ budgets: {} }).map(t => t.code), budgetAddable({ budgets: { ECA: 3 } }).map(t => t.code)], [['ECA'], []]);
+eq('sans budget : format enregistré', serializeTypeConfig(normalizeTypeConfig([{ code: 'ECA', noBudget: true }, { code: 'DE' }])).slice(0, 2), [{ code: 'ECA', noBudget: true }, { code: 'DE' }]);
 applyTypeConfig(null);
 eq('types : retour à la table intégrée', [TYPES.length, TYPES[0].code, typeLabel('ESSAI'), mapType('essai terrain')], [21, 'DE', 'ESSAI', null]);
 

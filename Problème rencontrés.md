@@ -525,3 +525,10 @@ Depuis le lot 3, l'app peut aussi être **installée comme PWA** (Edge → ⋯ �
 - **Constat** : l'appel direct à l'API avec le jeton du projet a répondu « GitHub access to this repository is not enabled for this session ».
 - **Solution** : rattacher le dépôt à la session avec l'outil `add_repo` (accès push), puis cloner. Le jeton n'est pas nécessaire une fois le dépôt rattaché.
 - **Statut** : résolu.
+
+## 2026-11-02 — Budgets par type : types inutiles à budgéter
+
+### 1. Le masquage d'un type retirait aussi sa saisie
+- **Constat** : « Masquer des listes » (Paramètres) agit partout (liste déroulante, saisie rapide, budgets). Impossible de garder un type saisissable tout en le retirant de « Budgets par type » des affaires.
+- **Solution** : nouveau réglage indépendant `noBudget` par type (`settings.types`) ; `typesFor()` exclut ces types, `budgetAddable()` les propose dans un menu « + Ajouter un type… » par affaire. Un budget déjà saisi reste affiché.
+- **Statut** : résolu.

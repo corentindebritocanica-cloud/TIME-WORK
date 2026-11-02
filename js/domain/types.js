@@ -102,16 +102,16 @@ export function normalizeTypeConfig(raw) {
         const code = typeof t?.code === 'string' ? t.code : '';
         if (!CODE_RE.test(code) || isLoadType(code) || seen.has(code)) return;
         if (BUILTIN.has(code)) {
-            out.push({ code, label: BUILTIN.get(code), custom: false, hidden: !!t.hidden, color: null });
+            out.push({ code, label: BUILTIN.get(code), custom: false, hidden: !!t.hidden, noBudget: !!t.noBudget, color: null });
         } else {
             const label = typeof t.label === 'string' ? t.label.trim().slice(0, TYPE_LABEL_MAX) : '';
             if (!label) return;
             const c = Number(t.color);
-            out.push({ code, label, custom: true, hidden: !!t.hidden, color: Number.isInteger(c) && c >= 0 && c < CUSTOM_COLORS ? c : 0 });
+            out.push({ code, label, custom: true, hidden: !!t.hidden, noBudget: !!t.noBudget, color: Number.isInteger(c) && c >= 0 && c < CUSTOM_COLORS ? c : 0 });
         }
         seen.add(code);
     });
-    BUILTIN_TYPES.forEach(t => { if (!seen.has(t.code)) out.push({ code: t.code, label: t.label, custom: false, hidden: false, color: null }); });
+    BUILTIN_TYPES.forEach(t => { if (!seen.has(t.code)) out.push({ code: t.code, label: t.label, custom: false, hidden: false, noBudget: false, color: null }); });
     return out;
 }
 
@@ -121,8 +121,8 @@ export function normalizeTypeConfig(raw) {
  */
 export function serializeTypeConfig(list) {
     return list.map(t => t.custom
-        ? { code: t.code, label: t.label, color: t.color ?? 0, custom: true, ...(t.hidden ? { hidden: true } : {}) }
-        : { code: t.code, ...(t.hidden ? { hidden: true } : {}) });
+        ? { code: t.code, label: t.label, color: t.color ?? 0, custom: true, ...(t.hidden ? { hidden: true } : {}), ...(t.noBudget ? { noBudget: true } : {}) }
+        : { code: t.code, ...(t.hidden ? { hidden: true } : {}), ...(t.noBudget ? { noBudget: true } : {}) });
 }
 
 /**
@@ -147,6 +147,8 @@ let byCode = new Map(all.map(t => [t.code, t]));
 export let TYPES = all.filter(t => !t.hidden).map(({ code, label }) => ({ code, label }));
 /** Tous les codes connus (masqués compris). Liaison vivante. */
 export let TYPE_CODES = all.map(t => t.code);
+/** Codes des types « sans budget » : non proposés par défaut dans « Budgets par type » d'une affaire. Liaison vivante. */
+export let NO_BUDGET = new Set(all.filter(t => t.noBudget).map(t => t.code));
 
 /** Applique les réglages de l'utilisateur (settings.types). */
 export function applyTypeConfig(raw) {
@@ -154,6 +156,7 @@ export function applyTypeConfig(raw) {
     byCode = new Map(all.map(t => [t.code, t]));
     TYPES = all.filter(t => !t.hidden).map(({ code, label }) => ({ code, label }));
     TYPE_CODES = all.map(t => t.code);
+    NO_BUDGET = new Set(all.filter(t => t.noBudget).map(t => t.code));
 }
 
 /** Liste ordonnée complète (copie) : écran Paramètres. */
@@ -193,11 +196,20 @@ export function typeClass(code) {
     return 't-AUTRE';
 }
 
-/** Types proposés pour une affaire : types visibles + ses Loads (CD, MEP) + tout type ayant déjà un budget. */
+/**
+ * Types affichés dans « Budgets par type » d'une affaire : types visibles SANS ceux réglés « sans budget »
+ * + ses Loads (CD, MEP) + tout type ayant déjà un budget (même « sans budget » ou masqué).
+ */
 export function typesFor(aff) {
-    const list = [...TYPES.map(t => t.code), ...affLoadCodes(aff)];
+    const list = [...TYPES.map(t => t.code).filter(c => !NO_BUDGET.has(c)), ...affLoadCodes(aff)];
     Object.keys((aff && aff.budgets) || {}).forEach(k => { if (!list.includes(k)) list.push(k); });
     return list;
+}
+
+/** Types « sans budget » (visibles) qu'on peut ajouter à la main aux budgets d'une affaire : ceux qui n'y figurent pas déjà. */
+export function budgetAddable(aff) {
+    const shown = new Set(typesFor(aff));
+    return TYPES.filter(t => NO_BUDGET.has(t.code) && !shown.has(t.code));
 }
 
 /** Vues globales : un Load se cumule dans le type de base de sa famille (CD_RACK_1 → CD, MEP_RACK_2 → MEP). */

@@ -73,13 +73,16 @@ export function create(el, ctx) {
                         aria-label="Déplacer ${t.label} (position ${i + 1} sur ${total}, flèches haut et bas)" title="Glisser pour déplacer">
                     <svg class="ico" aria-hidden="true"><use href="#i-grip"/></svg></button>
                 <span class="dot ${typeClass(t.code)}" aria-hidden="true"></span>
-                <span class="type-name"><strong>${t.label}</strong><small>${meta}${t.hidden ? html` · <b>masqué</b>` : ''}</small></span>
+                <span class="type-name"><strong>${t.label}</strong><small>${meta}${t.hidden ? html` · <b>masqué</b>` : ''}${t.noBudget ? html` · <b>sans budget</b>` : ''}</small></span>
                 <span class="type-actions">
                     <button type="button" class="btn-icon only-fine" data-action="up" aria-label="Monter ${t.label}" ${i === 0 ? 'disabled' : ''}>↑</button>
                     <button type="button" class="btn-icon only-fine" data-action="down" aria-label="Descendre ${t.label}" ${i === total - 1 ? 'disabled' : ''}>↓</button>
                     <button type="button" class="btn-icon" data-action="toggle" aria-pressed="${String(!t.hidden)}"
                             aria-label="${t.hidden ? 'Afficher' : 'Masquer'} ${t.label}" title="${t.hidden ? 'Afficher dans les listes' : 'Masquer des listes'}">
                         <svg class="ico" aria-hidden="true"><use href="${t.hidden ? '#i-eye-off' : '#i-eye'}"/></svg></button>
+                    <button type="button" class="btn-icon" data-action="toggle-budget" aria-pressed="${String(!t.noBudget)}"
+                            aria-label="${t.noBudget ? 'Proposer un budget pour' : 'Retirer des budgets'} ${t.label}" title="${t.noBudget ? 'Proposer dans « Budgets par type » des affaires' : 'Ne pas proposer dans « Budgets par type » (ajout manuel possible par affaire)'}">
+                        <svg class="ico" aria-hidden="true"><use href="${t.noBudget ? '#i-budget-off' : '#i-budget'}"/></svg></button>
                     ${t.custom ? html`<button type="button" class="btn-icon danger" data-action="delete" aria-label="Supprimer ${t.label}" title="Supprimer">✕</button>` : ''}
                 </span>
             </li>`;
@@ -97,7 +100,9 @@ export function create(el, ctx) {
                 <p class="settings-help">L'ordre choisi ici est utilisé partout (listes, légendes, budgets).
                     <span class="only-coarse">Maintiens la poignée <b>⋮⋮</b> et glisse pour déplacer un type.</span>
                     <span class="only-fine">Glisse la poignée <b>⋮⋮</b> (ou flèches ↑ ↓ du clavier) pour déplacer un type.</span>
-                    Un type masqué n'est plus proposé à la saisie ; ses heures restent comptées.</p>
+                    Un type masqué n'est plus proposé à la saisie ; ses heures restent comptées.
+                    <b>Sans budget</b> (icône jauge) : le type reste proposé à la saisie mais n'apparaît plus dans « Budgets par type » ;
+                    tu peux l'y ajouter à la main, affaire par affaire.</p>
                 <p class="settings-help"><b>Racks :</b> CD et MEP se découpent par rack dans chaque affaire (Suivi → affaire → Racks),
                     avec un budget et un code GPAO par Rack. Au tableau de bord, « CD Rack 1 » est compté dans <b>CD</b> et « MEP Rack 1 » dans <b>MEP</b>
                     (les reprises et reviews restent à part).</p>
@@ -176,6 +181,14 @@ export function create(el, ctx) {
         ctx.toast(`« ${t.label} » ${t.hidden ? 'masqué des listes' : 'de nouveau proposé'}.`);
     }
 
+    function toggleBudget(btn) {
+        const list = allTypes(), t = list.find(x => x.code === codeOf(btn));
+        if (!t) return;
+        t.noBudget = !t.noBudget;
+        commit(list); draw();
+        ctx.toast(`« ${t.label} » ${t.noBudget ? 'retiré des budgets par défaut (ajout manuel possible par affaire)' : 'de nouveau proposé dans les budgets'}.`);
+    }
+
     async function remove(btn) {
         const list = allTypes(), t = list.find(x => x.code === codeOf(btn));
         if (!t || !t.custom) return;
@@ -202,7 +215,7 @@ export function create(el, ctx) {
         if (same) return bad(`« ${same.label} » existe déjà${same.hidden ? ' (masqué : réaffiche-le avec l\'œil)' : ''}.`);
         const color = Number(new FormData(form).get('color')) || 0;
         const code = makeTypeCode(label, list.map(t => t.code));
-        list.push({ code, label, custom: true, hidden: false, color });
+        list.push({ code, label, custom: true, hidden: false, noBudget: false, color });
         commit(list);
         addColor = null;
         draw();
@@ -215,7 +228,8 @@ export function create(el, ctx) {
         const before = allTypes();
         const custom = before.filter(t => t.custom);
         const hidden = new Set(before.filter(t => t.hidden).map(t => t.code));
-        const list = [...normalizeTypeConfig(BUILTIN_TYPES.map(t => ({ code: t.code }))).map(t => ({ ...t, hidden: hidden.has(t.code) })), ...custom];
+        const noBudget = new Set(before.filter(t => t.noBudget).map(t => t.code));
+        const list = [...normalizeTypeConfig(BUILTIN_TYPES.map(t => ({ code: t.code }))).map(t => ({ ...t, hidden: hidden.has(t.code), noBudget: noBudget.has(t.code) })), ...custom];
         commit(list); draw();
         ctx.toast('Ordre par défaut rétabli (types personnalisés à la fin).', { action: { label: 'Annuler', run: () => { commit(before); draw(); } } });
     }
@@ -287,7 +301,7 @@ export function create(el, ctx) {
     on(el, 'click', {
         up: b => move(codeOf(b), -1),
         down: b => move(codeOf(b), +1),
-        toggle, delete: remove,
+        toggle, 'toggle-budget': toggleBudget, delete: remove,
         'reset-order': resetOrder,
         'flou-reset': () => { savePrefs({ flou: DEFAULT_PREFS.flou }); draw(); $('#flou-range', el)?.focus(); }
     }, ac.signal);

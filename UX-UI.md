@@ -227,6 +227,7 @@ et `VERSION`). Sur iPhone, l'icône n'est relue qu'à l'ajout à l'écran d'accu
 | 19/10/2026 | **Loads → Racks + GPAO** : libellés « CD Rack 1 » / « MEP Rack 1 » (numéros, plus de lettres) ; dans Affaires → réglages → Racks, une ligne « GPAO Rack N » (champ texte) par numéro de Rack ; code GPAO affiché dans la tuile du Rack et dans le menu « Type » (« CD Rack 1 · 6007514603 »). Couleur d'un Rack : `load-(n−1)`. |
 | 19/10/2026 | **Nouvelle affaire** : case « Temps productif » cochée par défaut (réglable ensuite dans l'affaire). |
 | 21/10/2026 | **Imputées** : colonne « Code GPAO » entre « Code affaire » et « Type » (« — » si la saisie n'est pas sur un Rack). |
+| 02/11/2026 | **Paramètres → Types** : 3ᵉ bouton-icône « jauge » (Sans budget), même style que l'œil (grisé quand actif) ; **Affaires → Budgets par type** : menu « + Ajouter un type… » sous la grille pour ajouter à la main un type « sans budget ». |
 
 *Mettre à jour ce tableau à chaque évolution de l'interface.*
 

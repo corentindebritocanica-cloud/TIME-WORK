@@ -713,10 +713,16 @@
     .bud { display: grid; gap: var(--sp-2); }
     .bud-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
     .bud-count { margin-inline-start: var(--sp-2); padding: 1px 8px; border-radius: var(--r-pill); background: var(--v-soft-on); color: var(--text-2); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
-    .rack-list, .bud-list { display: grid; gap: var(--sp-2); }
+    /* Fenêtres Racks / Budgets : zones bien séparées (liste en carte à lignes, bloc d'ajout teinté) */
+    .pop-body { display: grid; gap: var(--sp-4); min-width: 0; & > * { min-width: 0; } & .empty { text-align: center; color: var(--text-2); padding: var(--sp-3); } }
+    .pop-body > .label { margin-block-end: calc(-1 * var(--sp-2)); }
+    .pop-list { display: grid; margin: 0; padding: 0; list-style: none; border: 1px solid var(--v-hair); border-radius: var(--r-lg); overflow: hidden;
+        & > li { padding: var(--sp-3); } & > li + li { border-top: 1px solid var(--v-hair); } }
+    .pop-add { display: grid; gap: var(--sp-2); padding: var(--sp-3); border-radius: var(--r-lg); background: var(--v-soft); border: 1px solid var(--v-hair); }
+    [data-role="pop-err"]:empty { display: none; }
     .rack-row { display: grid; grid-template-columns: 6rem minmax(0, 1fr) auto; gap: var(--sp-2); align-items: center; & .badge { justify-self: start; } }
     .rack-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); & small { color: var(--text-2); } }
-    .rack-add { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+    .rack-add { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; & .rack-gpao { flex: 1 1 9rem; min-width: 0; } }
     .bud-add-row { display: grid; grid-template-columns: minmax(0, 1fr) 6.5rem auto; gap: var(--sp-2); align-items: center; }
     .bud-item { display: grid; grid-template-columns: minmax(0, 1fr) 6rem auto auto; gap: var(--sp-2); align-items: center; & .badge { justify-self: start; max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; } & .num { text-align: center; } }
     .bud-total { text-align: end; color: var(--text-2); font-size: var(--fs-sm); & b { color: var(--text); font-variant-numeric: tabular-nums; } }

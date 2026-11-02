@@ -332,7 +332,7 @@ export function create(el, ctx) {
             index();
             render(popBody(root), html`
                 <p class="dlg-text">Un Rack crée « CD Rack n » et « MEP Rack n » avec le même code GPAO. Les budgets se règlent séparément.</p>
-                ${racks.length ? html`<ul class="rack-list">${racks.map(n => {
+                ${racks.length ? html`<ul class="pop-list rack-list">${racks.map(n => {
                     const cnt = entriesOf(id).filter(e => LOAD_FAMILIES.some(f => e.type === f.prefix + n)).length;
                     return html`<li class="rack-row" data-rack="${n}">
                         <span class="badge t-CD">Rack ${n}</span>
@@ -341,12 +341,15 @@ export function create(el, ctx) {
                             <button type="button" class="btn btn-danger btn-sm" data-act="del-yes">Oui</button><button type="button" class="btn btn-ghost btn-sm" data-act="del-no">Non</button></span>`
                           : html`<button type="button" class="btn-icon danger" data-act="del" aria-label="Supprimer le Rack ${n}" title="Supprimer ce Rack (CD et MEP)">✕</button>`}
                     </li>`; })}</ul>` : html`<p class="empty">Aucun Rack pour cette affaire.</p>`}
-                <div class="rack-add">
-                    <input class="control sm w-sm" name="n" placeholder="N° Rack" maxlength="3" inputmode="numeric" aria-label="Numéro du nouveau Rack">
-                    <input class="control sm w-md" name="g" placeholder="Code GPAO (option)" maxlength="30" autocomplete="off" aria-label="Code GPAO du nouveau Rack">
-                    <button type="button" class="btn btn-primary btn-sm" data-act="add">+ Ajouter</button>
-                </div>
-                <small class="field-hint err" data-role="pop-err" role="alert"></small>`);
+                <div class="pop-add">
+                    <span class="label">Ajouter un Rack</span>
+                    <div class="rack-add">
+                        <input class="control sm w-sm" name="n" placeholder="N° Rack" maxlength="3" inputmode="numeric" aria-label="Numéro du nouveau Rack">
+                        <input class="control sm rack-gpao" name="g" placeholder="Code GPAO (option)" maxlength="30" autocomplete="off" aria-label="Code GPAO du nouveau Rack">
+                        <button type="button" class="btn btn-primary btn-sm" data-act="add">+ Ajouter</button>
+                    </div>
+                    <small class="field-hint err" data-role="pop-err" role="alert"></small>
+                </div>`);
         };
         const addRack = root => {
             const nI = $('[name="n"]', root), gI = $('[name="g"]', root), n = cleanLoadName(nI.value), g = gI.value.trim();
@@ -360,7 +363,7 @@ export function create(el, ctx) {
             paint(root); $('[name="n"]', root)?.focus();
         };
         await ctx.ask({
-            title: 'Racks de l\'affaire', size: 'm', buttons: CLOSE, body: html`<div data-role="pop-body"></div>`,
+            title: 'Racks de l\'affaire', size: 'm', buttons: CLOSE, body: html`<div class="pop-body" data-role="pop-body"></div>`,
             onOpen: (root, signal) => {
                 paint(root);
                 root.addEventListener('click', ev => {
@@ -397,17 +400,20 @@ export function create(el, ctx) {
             const main = opts.filter(c => !NO_BUDGET.has(c)), other = opts.filter(c => NO_BUDGET.has(c));
             const opt = c => html`<option value="${c}">${typeLabel(c)}</option>`;
             render(popBody(root), html`
-                <div class="bud-add-row">
-                    <select class="control sm" name="type" aria-label="Type de travail à budgéter">
-                        <option value="">Choisir un type…</option>
-                        ${main.map(opt)}
-                        ${other.length ? html`<optgroup label="Sans budget par défaut">${other.map(opt)}</optgroup>` : ''}
-                    </select>
-                    <input type="number" class="control sm num" name="h" min="1" step="1" placeholder="Heures" aria-label="Heures allouées">
-                    <button type="button" class="btn btn-primary btn-sm" data-act="add">Ajouter</button>
+                <div class="pop-add">
+                    <span class="label">Ajouter un budget</span>
+                    <div class="bud-add-row">
+                        <select class="control sm" name="type" aria-label="Type de travail à budgéter">
+                            <option value="">Choisir un type…</option>
+                            ${main.map(opt)}
+                            ${other.length ? html`<optgroup label="Sans budget par défaut">${other.map(opt)}</optgroup>` : ''}
+                        </select>
+                        <input type="number" class="control sm num" name="h" min="1" step="1" placeholder="Heures" aria-label="Heures allouées">
+                        <button type="button" class="btn btn-primary btn-sm" data-act="add">Ajouter</button>
+                    </div>
+                    <small class="field-hint err" data-role="pop-err" role="alert"></small>
                 </div>
-                <small class="field-hint err" data-role="pop-err" role="alert"></small>
-                ${have.length ? html`<ul class="bud-list">${have.map(t => html`<li class="bud-item">
+                ${have.length ? html`<span class="label">Budgets alloués</span><ul class="pop-list bud-list">${have.map(t => html`<li class="bud-item">
                         <span class="badge ${typeClass(t)}">${typeLabel(t)}</span>
                         <input type="number" class="control sm num" min="0" step="1" data-act="set" data-type="${t}" value="${bud[t]}" aria-label="Budget ${typeLabel(t)} (heures)">
                         <span class="muted">h</span>
@@ -423,7 +429,7 @@ export function create(el, ctx) {
             paint(root); $('[name="type"]', root)?.focus();
         };
         await ctx.ask({
-            title: 'Budgets de l\'affaire', size: 'm', buttons: CLOSE, body: html`<div data-role="pop-body"></div>`,
+            title: 'Budgets de l\'affaire', size: 'm', buttons: CLOSE, body: html`<div class="pop-body" data-role="pop-body"></div>`,
             onOpen: (root, signal) => {
                 paint(root);
                 root.addEventListener('click', ev => {

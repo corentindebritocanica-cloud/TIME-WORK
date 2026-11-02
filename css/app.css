@@ -708,15 +708,25 @@
     .aff-settings { margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--v-hair); display: grid; gap: var(--sp-4); }
     .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--sp-3); align-items: end; }
     .loads { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); & + .loads { margin-top: var(--sp-2); } }
-    .loads-fam { min-inline-size: 48px; justify-content: center; }
-    .loads-help { margin-bottom: var(--sp-2); }
-    .gpao-list { align-items: flex-end; margin-top: var(--sp-3); }
     .legend-sub { font-size: var(--fs-xs); color: var(--text-2); font-weight: normal; }
-    .load-chip { & button { color: inherit; padding: 0 4px; border-radius: var(--r-pill); &:hover { background: var(--v-soft-on); } } }
-    .budgets { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: var(--sp-2); }
-    .budget { display: grid; gap: var(--sp-1); justify-items: stretch; min-width: 0;
-        & .badge { justify-content: center; max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; }
-        & .control { text-align: center; inline-size: 100%; min-width: 0; } }
+    /* Budgets & Racks : un seul tableau, colonnes alignées (type · GPAO · budget · action) */
+    .bud { display: grid; gap: var(--sp-2); }
+    .bud-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-1) var(--sp-3); }
+    .bud-hint { font-size: var(--fs-xs); color: var(--text-2); }
+    .bud-table { display: grid; gap: 6px; max-inline-size: 38rem; container-type: inline-size; }
+    .bud-row { display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(0, 11rem) 5.5rem 2rem; grid-template-areas: "name gpao bud act"; gap: var(--sp-2); align-items: center;
+        & .c-name { grid-area: name; justify-self: start; max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; }
+        & .c-gpao { grid-area: gpao; min-width: 0; }
+        & .c-bud { grid-area: bud; min-width: 0; text-align: center; }
+        & .c-act { grid-area: act; justify-self: center; }
+        &.is-rack .c-name { margin-inline-start: var(--sp-4); } }
+    .bud-cols { font-size: var(--fs-xs); font-weight: var(--fw-heavy); text-transform: uppercase; letter-spacing: var(--tracking-caps); color: var(--text-2); }
+    .bud-add { padding-inline-start: var(--sp-4); & .control { inline-size: 6.5rem; } }
+    .budget-add { justify-self: start; margin-top: var(--sp-1); }
+    @container (max-inline-size: 28rem) {
+        .bud-row { grid-template-columns: minmax(0, 1fr) 5.5rem 2rem; grid-template-areas: "name bud act" "gpao gpao gpao"; }
+        .bud-row .c-gpao:empty, .bud-cols .c-gpao { display: none; }
+    }
 
     .more-cell { padding: 0; }
     .more-toggle { display: flex; align-items: center; gap: var(--sp-2); inline-size: 100%; padding: 8px 4px; color: var(--text-2); font-size: var(--fs-md); text-align: start; cursor: pointer;

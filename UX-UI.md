@@ -231,6 +231,7 @@ et `VERSION`). Sur iPhone, l'icône n'est relue qu'à l'ajout à l'écran d'accu
 | 02/11/2026 | **Affaires → saisies** : 4 dernières visibles, les plus anciennes repliées sous un bouton-ligne « N saisies plus anciennes » (chevron ▸ qui pivote) pour alléger l'affichage ; mêmes colonnes (un seul tableau). |
 | 02/11/2026 | **Tuile Σ Racks** : libellé du sous-texte « cumul des types CD / MEP » ; info-bulle précisant qu'elle regroupe tous les types CD (ou MEP), pas seulement les Racks. |
 | 02/11/2026 | **Tuiles de l'affaire** : la tuile Σ (CD / MEP) remplace les tuiles qu'elle cumule ; info-bulle de détail (type · utilisé · budget) au survol / focus / toucher, surface `--v-glass-modal` comme le menu « Données », `cursor: help`, sans capture de la souris (`pointer-events: none`). |
+| 02/11/2026 | **Affaire → réglages** : Racks + GPAO + Budgets fusionnés en un tableau à 4 colonnes alignées (type · GPAO · budget · ✕) au lieu de puces, champs GPAO et grille de budgets séparés ; Racks indentés sous leur famille ; ajout de Rack en ligne discrète ; texte d'aide réduit à une ligne ; repli en 2 lignes sous 28 rem (container query). |
 
 *Mettre à jour ce tableau à chaque évolution de l'interface.*
 

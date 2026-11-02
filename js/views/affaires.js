@@ -140,36 +140,56 @@ export function create(el, ctx) {
                         <label class="check"><input type="checkbox" data-action="aff-flag" data-flag="productive" ${a.productive ? 'checked' : ''}> Temps productif</label>
                         <label class="check" title="Les heures de cette affaire ne comptent pas dans la semaine de travail"><input type="checkbox" data-action="aff-flag" data-flag="unbilled" ${a.unbilled ? 'checked' : ''}> Temps non comptabilisé</label>
                     </div>
-                    <div>
-                        <h3 class="label">Racks</h3>
-                        <p class="settings-help loads-help">Découpe CD ou MEP par rack : chaque Rack a son propre budget et son code GPAO
-                            (commun à CD et MEP pour un même numéro). Au tableau de bord, les heures des Racks sont cumulées dans « CD » ou « MEP ».</p>
-                        ${LOAD_FAMILIES.map(f => html`
-                        <div class="loads" data-fam="${f.fam}" role="group" aria-label="Racks ${f.fam}">
-                            <span class="badge t-${f.fam} loads-fam">${f.fam}</span>
-                            ${loadsOf(a, f.fam).map(l => html`<span class="badge load-chip ${typeClass(f.prefix + l)}">Rack ${l}<button type="button" data-action="del-load" data-load="${l}" aria-label="Supprimer le Rack ${f.fam} ${l}">✕</button></span>`)}
-                            <input class="control sm w-sm" data-action="load-input" placeholder="Ex : 1" maxlength="3" inputmode="numeric" aria-label="Numéro du nouveau Rack ${f.fam}">
-                            <button type="button" class="btn btn-ghost btn-sm" data-action="add-load">+ Rack ${f.fam}</button>
-                        </div>`)}
-                        ${(() => { const racks = [...new Set([...loadsOf(a, 'CD'), ...loadsOf(a, 'MEP')])].sort((x, y) => x - y); return racks.length ? html`
-                        <div class="loads gpao-list" role="group" aria-label="Codes GPAO des Racks">
-                            ${racks.map(r => html`<label class="field gpao-field"><span>GPAO Rack ${r}</span><input class="control sm w-md" data-action="gpao" data-rack="${r}" value="${a.gpao[r] || ''}" placeholder="Code GPAO" maxlength="30" autocomplete="off"></label>`)}
-                        </div>` : ''; })()}
-                    </div>
-                    <div>
-                        <h3 class="label">Budgets par type (heures allouées)</h3>
-                        <div class="budgets">${sortTypes([...typesFor(a), ...(extraBud.get(a.id) || [])]).map(t => html`
-                            <label class="budget"><span class="badge ${typeClass(t)}">${typeLabel(t)}</span>
-                                <input type="number" class="control sm" min="0" step="1" placeholder="—" data-action="budget" data-type="${t}" value="${bud[t] || ''}" aria-label="Budget ${typeLabel(t)} (heures)"></label>`)}</div>
-                        ${(() => { const extra = extraBud.get(a.id) || new Set(), opts = budgetAddable(a).filter(t => !extra.has(t.code)); return opts.length ? html`
-                        <select class="control sm w-lg budget-add" data-action="budget-add" aria-label="Ajouter un type au budget de cette affaire">
-                            <option value="">+ Ajouter un type…</option>
-                            ${opts.map(t => html`<option value="${t.code}">${t.label}</option>`)}
-                        </select>` : ''; })()}
-                    </div>
+                    ${budgetBlock(a)}
                     <div class="toolbar"><button type="button" class="btn btn-ghost btn-sm danger" data-action="del-aff">Supprimer l'affaire…</button></div>
                 </div>
             </div>`;
+    }
+
+    /** Budgets, Racks et codes GPAO réunis dans UN tableau : une ligne par type, colonnes alignées (type · GPAO · budget · action). */
+    function budgetBlock(a) {
+        const bud = a.budgets;
+        const list = sortTypes([...typesFor(a), ...(extraBud.get(a.id) || [])]);
+        const hasRacks = list.some(t => loadFamily(t));
+        const addedFam = new Set();
+        const budInput = t => html`<input type="number" class="control sm num c-bud" min="0" step="1" placeholder="—" data-action="budget" data-type="${t}" value="${bud[t] || ''}" aria-label="Budget ${typeLabel(t)} (heures)">`;
+        const addRow = f => { addedFam.add(f.fam); return html`
+            <div class="bud-add loads" data-fam="${f.fam}" role="group" aria-label="Ajouter un Rack ${f.fam}">
+                <input class="control sm w-sm" data-action="load-input" placeholder="N° Rack" maxlength="3" inputmode="numeric" aria-label="Numéro du nouveau Rack ${f.fam}">
+                <button type="button" class="btn btn-ghost btn-sm" data-action="add-load">+ Rack ${f.fam}</button>
+            </div>`; };
+        const rows = list.map((t, i) => {
+            const rf = loadFamily(t), fam = rf || LOAD_FAMILIES.find(f => f.fam === t);
+            const l = rf ? loadName(t) : '';
+            const row = rf ? html`
+                <div class="bud-row is-rack" data-fam="${rf.fam}">
+                    <span class="badge c-name ${typeClass(t)}">${typeLabel(t)}</span>
+                    <input class="control sm c-gpao" data-action="gpao" data-rack="${l}" value="${a.gpao[l] || ''}" placeholder="Code GPAO" maxlength="30" autocomplete="off" aria-label="Code GPAO du Rack ${l}">
+                    ${budInput(t)}
+                    <button type="button" class="btn-icon danger c-act" data-action="del-load" data-load="${l}" aria-label="Supprimer le Rack ${rf.fam} ${l}" title="Supprimer ce Rack">✕</button>
+                </div>` : html`
+                <div class="bud-row">
+                    <span class="badge c-name ${typeClass(t)}">${typeLabel(t)}</span><span class="c-gpao"></span>${budInput(t)}<span class="c-act"></span>
+                </div>`;
+            const nextIsRack = fam && loadFamily(list[i + 1])?.fam === fam.fam;
+            return html`${row}${fam && !nextIsRack && !addedFam.has(fam.fam) ? addRow(fam) : ''}`;
+        });
+        const rest = LOAD_FAMILIES.filter(f => !addedFam.has(f.fam)).map(addRow);
+        const extra = extraBud.get(a.id) || new Set(), opts = budgetAddable(a).filter(t => !extra.has(t.code));
+        return html`
+                    <section class="bud" aria-label="Budgets, Racks et codes GPAO">
+                        <div class="bud-head"><h3 class="label">Budgets &amp; Racks</h3>
+                            <span class="bud-hint">Heures allouées par type · un Rack = budget + code GPAO (commun à CD et MEP)</span></div>
+                        <div class="bud-table">
+                            <div class="bud-row bud-cols" aria-hidden="true"><span class="c-name"></span><span class="c-gpao">${hasRacks ? 'GPAO' : ''}</span><span class="c-bud">Budget (h)</span><span class="c-act"></span></div>
+                            ${rows}${rest}
+                        </div>
+                        ${opts.length ? html`
+                        <select class="control sm w-lg budget-add" data-action="budget-add" aria-label="Ajouter un type au budget de cette affaire">
+                            <option value="">+ Ajouter un type…</option>
+                            ${opts.map(t => html`<option value="${t.code}">${t.label}</option>`)}
+                        </select>` : ''}
+                    </section>`;
     }
 
     const item = a => html`<details class="acc" id="aff-${a.id}" data-id="${a.id}" ${openIds.has(a.id) ? 'open' : ''} ${matches(a) ? '' : 'hidden'}>

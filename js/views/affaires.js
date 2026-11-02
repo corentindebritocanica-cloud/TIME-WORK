@@ -5,7 +5,7 @@
  */
 import { html, mount as render, on, $, $$, toElement } from '../ui/dom.js';
 import { pie, bindPieHover } from '../ui/pie.js';
-import { typeLabel, typeClass, typesFor, budgetAddable, sortTypes, loadFamily, loadName, affLoadGroups, loadsOf, LOAD_FAMILIES, defaultType } from '../domain/types.js';
+import { typeLabel, typeClass, typesFor, budgetAddable, inFamily, sortTypes, loadFamily, loadName, affLoadGroups, loadsOf, LOAD_FAMILIES, defaultType } from '../domain/types.js';
 import { parseDuration, todayISO, fmtNum, minsToHM, minsToDec } from '../domain/time.js';
 import { LOAD_RE, GPAO_RE, cleanLoadName } from '../domain/validate.js';
 import { budgetBar, minutesByType, typeOptions } from './shared.js';
@@ -71,9 +71,8 @@ export function create(el, ctx) {
         const bud = a.budgets;
         const groups = affLoadGroups(a);
         /** Cumul d'une famille (Racks seulement) : affiché juste après son dernier Rack. */
-        const famTotals = new Map(groups.map(g => [g.fam, {
-            min: g.codes.reduce((s, k) => s + (mpt[k] || 0), 0), bud: g.codes.reduce((s, k) => s + (bud[k] || 0), 0)
-        }]));
+        const sumFam = (obj, fam) => Object.entries(obj).reduce((s, [k, v]) => inFamily(k, fam) ? s + v : s, 0);
+        const famTotals = new Map(groups.map(g => [g.fam, { min: sumFam(mpt, g.fam), bud: sumFam(bud, g.fam) }]));
         const lastLoadOf = new Map();
         types.forEach(t => { const f = loadFamily(t); if (f) lastLoadOf.set(f.fam, t); });
         const pieData = types.map(t => ({ key: t, label: typeLabel(t), mins: mpt[t], cls: typeClass(t) }));
@@ -95,8 +94,8 @@ export function create(el, ctx) {
                         <div class="tile ${typeClass(t)} ${f ? 'is-load' : ''}"><span class="tile-label">${typeLabel(t)}</span><span class="tile-value">${minsToHM(mpt[t])}</span>
                             ${f && a.gpao[loadName(t)] ? html`<span class="tile-sub" title="Code GPAO">GPAO ${a.gpao[loadName(t)]}</span>` : ''}
                             ${bud[t] ? html`<span class="tile-sub ${over ? 'danger' : ''}">${Math.round(mpt[t] / (bud[t] * 60) * 100)} % / ${bud[t]} h</span>` : ''}</div>
-                        ${ft ? html`<div class="tile t-${f.fam} is-derived" title="Cumul des Racks ${f.fam} de l'affaire (informatif, non ajouté au total). Au tableau de bord, ces heures sont comptées dans « ${f.fam} »."><span class="tile-label">Σ Racks ${f.fam}</span><span class="tile-value">${minsToHM(ft.min)}</span>
-                            <span class="tile-sub ${ft.bud && ft.min > ft.bud * 60 ? 'danger' : ''}">${ft.bud ? Math.round(ft.min / (ft.bud * 60) * 100) + ' % / ' + ft.bud + ' h' : 'cumul des Racks'}</span></div>` : ''}`; })}
+                        ${ft ? html`<div class="tile t-${f.fam} is-derived" title="Cumul de tous les types « ${f.fam} » de l'affaire (${f.fam}, reprises, reviews, Racks), temps et budget (informatif, non ajouté au total)."><span class="tile-label">Σ Racks ${f.fam}</span><span class="tile-value">${minsToHM(ft.min)}</span>
+                            <span class="tile-sub ${ft.bud && ft.min > ft.bud * 60 ? 'danger' : ''}">${ft.bud ? Math.round(ft.min / (ft.bud * 60) * 100) + ' % / ' + ft.bud + ' h' : 'cumul des types ' + f.fam}</span></div>` : ''}`; })}
                     <div class="tile is-accent c-accent"><span class="tile-label">Total</span><span class="tile-value">${minsToHM(tot)}</span></div>
                 </div>` : ''}
                 <div class="aff-content">

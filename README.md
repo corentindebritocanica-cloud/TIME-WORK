@@ -92,7 +92,8 @@ restauration et import CSV ; le bouton rond voisin déconnecte.
   (ex. CD Rack 1 = 10 h, MEP Rack 1 = 15 h) et **un code GPAO par Rack** (saisi dans
   Affaires → réglages → Racks ; commun à CD et MEP pour un même numéro, affiché dans la tuile
   et dans le menu « Type »). Dans l'affaire, une tuile en pointillés « Σ Racks CD / MEP » donne
-  le cumul des Racks et de leurs budgets. Au **tableau de bord**, chaque Rack est **cumulé dans
+  le cumul du temps et du budget de **tous les types contenant « CD »** (CD, CD - reprise,
+  Review CD, Racks CD), idem pour MEP ; CD et MEP restent séparés ; informatif, non ajouté au total. Au **tableau de bord**, chaque Rack est **cumulé dans
   sa famille** (CD ou MEP, mention « dont Racks … ») ; les reprises et reviews restent des types
   à part. Supprimer un Rack reclasse ses saisies dans CD ou MEP.
   répartition graphique (camemberts), vue
@@ -386,6 +387,7 @@ service cloud.firestore {
 | 2026-10-21 | Code GPAO dans Imputées | Nouvelle colonne **Code GPAO** entre « Code affaire » et « Type » dans le tableau des saisies de l'onglet Imputées (code du Rack de la saisie, « — » pour les autres types). Cache PWA : `tw-2026-10-21-imputees-gpao`. |
 | 2026-11-02 | Types « sans budget » | Nouveau réglage par type dans Paramètres (icône jauge) : un type **sans budget** reste proposé à la saisie mais n'est plus listé dans « Budgets par type » d'une affaire ; un menu **« + Ajouter un type… »** permet de l'y ajouter à la main pour une affaire précise. Un budget déjà saisi reste affiché. Champ `noBudget` dans `settings.types` (Firestore). Fichiers : `js/domain/types.js`, `js/views/parametres.js`, `js/views/affaires.js`, `index.html` (icônes), tests. |
 | 2026-11-02 | Saisies repliées | Onglet **Par affaire** : seules les **4 saisies les plus récentes** sont affichées ; les autres sont repliées sous une ligne **« N saisies plus anciennes »** (accordéon, `aria-expanded`). L'état déplié est conservé pendant la session. Fichiers : `js/views/affaires.js`, `css/app.css`. |
+| 2026-11-02 | Σ Racks par famille | La tuile **Σ Racks CD** (resp. **MEP**) d'une affaire cumule désormais le temps ET le budget de **tous les types dont le code contient le mot CD** (resp. MEP) : CD, CD - reprise, Review CD, CD Rack n… (`inFamily()` dans `js/domain/types.js`). CD et MEP restent séparés. Le total de l'affaire et le tableau de bord sont inchangés. |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

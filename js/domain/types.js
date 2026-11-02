@@ -62,6 +62,8 @@ const CODE_RE = /^[A-Z0-9_]{1,40}$/;
 
 /** Famille d'un code de Load (`{fam, field, prefix}`), ou null si ce n'est pas un Load. */
 export const loadFamily = code => typeof code === 'string' ? LOAD_FAMILIES.find(f => code.startsWith(f.prefix)) || null : null;
+/** Le code du type contient-il la famille (« CD », « MEP ») comme mot ? CD, CD_REP, REVIEW_CD, CD_RACK_1… → CD. */
+export const inFamily = (code, fam) => typeof code === 'string' && code.split('_').includes(fam);
 /** Type « Load » (CD ou MEP) ? */
 export const isLoadType = code => loadFamily(code) !== null;
 /** Nom du Load d'un code (CD_RACK_1 → « 1 »), ou '' si ce n'est pas un Load. */

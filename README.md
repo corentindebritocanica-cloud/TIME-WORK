@@ -397,7 +397,7 @@ service cloud.firestore {
 | 2026-11-02 | Fenêtres : espacement | Retouche visuelle des fenêtres Racks / Budgets : zones aérées et séparées (liste en carte à lignes, bloc d'ajout teinté avec libellé). Fichiers : `js/views/affaires.js`, `css/app.css`. |
 | 2026-11-02 | Info-bulle Σ alignée | Colonnes Utilisé / Budget alignées sur toutes les lignes de l'info-bulle (CSS `subgrid`), pour les tuiles Σ CD et Σ MEP. Fichier : `css/app.css`. |
 | 2026-11-02 | Nouvelle affaire sans Racks | Les champs « Racks CD » et « Racks MEP » sont **retirés du formulaire de création** d'affaire ; les Racks se renseignent après coup, dans les réglages de l'affaire (bouton Racks). Fichier : `js/views/affaires.js`. |
-| 2026-11-05 | Budgets au demi-heure | Dans la fenêtre Budgets d'une affaire, les heures se saisissent désormais **par pas de 0,5 h** (12,5 h au lieu de 12 ou 13 uniquement) : champ d'ajout et champs modifiables en `step="0.5"`, valeur arrondie au demi-heure, affichage avec virgule (12,5 h) dans le bouton Budgets, le total, les tuiles et l'info-bulle Σ. Aucun changement de modèle de données (nombres décimaux déjà acceptés). Fichiers : `js/views/affaires.js`, `sw.js` (version du cache). |
+| 2026-11-05 | Budgets en heures:minutes | Dans la fenêtre Budgets d'une affaire, les heures se saisissent au format **heures:minutes** (`12h30`, `12:30`, `12h`, `12`), **sans décimal** ; champs texte (plus de champ numérique), erreur explicite si le format est invalide (minutes ≤ 59). Affichage en `12h30` partout (bouton Budgets, total, tuiles, info-bulle Σ). Stockage inchangé (heures décimales en base, arrondies à la minute à l'affichage). Fichiers : `js/views/affaires.js`, `sw.js` (version du cache). |
 
 ### Plan de correction issu de l'audit (2026-09-29)
 

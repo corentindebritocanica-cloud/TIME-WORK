@@ -86,7 +86,7 @@ export function create(el, ctx) {
                     <div class="pop-row pop-head"><span>Type ${fam}</span><span>Utilisé</span><span>Budget</span></div>
                     ${members.map(k => { const m = mpt[k] || 0, b = bud[k] || 0; return html`
                     <div class="pop-row"><span class="pop-type"><span class="dot ${typeClass(k)}" aria-hidden="true"></span>${typeLabel(k)}</span>
-                        <span class="num ${b && m > b * 60 ? 'danger' : ''}">${minsToHM(m)}</span><span class="num">${b ? fh(b) + ' h' : '—'}</span></div>`; })}
+                        <span class="num ${b && m > b * 60 ? 'danger' : ''}">${minsToHM(m)}</span><span class="num">${b ? hmB(b) : '—'}</span></div>`; })}
                 </div></div>`;
         };
         return html`
@@ -106,7 +106,7 @@ export function create(el, ctx) {
                         const over = bud[t] > 0 && mpt[t] > bud[t] * 60, f = loadFamily(t); return html`
                         <div class="tile ${typeClass(t)} ${f ? 'is-load' : ''}"><span class="tile-label">${typeLabel(t)}</span><span class="tile-value">${minsToHM(mpt[t])}</span>
                             ${f && a.gpao[loadName(t)] ? html`<span class="tile-sub" title="Code GPAO">GPAO ${a.gpao[loadName(t)]}</span>` : ''}
-                            ${bud[t] ? html`<span class="tile-sub ${over ? 'danger' : ''}">${Math.round(mpt[t] / (bud[t] * 60) * 100)} % / ${fh(bud[t])} h</span>` : ''}</div>`; })}
+                            ${bud[t] ? html`<span class="tile-sub ${over ? 'danger' : ''}">${Math.round(mpt[t] / (bud[t] * 60) * 100)} % / ${hmB(bud[t])}</span>` : ''}</div>`; })}
                     <div class="tile is-accent c-accent"><span class="tile-label">Total</span><span class="tile-value">${minsToHM(tot)}</span></div>
                 </div>` : ''}
                 <div class="aff-content">
@@ -128,7 +128,7 @@ export function create(el, ctx) {
                             const b = bud[d.key] || 0, pct = b ? Math.round(d.mins / (b * 60) * 100) : 0;
                             return html`<li class="legend-item ${d.cls}" data-lk="${scope}-${i}"><span class="dot"></span><span class="legend-label">${d.label}</span>
                                 <span class="legend-pct">${Math.round(d.mins / tot * 100)} %</span>
-                                <span class="legend-hm">${minsToHM(d.mins)}${b ? html` · <span class="${pct > 100 ? 'danger' : pct > 80 ? 'c-warn legend-pct' : 'ok'}">${pct} % / ${fh(b)} h</span>` : ''}</span></li>`;
+                                <span class="legend-hm">${minsToHM(d.mins)}${b ? html` · <span class="${pct > 100 ? 'danger' : pct > 80 ? 'c-warn legend-pct' : 'ok'}">${pct} % / ${hmB(b)}</span>` : ''}</span></li>`;
                         })}</ul></div>` : ''}
                 </div>
                 <div class="aff-settings">
@@ -145,9 +145,16 @@ export function create(el, ctx) {
             </div>`;
     }
 
-    /** Heures budgétées au demi-heure près (12,5 → « 12,5 »). */
-    function fh(n) { return String(n).replace('.', ','); }
-    function halfH(v) { return Math.round((+v || 0) * 2) / 2; }
+    /** Budget (heures décimales en base) → « 12h30 ». */
+    function hmB(h) { return minsToHM(Math.round((+h || 0) * 60)); }
+    /** « 12h30 », « 12:30 », « 12h », « 12 » → minutes ; null si invalide (pas de décimal). */
+    function parseBud(raw) {
+        const m = String(raw ?? '').trim().toLowerCase().match(/^(\d{1,3})\s*(?:[h:]\s*(\d{1,2})?)?$/);
+        if (!m) return null;
+        const mm = m[2] === undefined ? 0 : +m[2];
+        return mm > 59 ? null : +m[1] * 60 + mm;
+    }
+    const BUD_HELP = 'Format heures:minutes, ex. 12h30 · 12:30 · 12h · 12';
 
     /** Racks (nombre) et budgets (types · heures) : deux boutons qui ouvrent chacun une petite fenêtre. */
     const rackNumbers = a => [...new Set([...loadsOf(a, 'CD'), ...loadsOf(a, 'MEP')])].sort((x, y) => x - y);
@@ -158,7 +165,7 @@ export function create(el, ctx) {
                         <h3 class="label">Racks &amp; Budgets</h3>
                         <div class="bud-actions">
                             <button type="button" class="btn btn-ghost" data-action="open-racks">Racks <span class="bud-count">${nR || 'aucun'}</span></button>
-                            <button type="button" class="btn btn-ghost" data-action="open-budgets">Budgets <span class="bud-count">${nB ? nB + ' type' + (nB > 1 ? 's' : '') + ' · ' + fh(hB) + ' h' : 'aucun'}</span></button>
+                            <button type="button" class="btn btn-ghost" data-action="open-budgets">Budgets <span class="bud-count">${nB ? nB + ' type' + (nB > 1 ? 's' : '') + ' · ' + hmB(hB) : 'aucun'}</span></button>
                         </div>
                     </section>`;
     }
@@ -397,23 +404,22 @@ export function create(el, ctx) {
                             ${main.map(opt)}
                             ${other.length ? html`<optgroup label="Sans budget par défaut">${other.map(opt)}</optgroup>` : ''}
                         </select>
-                        <input type="number" class="control sm num" name="h" min="0.5" step="0.5" placeholder="Heures" aria-label="Heures allouées">
+                        <input type="text" class="control sm num" name="h" inputmode="text" autocomplete="off" placeholder="ex. 12h30" aria-label="Heures allouées (heures:minutes)">
                         <button type="button" class="btn btn-primary btn-sm" data-act="add">Ajouter</button>
                     </div>
                     <small class="field-hint err" data-role="pop-err" role="alert"></small>
                 </div>
                 ${have.length ? html`<span class="label">Budgets alloués</span><ul class="pop-list bud-list">${have.map(t => html`<li class="bud-item">
                         <span class="badge ${typeClass(t)}">${typeLabel(t)}</span>
-                        <input type="number" class="control sm num" min="0" step="0.5" data-act="set" data-type="${t}" value="${bud[t]}" aria-label="Budget ${typeLabel(t)} (heures)">
-                        <span class="muted">h</span>
+                        <input type="text" class="control sm num" autocomplete="off" data-act="set" data-type="${t}" value="${hmB(bud[t])}" aria-label="Budget ${typeLabel(t)} (heures:minutes)">
                         <button type="button" class="btn-icon danger" data-act="del" data-type="${t}" aria-label="Retirer le budget ${typeLabel(t)}" title="Retirer ce budget">✕</button>
                     </li>`)}</ul>
-                    <p class="bud-total">Total : <b data-role="bud-total">${fh(total(bud))} h</b></p>` : html`<p class="empty">Aucun budget défini : choisis un type et un nombre d'heures.</p>`}`);
+                    <p class="bud-total">Total : <b data-role="bud-total">${hmB(total(bud))}</b></p>` : html`<p class="empty">Aucun budget défini : choisis un type et un nombre d'heures.</p>`}`);
         };
         const addBud = root => {
-            const sel = $('[name="type"]', root), hI = $('[name="h"]', root), t = sel.value, h = halfH(hI.value);
+            const sel = $('[name="type"]', root), hI = $('[name="h"]', root), t = sel.value, min = parseBud(hI.value), h = min / 60;
             if (!t) { popErr(root, 'Choisis un type de travail.'); sel.focus(); return; }
-            if (!(h > 0)) { popErr(root, 'Indique un nombre d\'heures (0,5 ou plus, par pas de 0,5).'); hI.focus(); return; }
+            if (!(min > 0)) { popErr(root, 'Durée invalide. ' + BUD_HELP); hI.focus(); return; }
             store.updateAffaire(id, { budgets: { ...curAff(id).budgets, [t]: h } });
             paint(root); $('[name="type"]', root)?.focus();
         };
@@ -428,10 +434,12 @@ export function create(el, ctx) {
                 }, { signal });
                 root.addEventListener('change', ev => {
                     const i = ev.target.closest('[data-act="set"]'); if (!i) return;
-                    const n = Math.max(0, halfH(i.value)), budgets = { ...curAff(id).budgets };
+                    const raw = i.value.trim(), min = raw === '' ? 0 : parseBud(raw);
+                    if (min === null) { paint(root); popErr(root, 'Durée invalide. ' + BUD_HELP); return; }
+                    const n = min / 60, budgets = { ...curAff(id).budgets };
                     if (n > 0) budgets[i.dataset.type] = n; else delete budgets[i.dataset.type];
                     store.updateAffaire(id, { budgets });
-                    if (n > 0) { const t = $('[data-role="bud-total"]', root); if (t) t.textContent = fh(total(budgets)) + ' h'; } else paint(root);
+                    if (n > 0) { i.value = hmB(n); const t = $('[data-role="bud-total"]', root); if (t) t.textContent = hmB(total(budgets)); } else paint(root);
                 }, { signal });
                 enterKey(root, signal, '.bud-add-row', () => addBud(root));
             }

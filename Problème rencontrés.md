@@ -550,5 +550,6 @@ Depuis le lot 3, l'app peut aussi être **installée comme PWA** (Edge → ⋯ �
 ### 1. Impossible de saisir un budget de 12 h 30
 - **Constat** : dans la fenêtre Budgets d'une affaire, seules des heures entières étaient possibles (12 h ou 13 h).
 - **Cause** : champs `type="number"` en `step="1"` et valeur arrondie à l'entier (`Math.round`) à l'ajout comme à la modification.
-- **Solution** : `step="0.5"`, arrondi au demi-heure (`halfH`), affichage avec virgule (`fh`) partout où un budget est montré. Les validateurs (`validate.js`, `store.js`) acceptaient déjà les décimaux.
+- **Première tentative (écartée)** : pas de 0,5 h avec affichage « 12,5 h » ; refusée, le décimal n'est pas voulu pour un temps.
+- **Solution** : champs texte au format heures:minutes (`parseBud` : `12h30`, `12:30`, `12h`, `12` ; minutes ≤ 59 ; pas de décimal) et affichage `12h30` (`hmB`) partout. `parseDuration` n'est pas réutilisé car plafonné à 24 h. Les validateurs (`validate.js`, `store.js`) acceptaient déjà les nombres décimaux en base.
 - **Statut** : résolu (à valider à l'écran).

@@ -236,7 +236,7 @@ et `VERSION`). Sur iPhone, l'icône n'est relue qu'à l'ajout à l'écran d'accu
 | 02/11/2026 | **Fenêtres Racks / Budgets, espacement** : zones séparées par `--sp-4` (texte · liste · ajout) ; liste en **carte à lignes** (rangées `--sp-3` + filets `--v-hair`) ; bloc d'ajout **teinté** avec son libellé (« Ajouter un Rack / un budget ») ; message d'erreur masqué quand vide. Cause du « tout se superpose » : le contenu était dans un seul conteneur, l'espacement du dialogue ne s'appliquait pas entre ses éléments. |
 | 02/11/2026 | **Info-bulle Σ** : colonnes « Utilisé » / « Budget » désormais communes à toutes les lignes (`subgrid`, chiffres alignés à droite) ; chaque ligne avait sa propre largeur de colonne, d'où le décalage. |
 | 02/11/2026 | **Nouvelle affaire** : champs « Racks CD / MEP » retirés du formulaire (Code · Client · Machine · Ajouter) ; Racks ajoutés ensuite via le bouton « Racks » de l'affaire. |
-| 05/11/2026 | Budgets : saisie au demi-heure (pas de 0,5 h, affichage « 12,5 h » avec virgule) dans la fenêtre Budgets et ses affichages (bouton, total, tuiles, info-bulle Σ). |
+| 05/11/2026 | Budgets : saisie et affichage en heures:minutes (« 12h30 »), jamais en décimal ; champs texte avec exemple en placeholder. |
 
 *Mettre à jour ce tableau à chaque évolution de l'interface.*
 

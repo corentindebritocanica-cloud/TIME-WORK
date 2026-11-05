@@ -545,3 +545,10 @@ Depuis le lot 3, l'app peut aussi être **installée comme PWA** (Edge → ⋯ �
 - **Solution** : une grille parente à 3 colonnes et des lignes en `subgrid` (colonnes partagées) ; nombres alignés à droite.
 - **Statut** : résolu (à valider visuellement).
 
+## 2026-11-05 — Budgets : heures rondes uniquement
+
+### 1. Impossible de saisir un budget de 12 h 30
+- **Constat** : dans la fenêtre Budgets d'une affaire, seules des heures entières étaient possibles (12 h ou 13 h).
+- **Cause** : champs `type="number"` en `step="1"` et valeur arrondie à l'entier (`Math.round`) à l'ajout comme à la modification.
+- **Solution** : `step="0.5"`, arrondi au demi-heure (`halfH`), affichage avec virgule (`fh`) partout où un budget est montré. Les validateurs (`validate.js`, `store.js`) acceptaient déjà les décimaux.
+- **Statut** : résolu (à valider à l'écran).
